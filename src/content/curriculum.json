@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "units": [
+    {
+      "id": "alfabeto",
+      "title": "Alfabeto",
+      "order": 1,
+      "type": "letter",
+      "icon": "A",
+      "objectiveTemplate": "Colete a letra {target}",
+      "pool": [
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+      ]
+    },
+    {
+      "id": "silabas-b",
+      "title": "Família do B",
+      "order": 2,
+      "type": "syllable",
+      "icon": "BA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["BA", "BE", "BI", "BO", "BU"]
+    },
+    {
+      "id": "silabas-c",
+      "title": "Família do C",
+      "order": 3,
+      "type": "syllable",
+      "icon": "CA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["CA", "CO", "CU", "CE", "CI"]
+    },
+    {
+      "id": "silabas-d",
+      "title": "Família do D",
+      "order": 4,
+      "type": "syllable",
+      "icon": "DA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["DA", "DE", "DI", "DO", "DU"]
+    },
+    {
+      "id": "silabas-f",
+      "title": "Família do F",
+      "order": 5,
+      "type": "syllable",
+      "icon": "FA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["FA", "FE", "FI", "FO", "FU"]
+    },
+    {
+      "id": "silabas-g",
+      "title": "Família do G",
+      "order": 6,
+      "type": "syllable",
+      "icon": "GA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["GA", "GO", "GU", "GE", "GI"]
+    },
+    {
+      "id": "silabas-l",
+      "title": "Família do L",
+      "order": 7,
+      "type": "syllable",
+      "icon": "LA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["LA", "LE", "LI", "LO", "LU"]
+    },
+    {
+      "id": "silabas-m",
+      "title": "Família do M",
+      "order": 8,
+      "type": "syllable",
+      "icon": "MA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["MA", "ME", "MI", "MO", "MU"]
+    },
+    {
+      "id": "silabas-p",
+      "title": "Família do P",
+      "order": 9,
+      "type": "syllable",
+      "icon": "PA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["PA", "PE", "PI", "PO", "PU"]
+    },
+    {
+      "id": "silabas-s",
+      "title": "Família do S",
+      "order": 10,
+      "type": "syllable",
+      "icon": "SA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["SA", "SE", "SI", "SO", "SU"]
+    },
+    {
+      "id": "silabas-t",
+      "title": "Família do T",
+      "order": 11,
+      "type": "syllable",
+      "icon": "TA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["TA", "TE", "TI", "TO", "TU"]
+    },
+    {
+      "id": "silabas-v",
+      "title": "Família do V",
+      "order": 12,
+      "type": "syllable",
+      "icon": "VA",
+      "objectiveTemplate": "Colete a sílaba {target}",
+      "pool": ["VA", "VE", "VI", "VO", "VU"]
+    },
+    {
+      "id": "digrafos",
+      "title": "Dígrafos",
+      "order": 13,
+      "type": "syllable",
+      "icon": "CH",
+      "objectiveTemplate": "Colete o dígrafo {target}",
+      "pool": ["CH", "LH", "NH"],
+      "distractorPool": ["CH", "LH", "NH", "SS", "RR", "QU", "GU"]
+    },
+    {
+      "id": "encontros-consonantais",
+      "title": "Encontros Consonantais",
+      "order": 14,
+      "type": "syllable",
+      "icon": "BR",
+      "objectiveTemplate": "Colete o encontro {target}",
+      "pool": [
+        "BR", "CR", "DR", "FR", "GR", "PR", "TR", "VR",
+        "BL", "CL", "FL", "GL", "PL", "TL"
+      ]
+    },
+    {
+      "id": "palavras-monossilabas",
+      "title": "Palavras de Uma Sílaba",
+      "order": 15,
+      "type": "word",
+      "icon": "SOL",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": [
+        "SOL", "MAR", "PÉ", "PÃO", "MÃO", "FLOR", "LUZ", "SAL", "MEL",
+        "RIO", "CÉU", "CHÃO", "PAI", "MÃE", "BOM", "MAL", "GIZ", "SOM",
+        "FIM", "PÁ", "DÓ", "RÉ", "NÓ", "GÁS"
+      ]
+    },
+    {
+      "id": "palavras-dissilabas",
+      "title": "Palavras de Duas Sílabas",
+      "order": 16,
+      "type": "word",
+      "icon": "BOLA",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": [
+        "BOLA", "BOLO", "CASA", "DADO", "GATO", "PATO", "SAPO", "MESA",
+        "FACA", "VACA", "RATO", "LOBO", "FOGO", "JOGO", "UVA", "SOPA",
+        "TETO", "DEDO", "VELA", "FADA", "MALA", "PIPA", "COCO", "VOVÔ",
+        "VOVÓ", "BEBÊ", "MAMÃE", "PAPAI", "LUA", "CHUVA"
+      ]
+    }
+  ]
+}

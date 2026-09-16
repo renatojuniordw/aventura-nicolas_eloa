@@ -1,0 +1,20 @@
+{
+  "name": "joguinho-sobrinhos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Aventura das Letras — jogo de plataforma 2D educativo em JavaScript puro (Canvas 2D).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate:levels": "node tools/generate-levels.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

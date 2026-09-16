@@ -1,0 +1,160 @@
+# 02 — Gameplay e controles
+
+Regras do jogo, controles e fluxo de uma partida. Tudo que está aqui é regra de
+comportamento; os números exatos vivem em `src/core/config.js` (ver
+[01 — Arquitetura](01-arquitetura.md#8-configuração-central)).
+
+---
+
+## 1. A ideia do jogo
+
+O jogador escolhe um personagem e atravessa uma fase de plataforma 2D. No topo da tela
+aparece **o que ele precisa procurar** — uma letra, uma sílaba ou uma palavra. Espalhados
+pela fase existem vários itens; **um deles é a resposta certa** e os outros são distratores.
+
+- **Coletar o item certo** → comemoração (confete) e a fase termina em vitória.
+- **Coletar um item errado** → o jogador perde um coração e continua procurando.
+- **Cair em um buraco** → o jogador volta ao *checkpoint* **sem perder coração**.
+
+O objetivo pedagógico é reconhecer letras, sílabas e palavras — então errar não deve ser
+punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.
+
+---
+
+## 2. Controles
+
+| Ação | Teclas | Ação semântica |
+|---|---|---|
+| Andar para a esquerda | `←` ou `A` | `moveLeft` |
+| Andar para a direita | `→` ou `D` | `moveRight` |
+| Pular | `Espaço`, `↑`, `W` ou `Z` | `jump` |
+| Pausar / continuar | `Esc` ou `P` | `pause` |
+| Confirmar (menus) | `Enter` ou `J` | `confirm` |
+| Voltar / cancelar | `Backspace` ou `Y` | `back` |
+| Mostrar hitboxes (depuração) | `F2` | `debug` |
+| Poder 1 / Poder 2 | `E` / `Q` | `power1` / `power2` — **reservados**, sem efeito nesta versão |
+
+O mapeamento vive em `src/input/keyboard-keymap.js` e usa **posição física da tecla**
+(`event.code`), não o caractere produzido. Assim funciona igual em teclado ABNT2 e US, e
+não quebra com acentos ou teclas mortas.
+
+> Estes controles são *intenção*, não *hardware*. Um adaptador de ESP32 pode emitir as
+> mesmas ações sem alterar uma linha do jogo — ver [03 — Abstração de input](03-abstracao-de-input.md).
+
+---
+
+## 3. Vidas e feedback
+
+- A criança começa com **3 corações**.
+- **Acerto**: confete, mensagem "Muito bem! Você encontrou!" e a fase é concluída.
+- **Erro**: perde 1 coração, uma explosão de partículas vermelhas e a mensagem
+  `Ops! Esse era "X". Procure "Y".` — a mensagem **ensina** em vez de só punir.
+- **Perigo (espinhos)**: perde 1 coração, aviso e volta ao checkpoint.
+- **Queda em buraco**: **não** custa coração; volta ao checkpoint.
+- **Sem corações**: tela de "Acabaram os corações", com opções de tentar de novo ou ir ao menu.
+
+O jogo é generoso de propósito: se errar apaga o progresso da fase, a criança desiste.
+A dificuldade vem do reconhecimento, não da punição.
+
+---
+
+## 4. Movimento do personagem
+
+O controle foi ajustado para ser **previsível e tolerante**:
+
+- **Andar**: velocidade constante no chão; para imediatamente ao soltar a tecla.
+- **No ar**: controle reduzido (75% da velocidade), e o momento horizontal é mantido se
+  não houver entrada — assim um pulo para frente continua para frente.
+- **Pulo com altura variável**: segurar a tecla mantém o pulo alto; soltar cedo encurta
+  o arco. Isso dá controle fino sem exigir precisão.
+- **Tempo de coiote** (0,1 s): pular logo depois de sair da borda ainda funciona. É o
+  ajuste que faz a criança sentir que "o jogo entendeu".
+- **Buffer de pulo** (0,1 s): apertar o pulo um pouco *antes* de aterrissar guarda a
+  intenção e o pulo acontece ao tocar o chão.
+- **Pulo duplo não existe nesta versão** — e há teste garantindo isso. A arquitetura,
+  porém, já permite adicioná-lo como um novo estado (ver [08](08-evolucao-futura.md)).
+
+---
+
+## 5. Estrutura de uma fase
+
+Cada fase é um arquivo JSON (ver [04 — Modelo de conteúdo](04-modelo-de-conteudo.md)) com:
+
+- **Terreno sólido** e **plataformas de mão única** (dá para passar por baixo e pousar em cima).
+- **Itens**: exatamente 1 alvo e até 3 distratores, posicionados em plataformas ou no chão.
+- **Perigos**: espinhos (algumas fases).
+- **Buraco**: em algumas fases, uma fenda no chão (custa só o retorno ao checkpoint).
+- **Checkpoint**: onde o jogador reaparece depois de cair.
+
+As fases são montadas a partir de **4 templates de terreno** (`planície`, `degraus`,
+`plataformas`, `rio`), alternados entre as lições para dar variedade sem exigir trabalho
+manual. Ver o gerador em `tools/generate-levels.mjs`.
+
+---
+
+## 6. Fluxo de uma partida
+
+```
+Boot
+ └─► Menu principal
+      ├─ escolher/criar jogador
+      ├─ trocar personagem (4 opções)
+      ├─ escolher fase (somente as liberadas)
+      └─ Jogar ──► próxima lição não concluída
+                    │
+                    ▼
+                 Fase (game)
+                    ├─ Esc ──► Pausa ──► continuar / recomeçar / menu
+                    ├─ erros ──► perde coração ──► 0 corações ──► Game Over
+                    └─ acerto ──► comemoração ──► Vitória
+                                                    ├─ Próxima fase
+                                                    ├─ Jogar de novo
+                                                    └─ Menu
+```
+
+Há **pausa automática** ao trocar de aba ou minimizar a janela: o input é limpo (nenhuma
+tecla fica presa) e o jogo pausa sozinho.
+
+---
+
+## 7. Progressão e recompensa
+
+- Cada lição concluída é marcada como feita no perfil do jogador.
+- **Estrelas** premiam a precisão:
+  - 3 estrelas → nenhum erro
+  - 2 estrelas → 1 erro
+  - 1 estrela → 2 erros ou mais
+- Se a criança refizer uma fase e for melhor, o **melhor resultado é mantido** (estrelas
+  nunca diminuem).
+- As lições são **liberadas em sequência**: sempre há as concluídas mais a próxima.
+- Cada jogador tem seu próprio progresso — irmãos podem compartilhar o aparelho sem
+  sobrescrever um ao outro (ver [04](04-modelo-de-conteudo.md#5-persistência)).
+
+---
+
+## 8. Conteúdo disponível
+
+**16 unidades** e **152 lições** nesta versão:
+
+| Unidade | Lições | Exemplos |
+|---|---|---|
+| Alfabeto | 26 | A, B, C, … Z |
+| Famílias silábicas (B, C, D, F, G, L, M, P, S, T, V) | 55 | BA BE BI BO BU; CA CO CU CE CI |
+| Dígrafos | 3 | CH, LH, NH |
+| Encontros consonantais | 14 | BR, CR, DR, FL, GL, PL, TR, VR |
+| Palavras de uma sílaba | 24 | SOL, MAR, PÉ, PÃO, FLOR, LUZ |
+| Palavras de duas sílabas | 30 | BOLA, CASA, MAMÃE, GATO, VOVÓ |
+
+O conteúdo é **dado**, não código: acrescentar uma palavra é editar
+`src/content/curriculum.json` e rodar `npm run generate:levels`. Nada de programar.
+
+---
+
+## 9. Acessibilidade e cuidado com a criança
+
+- Todo o texto do jogo está em português e em linguagem simples.
+- A comparação de respostas **ignora acentos e maiúsculas**: `MAMÃE` = `mamae` = `Mamãe`.
+- Menus são navegáveis por clique **e** por teclado (`Enter` confirma, `Backspace` volta).
+- Botões do menu não roubam o foco do jogo, então o teclado continua funcionando depois
+  de qualquer clique.
+- Errar sempre traz uma mensagem didática (`Esse era "E". Procure "A".`), nunca só um "errou".

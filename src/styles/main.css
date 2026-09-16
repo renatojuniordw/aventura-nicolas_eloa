@@ -1,0 +1,220 @@
+/* Layout base: canvas centralizado e overlays de menu por cima. */
+:root {
+  --color-bg: #1b2430;
+  --color-panel: #223044;
+  --color-text: #f4f7fb;
+  --color-accent: #ffcc4d;
+  --color-accent-strong: #f5a623;
+  --font-ui: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  background: #9bd3f5;
+  image-rendering: pixelated;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.overlay-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.overlay-root > * {
+  pointer-events: auto;
+}
+
+.overlay {
+  width: min(720px, 92vw);
+  background: rgba(20, 28, 40, 0.94);
+  border: 2px solid rgba(255, 204, 77, 0.5);
+  border-radius: 16px;
+  padding: 28px 32px;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  color: var(--color-accent);
+}
+
+.overlay h2 {
+  margin: 0 0 16px;
+  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+}
+
+.overlay p {
+  margin: 0 0 18px;
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* Scrollable content area (phase picker) so long lists stay usable. */
+.overlay-scroll {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin: 6px 0 12px;
+  text-align: left;
+}
+
+.overlay-scroll h2 {
+  font-size: 1.05rem;
+  margin: 14px 0 6px;
+  color: var(--color-accent);
+  opacity: 0.9;
+}
+
+.overlay-scroll .overlay-actions {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.overlay-scroll button {
+  padding: 8px 14px;
+  font-size: 0.95rem;
+}
+
+.overlay button {
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--color-panel);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.overlay button:hover {
+  transform: translateY(-2px);
+  background: #2c3d55;
+}
+
+.overlay button.primary {
+  background: var(--color-accent);
+  color: #23282e;
+  font-weight: 700;
+}
+
+.overlay button.primary:hover {
+  background: var(--color-accent-strong);
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 140px));
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.character-card[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: rgba(255, 204, 77, 0.16);
+}
+
+.character-swatch {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.character-portrait {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 10px;
+  image-rendering: pixelated;
+}
+
+.victory-celebrate {
+  width: 140px;
+  height: 140px;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  margin: 4px auto;
+}
+
+.profile-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.controls-help {
+  margin-top: 18px;
+  font-size: 0.92rem;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.controls-help kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-family: inherit;
+}

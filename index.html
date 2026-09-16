@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aventura das Letras</title>
+    <meta
+      name="description"
+      content="Jogo de plataforma 2D educativo em português: pule, descubra e brinque com letras, sílabas e palavras."
+    />
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body>
+    <!-- Game world is rendered on the canvas; menus are accessible DOM overlays. -->
+    <div id="app">
+      <canvas id="game-canvas" width="960" height="540" aria-label="Área do jogo"></canvas>
+      <div id="overlay-root" class="overlay-root"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
