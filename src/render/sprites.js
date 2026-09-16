@@ -1,6 +1,12 @@
 import { COLORS, VIEWPORT } from '../core/config.js';
 import { PlayerStateId } from '../gameplay/player/player-state.js';
 import { POSE_BY_STATE, POSE_FRAMES, frameRect } from './atlas-meta.js';
+import {
+  CHECKPOINT_BOUNDS,
+  FINISH_PORTAL_BOUNDS,
+  LETTER_CARRIER_BOUNDS,
+  resolveBackgroundKey,
+} from './sprite-assets.js';
 
 /** How long each animation frame stays on screen. */
 const FRAME_DURATION_MS = 110;
@@ -11,29 +17,6 @@ const FRAME_DURATION_MS = 110;
  * reads clearly on screen without changing any physics.
  */
 const SPRITE_SCALE = 1.8;
-
-// Exact visual bounds for trimmed pixel art assets (no empty transparent margins)
-const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 257, sy: 279, sw: 740, sh: 718 });
-const CHECKPOINT_BOUNDS = Object.freeze({ sx: 334, sy: 116, sw: 636, sh: 1056 });
-const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 175, sy: 58, sw: 902, sh: 1135 });
-
-function resolveBackgroundKey(level) {
-  if (!level) return 'bg:primavera-lago';
-  if (level.background && typeof level.background === 'string') {
-    if (level.background.startsWith('bg:')) return level.background;
-    if (level.background.includes('pomar')) return 'bg:primavera-pomar';
-    if (level.background.includes('bosque')) return 'bg:outono-bosque';
-    if (level.background.includes('vale')) return 'bg:outono-vale';
-    if (level.background.includes('garden')) return 'bg:garden-pixel';
-  }
-
-  // Pick themed background by level category
-  const id = level.id ?? '';
-  if (id.includes('palavras') || id.includes('dificil')) return 'bg:outono-bosque';
-  if (id.includes('silabas')) return 'bg:primavera-pomar';
-  if (id.includes('encontros')) return 'bg:outono-vale';
-  return 'bg:primavera-lago';
-}
 
 /**
  * Draws the world: panoramic parallax backgrounds, terrain, checkpoints,

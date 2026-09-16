@@ -17,6 +17,9 @@ npm-debug.log*
 coverage/
 evidence/
 
+# Refactor pipeline artefacts
+.refactor/
+
 .agents/
 .temp_ag_kit/
 .gemini/

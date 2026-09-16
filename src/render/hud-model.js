@@ -47,10 +47,6 @@ export class HudModel {
     this.objective = objective;
   }
 
-  setLevelName(levelName) {
-    this.levelName = levelName;
-  }
-
   /** @param {number} duration seconds the banner stays visible */
   showFeedback(kind, message, duration) {
     this.feedback = { kind, message, timer: duration };

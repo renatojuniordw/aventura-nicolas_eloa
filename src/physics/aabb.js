@@ -21,14 +21,6 @@ export function centerOf(box) {
   return { x: box.x + box.w / 2, y: box.y + box.h / 2 };
 }
 
-export function right(box) {
-  return box.x + box.w;
-}
-
-export function bottom(box) {
-  return box.y + box.h;
-}
-
 /** Rectangle a point/box must stay inside (used for level bounds). */
 export function boundsOf(boxes) {
   if (boxes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };

@@ -799,3 +799,20 @@ body {
   font-size: 0.95rem;
   margin: 4px 0;
 }
+
+/* ==========================================================================
+   Reduced motion (WCAG 2.1 — respects the system preference)
+   Disables looping animations/decorative transitions without changing layout.
+   `!important` is required: the universal selector has specificity (0,0,0), so
+   the class-level `animation`/`transition` declarations would otherwise win.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

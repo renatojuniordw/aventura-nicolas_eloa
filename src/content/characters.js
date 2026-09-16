@@ -34,7 +34,3 @@ export function getCharacter(id) {
   return CHARACTERS[0];
 }
 
-/** Returns raw character entry including metadata even if sprites are absent. */
-export function getCharacterData(id) {
-  return CHARACTERS.find((character) => character.id === id) ?? CHARACTERS[0];
-}

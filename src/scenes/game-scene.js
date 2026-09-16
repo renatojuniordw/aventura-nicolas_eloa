@@ -221,50 +221,65 @@ export class GameScene extends Scene {
     const profile = this.game.profiles.getActiveProfile();
 
     if (ok) {
-      if (profile) this.game.progress.recordAnswer(profile.id, true);
-      this.game.effects.spawnConfetti(centerX, centerY, 56);
-
-      if (this.mode === 'speedrun' && this.alphabet) {
-        if (this.currentIndex < this.alphabet.length - 1) {
-          this.currentIndex += 1;
-          const nextLetter = this.alphabet[this.currentIndex];
-          const nextLesson = this.game.curriculum?.getLesson?.(`alfabeto-${nextLetter.toLowerCase()}`) ?? {
-            id: `alfabeto-${nextLetter.toLowerCase()}`,
-            target: nextLetter,
-            objective: `Colete a letra ${nextLetter}`,
-          };
-          this.lesson = nextLesson;
-          this.validator = new AnswerValidator(this.lesson);
-          if (this.speedrunCheckpoints?.[this.currentIndex]) {
-            this.levelManager.setCheckpoint({ ...this.speedrunCheckpoints[this.currentIndex] });
-          }
-
-          this.hudModel.setObjective(this.lesson.objective);
-          this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet.length}`);
-          this.hudModel.showFeedback(
-            FeedbackKind.CORRECT,
-            `Boa! Agora letra ${nextLetter}!`,
-            0.8,
-          );
-          // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
-          return;
-        }
-
-        // Collected Z! Venceu a maratona!
-        this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Parabéns! Maratona concluída!', 1.5);
-        this.winLevel();
-        return;
-      }
-
-      this.hudModel.showFeedback(
-        FeedbackKind.CORRECT,
-        'Muito bem! Você encontrou!',
-        GAMEPLAY.wrongFeedbackDuration,
-      );
-      this.winLevel();
+      this._handleCorrectAnswer(item, profile, centerX, centerY);
       return;
     }
 
+    this._handleWrongAnswer(item, profile, centerX, centerY);
+  }
+
+  /** Correct-answer flow: record, celebrate, then advance (speedrun) or win (normal). */
+  _handleCorrectAnswer(item, profile, centerX, centerY) {
+    if (profile) this.game.progress.recordAnswer(profile.id, true);
+    this.game.effects.spawnConfetti(centerX, centerY, 56);
+
+    if (this.mode === 'speedrun' && this.alphabet) {
+      this._advanceSpeedrun();
+      return;
+    }
+
+    this.hudModel.showFeedback(
+      FeedbackKind.CORRECT,
+      'Muito bem! Você encontrou!',
+      GAMEPLAY.wrongFeedbackDuration,
+    );
+    this.winLevel();
+  }
+
+  /** Speedrun advance: next letter checkpoint, or marathon victory on Z. */
+  _advanceSpeedrun() {
+    if (this.currentIndex < this.alphabet.length - 1) {
+      this.currentIndex += 1;
+      const nextLetter = this.alphabet[this.currentIndex];
+      const nextLesson = this.game.curriculum?.getLesson?.(`alfabeto-${nextLetter.toLowerCase()}`) ?? {
+        id: `alfabeto-${nextLetter.toLowerCase()}`,
+        target: nextLetter,
+        objective: `Colete a letra ${nextLetter}`,
+      };
+      this.lesson = nextLesson;
+      this.validator = new AnswerValidator(this.lesson);
+      if (this.speedrunCheckpoints?.[this.currentIndex]) {
+        this.levelManager.setCheckpoint({ ...this.speedrunCheckpoints[this.currentIndex] });
+      }
+
+      this.hudModel.setObjective(this.lesson.objective);
+      this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet.length}`);
+      this.hudModel.showFeedback(
+        FeedbackKind.CORRECT,
+        `Boa! Agora letra ${nextLetter}!`,
+        0.8,
+      );
+      // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
+      return;
+    }
+
+    // Collected Z! Venceu a maratona!
+    this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Parabéns! Maratona concluída!', 1.5);
+    this.winLevel();
+  }
+
+  /** Wrong-answer flow: count the mistake, cost a heart, show guidance. */
+  _handleWrongAnswer(item, profile, centerX, centerY) {
     this.mistakes += 1;
     if (profile) this.game.progress.recordAnswer(profile.id, false);
     this.lives.loseHeart();

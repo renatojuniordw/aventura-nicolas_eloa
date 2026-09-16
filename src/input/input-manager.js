@@ -74,11 +74,6 @@ export class InputManager {
     return true;
   }
 
-  /** True without consuming — useful for menus. */
-  isPressed(action) {
-    return this._pressed.has(action);
-  }
-
   /** Clears all recorded state (on adapter swap, pause, or blur). */
   reset() {
     this._held.clear();
