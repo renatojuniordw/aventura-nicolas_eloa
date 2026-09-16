@@ -16,3 +16,9 @@ npm-debug.log*
 # Test artefacts
 coverage/
 evidence/
+
+.agents/
+.temp_ag_kit/
+.gemini/
+.claude/
+.antigravity/
