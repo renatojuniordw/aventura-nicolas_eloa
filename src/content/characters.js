@@ -18,36 +18,6 @@ export const CHARACTERS = Object.freeze([
       celebrate: '/assets/characters/nicolas_gomes/celebrate-pixel-v1.png',
     },
   },
-  {
-    id: 'char-luna',
-    name: 'Luna',
-    available: false,
-    color: '#e794c4',
-    accent: '#ffe1a0',
-    emoji: '🌸',
-    portrait: '/assets/portraits/luna/portrait-pixel-v1.png',
-    sprites: null,
-  },
-  {
-    id: 'char-lucas',
-    name: 'Lucas o Engenheiro',
-    available: false,
-    color: '#89b69b',
-    accent: '#ffe1a0',
-    emoji: '🔧',
-    portrait: '/assets/portraits/lucas_engenheiro/portrait-pixel-v1.png',
-    sprites: null,
-  },
-  {
-    id: 'char-samara',
-    name: 'Samara',
-    available: false,
-    color: '#d48872',
-    accent: '#ffe1a0',
-    emoji: '🎨',
-    portrait: '/assets/portraits/samara/portrait-pixel-v1.png',
-    sprites: null,
-  },
 ]);
 
 export const DEFAULT_CHARACTER_ID = CHARACTERS[0].id;

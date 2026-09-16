@@ -33,11 +33,6 @@ const FILES_TO_DOWNLOAD = [
   'terrain/garden-modules-concept-v1.png',
   'terrain/garden-pixel-modules-v1.png',
   'terrain/grass-tile-pixel-v1.png',
-
-  // Reference portraits (for cards 2, 3, 4 preview)
-  'portraits/luna/portrait-pixel-v1.png',
-  'portraits/lucas_engenheiro/portrait-pixel-v1.png',
-  'portraits/samara/portrait-pixel-v1.png',
 ];
 
 async function downloadFile(relPath) {

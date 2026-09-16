@@ -117,45 +117,59 @@ export class MenuOverlay {
     // 4. Companions section: "ESCOLHA SEU COMPANHEIRO"
     const companionTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU COMPANHEIRO' });
 
-    const companionCards = CHARACTERS.map((char) => {
-      const isSelected = char.id === currentCharacterId;
-      const isAvailable = char.available !== false;
+    const companionCards = [];
+    const TOTAL_SLOTS = 4;
 
-      const avatar = char.portrait
-        ? el('img', {
-            class: 'companion-avatar',
-            src: char.portrait,
-            alt: char.name,
-          })
-        : el('div', {
-            class: 'companion-swatch',
-            style: `background: ${char.color}`,
-          });
+    for (let i = 0; i < TOTAL_SLOTS; i += 1) {
+      const char = CHARACTERS[i];
+      if (char) {
+        const isSelected = char.id === currentCharacterId;
+        const avatar = char.portrait
+          ? el('img', {
+              class: 'companion-avatar',
+              src: char.portrait,
+              alt: char.name,
+            })
+          : el('div', {
+              class: 'companion-swatch',
+              style: `background: ${char.color}`,
+            });
 
-      const nameLabel = el('div', { class: 'companion-name', text: char.name });
-      const badge = !isAvailable
-        ? el('span', { class: 'companion-status-badge', text: 'Em breve' })
-        : null;
+        const nameLabel = el('div', { class: 'companion-name', text: char.name });
 
-      return el(
-        'button',
-        {
-          class: `companion-card ${isSelected ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`,
-          type: 'button',
-          tabindex: '-1',
-          'aria-pressed': String(isSelected),
-          onClick: () => {
-            if (isAvailable && onSelectCharacter) {
-              onSelectCharacter(char.id);
-            } else if (!isAvailable) {
-              // Informative behavior when clicking a companion in development
-              alert(`${char.name} estará disponível em breve com novos superpoderes!`);
-            }
-          },
-        },
-        [avatar, nameLabel, badge],
-      );
-    });
+        companionCards.push(
+          el(
+            'button',
+            {
+              class: `companion-card ${isSelected ? 'selected' : ''}`,
+              type: 'button',
+              tabindex: '-1',
+              'aria-pressed': String(isSelected),
+              onClick: () => {
+                if (onSelectCharacter) onSelectCharacter(char.id);
+              },
+            },
+            [avatar, nameLabel],
+          ),
+        );
+      } else {
+        companionCards.push(
+          el(
+            'div',
+            {
+              class: 'companion-card placeholder',
+              'aria-disabled': 'true',
+            },
+            [
+              el('div', { class: 'companion-placeholder-avatar' }, [
+                el('span', { class: 'companion-placeholder-icon', text: '?' }),
+              ]),
+              el('div', { class: 'companion-name placeholder', text: 'Em breve' }),
+            ],
+          ),
+        );
+      }
+    }
 
     const companionGrid = el('div', { class: 'companion-grid' }, companionCards);
 

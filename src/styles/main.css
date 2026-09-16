@@ -305,6 +305,41 @@ body {
   border-radius: 2px;
 }
 
+.companion-card.placeholder {
+  background: rgba(240, 235, 215, 0.45);
+  border: 3px dashed rgba(35, 61, 56, 0.4);
+  box-shadow: 0 4px 0 rgba(22, 41, 37, 0.35);
+  cursor: default;
+  opacity: 0.8;
+}
+
+.companion-card.placeholder:hover {
+  transform: none;
+  background: rgba(240, 235, 215, 0.45);
+}
+
+.companion-placeholder-avatar {
+  width: 70px;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  border-radius: 4px;
+  background: rgba(35, 61, 56, 0.08);
+}
+
+.companion-placeholder-icon {
+  font-family: var(--font-pixel);
+  font-size: 1.8rem;
+  color: rgba(35, 61, 56, 0.4);
+}
+
+.companion-name.placeholder {
+  color: rgba(35, 61, 56, 0.6);
+  font-weight: 500;
+}
+
 /* Right Column */
 .home-col-right {
   display: flex;
