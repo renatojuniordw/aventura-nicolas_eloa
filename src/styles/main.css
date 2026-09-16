@@ -199,7 +199,7 @@ body {
 
 .pixel-logo-wrapper {
   margin: 0 auto;
-  max-height: 54px;
+  max-height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,19 +207,19 @@ body {
 
 .pixel-logo-svg {
   width: auto;
-  height: 50px;
+  height: 76px;
   max-width: 100%;
-  filter: drop-shadow(0 3px 0 var(--color-ink));
+  filter: drop-shadow(0 4px 0 var(--color-ink));
   image-rendering: pixelated;
 }
 
 .home-tagline {
   font-family: var(--font-pixel);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: var(--color-cream);
   text-shadow: 0 2px 0 var(--color-ink);
-  letter-spacing: 2px;
-  margin: 0;
+  letter-spacing: 2.2px;
+  margin: 2px 0;
   font-weight: 700;
   text-align: center;
 }
@@ -229,8 +229,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  margin-top: 2px;
+  gap: 4px;
+  margin-top: 10px;
+  margin-bottom: 4px;
 }
 
 .home-section-title {
@@ -381,13 +382,14 @@ body {
 .hero-showcase-badge {
   background: var(--color-green-dark);
   color: var(--color-gold);
-  border: 1px solid var(--color-gold);
+  border: 2px solid var(--color-gold);
   font-family: var(--font-pixel);
-  font-size: 0.55rem;
-  padding: 2px 8px;
-  border-radius: 3px;
-  letter-spacing: 1px;
+  font-size: 0.78rem;
+  padding: 4px 14px;
+  border-radius: 4px;
+  letter-spacing: 1.5px;
   font-weight: bold;
+  box-shadow: 0 3px 0 var(--color-ink), 0 0 10px rgba(255, 212, 121, 0.4);
 }
 
 .hero-visual-stage {
@@ -460,18 +462,18 @@ body {
 
 .hero-name-plate {
   font-family: var(--font-pixel);
-  font-size: 0.95rem;
+  font-size: 1.08rem;
   color: var(--color-gold);
   text-shadow: 0 2px 0 var(--color-ink);
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   font-weight: bold;
 }
 
 .hero-flavor-text {
   font-family: var(--font-pixel);
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   color: var(--color-cream);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* Right: Action Menu Panel */

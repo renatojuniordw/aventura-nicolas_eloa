@@ -12,11 +12,43 @@ const TEMPLATE_IDS = [
 ];
 
 /**
+ * Minimum horizontal clearance (in pixels) required between any item and any hazard.
+ * Prevents letters from appearing directly above or dangerously close to hazards (e.g. spikes).
+ */
+export const MIN_HAZARD_DISTANCE = 160;
+
+/**
+ * Checks whether an item at (x, w) has safe clearance from all hazards.
+ *
+ * @param {number} x item horizontal position
+ * @param {number} w item width
+ * @param {Array<{x: number, w: number}>} hazards
+ * @param {number} [minDistance=MIN_HAZARD_DISTANCE]
+ * @returns {boolean}
+ */
+export function isSafeFromHazards(x, w, hazards, minDistance = MIN_HAZARD_DISTANCE) {
+  if (!hazards || hazards.length === 0) return true;
+  const itemLeft = x;
+  const itemRight = x + w;
+
+  for (const h of hazards) {
+    const hazardLeft = h.x;
+    const hazardRight = h.x + h.w;
+    // Overlaps or is closer than minDistance horizontally
+    if (itemRight + minDistance > hazardLeft && itemLeft - minDistance < hazardRight) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Candidate item spots for each template (relative to segment start X).
- * Heights (y) vary from ground level (~384) to platforms (~288, ~320) and high jumps (~192, ~224, ~256).
+ * Heights (y) vary from ground jumps (~310..320) to elevated platforms (~200..250).
+ * All spots are positioned away from hazards (such as spikes) and pit gaps.
  */
 const CANDIDATE_SPOTS = [
-  // 0: Planície (ground items at y: 310..320; platform items at y: 220..250)
+  // 0: Planície (ground jumps at y: 310..320; platform jumps at y: 220..250)
   [
     { x: 340, y: 320 },
     { x: 580, y: 310 },
@@ -36,22 +68,24 @@ const CANDIDATE_SPOTS = [
     { x: 1580, y: 240 },
     { x: 1740, y: 320 },
   ],
-  // 2: Plataformas (floating platforms and elevated ground jumps)
+  // 2: Plataformas (floating platforms and safe ground jumps, safely away from spikes at x:1152..1216)
   [
     { x: 260, y: 320 },
-    { x: 480, y: 230 },
+    { x: 420, y: 240 },
+    { x: 500, y: 230 },
     { x: 740, y: 320 },
-    { x: 960, y: 220 },
-    { x: 1180, y: 310 },
-    { x: 1440, y: 230 },
+    { x: 940, y: 220 },
+    { x: 1420, y: 230 },
+    { x: 1520, y: 220 },
     { x: 1700, y: 320 },
   ],
-  // 3: Rio (elevated jumps, including over the water gap)
+  // 3: Rio (elevated jumps over solid ground, safely away from river gap at x:832..960)
   [
     { x: 320, y: 320 },
     { x: 600, y: 310 },
-    { x: 896, y: 260 },
-    { x: 1120, y: 320 },
+    { x: 740, y: 290 },
+    { x: 1040, y: 290 },
+    { x: 1160, y: 320 },
     { x: 1400, y: 310 },
     { x: 1680, y: 320 },
   ],
@@ -136,8 +170,10 @@ export function buildSpeedrunCourse({ random = Math.random } = {}) {
       });
     }
 
-    // Randomize item positions within this segment
-    const spotCandidates = CANDIDATE_SPOTS[templateIndex];
+    // Randomize item positions within this segment (strictly filtering out any spot near hazards)
+    const rawSpots = CANDIDATE_SPOTS[templateIndex];
+    const safeSpots = rawSpots.filter((s) => isSafeFromHazards(s.x, 32, template.hazards));
+    const spotCandidates = safeSpots.length >= 4 ? safeSpots : rawSpots;
     const shuffledSpots = shuffle(spotCandidates, random);
 
     // Pick 3 distractors from alphabet excluding current target letter
@@ -156,7 +192,12 @@ export function buildSpeedrunCourse({ random = Math.random } = {}) {
     for (let k = 0; k < itemConfigs.length; k += 1) {
       const spot = shuffledSpots[k % shuffledSpots.length];
       const jitterX = Math.floor((random() - 0.5) * 20);
-      const x = Math.round(spot.x + xOffset + jitterX);
+      let localX = spot.x + jitterX;
+      // If jitter moved the item too close to a hazard, discard jitter
+      if (!isSafeFromHazards(localX, 32, template.hazards)) {
+        localX = spot.x;
+      }
+      const x = Math.round(localX + xOffset);
       const y = Math.round(spot.y);
 
       items.push({
