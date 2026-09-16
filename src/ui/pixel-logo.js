@@ -1,77 +1,72 @@
-const GLYPHS = {
-  A: ['01110', '11011', '11011', '11111', '11011', '11011', '11011'],
-  V: ['11011', '11011', '11011', '11011', '11011', '01110', '00100'],
-  E: ['11111', '11000', '11000', '11110', '11000', '11000', '11111'],
-  N: ['11001', '11101', '11101', '11011', '11011', '11011', '11001'],
-  T: ['11111', '11111', '00100', '00100', '00100', '00100', '00100'],
-  U: ['11011', '11011', '11011', '11011', '11011', '11011', '01110'],
-  R: ['11110', '11011', '11011', '11110', '11100', '11010', '11011'],
-  D: ['11110', '11011', '11011', '11011', '11011', '11011', '11110'],
-  S: ['01111', '11000', '11000', '01110', '00011', '00011', '11110'],
-  L: ['11000', '11000', '11000', '11000', '11000', '11000', '11111'],
-  ' ': ['00000', '00000', '00000', '00000', '00000', '00000', '00000'],
-};
+/**
+ * Escapes XML special characters for safe SVG embedding.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeXml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
 
 /**
- * Generates an SVG element for the authentic pixel art title "Aventura do Nicolas&Eloá".
- * Uses the exact font matrix from the original game.
+ * Generates an SVG element for the authentic retro pixel art title "Aventura do Nicolas&Eloá".
+ * Uses the retro font "Silkscreen" with pixel outlines and styled highlights,
+ * supporting the full character set including accents (á), 'O', and '&'.
+ *
+ * @param {string[]} [customRows] - Optional array of rows to render.
+ * @returns {Element} SVG element
  */
-export function createPixelLogoSvg() {
-  const pixel = 4; // base pixel grid size
-  const rows = ['AVENTURA DO', 'NICOLAS E ELOA'];
-  const rowHeight = 9 * pixel;
-  const totalHeight = 2 * rowHeight + pixel * 2;
-  const maxChars = Math.max(...rows.map((r) => r.length));
-  const totalWidth = (maxChars * 6 - 1) * pixel + pixel * 4;
-
-  const outlineRects = [];
-  const fillRects = [];
-
-  rows.forEach((word, lineIndex) => {
-    const wordWidth = (word.length * 6 - 1) * pixel;
-    const originX = Math.floor((totalWidth - wordWidth) / 2);
-    const originY = lineIndex * rowHeight + pixel;
-
-    for (let i = 0; i < word.length; i += 1) {
-      const char = word[i];
-      const glyph = GLYPHS[char] || GLYPHS[' '];
-
-      for (let y = 0; y < 7; y += 1) {
-        for (let x = 0; x < 5; x += 1) {
-          if (glyph[y][x] === '1') {
-            const px = originX + (i * 6 + x) * pixel;
-            const py = originY + y * pixel;
-
-            // Thick dark outline and drop shadow for pixel-3D depth
-            outlineRects.push(
-              `<rect x="${px - 1}" y="${py - 1}" width="${pixel + 2}" height="${pixel + 2}" fill="#233d38"/>`,
-              `<rect x="${px + pixel}" y="${py + pixel}" width="${pixel}" height="${pixel}" fill="#162925"/>`,
-            );
-
-            // Fill color with top-row highlight
-            const isRow0 = lineIndex === 0;
-            let fillColor;
-            if (isRow0) {
-              fillColor = y === 0 ? '#ffea9f' : '#ffd479';
-            } else {
-              fillColor = y === 0 ? '#ffffff' : '#fbf4df';
-            }
-
-            fillRects.push(
-              `<rect x="${px}" y="${py}" width="${pixel}" height="${pixel}" fill="${fillColor}"/>`,
-            );
-          }
-        }
-      }
-    }
-  });
+export function createPixelLogoSvg(customRows) {
+  const rows = customRows || ['Aventura do', 'Nicolas & Eloá'];
+  const row1 = escapeXml(rows[0] ?? '');
+  const row2 = escapeXml(rows[1] ?? '');
 
   const svgString = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" class="pixel-logo-svg" role="img" aria-label="Aventura do Nicolas&Eloá">
-      <g class="logo-outline">${outlineRects.join('')}</g>
-      <g class="logo-fill">${fillRects.join('')}</g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 76" class="pixel-logo-svg" role="img" aria-label="${escapeXml(rows.join(' '))}">
+      <defs>
+        <filter id="pixel-title-shadow" x="-10%" y="-10%" width="130%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="0" flood-color="#142622" flood-opacity="1" />
+        </filter>
+      </defs>
+      <style>
+        .pixel-logo-text {
+          font-family: var(--font-pixel, "Silkscreen", monospace, sans-serif);
+          font-weight: 700;
+          text-anchor: middle;
+          paint-order: stroke fill;
+          user-select: none;
+        }
+        .pixel-logo-row1 {
+          font-size: 22px;
+          fill: var(--color-gold, #ffd479);
+          stroke: #182e29;
+          stroke-width: 4px;
+          stroke-linejoin: miter;
+          letter-spacing: 2px;
+        }
+        .pixel-logo-row2 {
+          font-size: 26px;
+          fill: var(--color-cream, #fbf4df);
+          stroke: #182e29;
+          stroke-width: 4.5px;
+          stroke-linejoin: miter;
+          letter-spacing: 1.5px;
+        }
+      </style>
+      <g filter="url(#pixel-title-shadow)">
+        <text x="190" y="30" class="pixel-logo-text pixel-logo-row1">${row1}</text>
+        <text x="190" y="64" class="pixel-logo-text pixel-logo-row2">${row2}</text>
+      </g>
     </svg>
   `.trim();
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
 
   const container = document.createElement('div');
   container.className = 'pixel-logo-wrapper';
