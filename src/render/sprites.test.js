@@ -57,7 +57,7 @@ describe('SpriteRenderer', () => {
       'A',
       216,
       expect.any(Number),
-      expect.objectContaining({ color: '#142420' }),
+      expect.objectContaining({ color: '#1a1a1a' }),
     );
   });
 

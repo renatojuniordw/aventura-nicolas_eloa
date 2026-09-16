@@ -12,10 +12,10 @@ const FRAME_DURATION_MS = 110;
  */
 const SPRITE_SCALE = 1.8;
 
-// Alpha bounding boxes for trimmed pixel art assets
-const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 113, sy: 150, sw: 889, sh: 849 });
-const CHECKPOINT_BOUNDS = Object.freeze({ sx: 73, sy: 113, sw: 1126, sh: 1067 });
-const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 49, sy: 55, sw: 1178, sh: 1142 });
+// Exact visual bounds for trimmed pixel art assets (no empty transparent margins)
+const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 257, sy: 279, sw: 740, sh: 718 });
+const CHECKPOINT_BOUNDS = Object.freeze({ sx: 334, sy: 116, sw: 636, sh: 1056 });
+const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 175, sy: 58, sw: 902, sh: 1135 });
 
 function resolveBackgroundKey(level) {
   if (!level) return 'bg:primavera-lago';
@@ -198,29 +198,17 @@ export class SpriteRenderer {
 
     for (const item of items) {
       if (collectedIds.has(item.id)) continue;
-      const isTarget = item.type === 'target';
 
       // Gentle floating bob
-      const bob = Math.sin((now / 220) + (item.x * 0.05)) * 3.5;
+      const bob = Math.sin((now / 240) + (item.x * 0.05)) * 3;
       const drawY = item.y + bob;
 
       if (carrierImg && typeof renderer.worldImage === 'function') {
-        const pad = 6;
-        const tokenX = item.x - pad;
-        const tokenY = drawY - pad;
-        const tokenW = item.w + pad * 2;
-        const tokenH = item.h + pad * 2;
-
-        if (isTarget) {
-          // Golden halo around target letter
-          renderer.worldFillRect(
-            tokenX - 2,
-            tokenY - 2,
-            tokenW + 4,
-            tokenH + 4,
-            'rgba(255, 215, 0, 0.35)',
-          );
-        }
+        const size = 40;
+        const centerX = item.x + item.w / 2;
+        const centerY = drawY + item.h / 2;
+        const tokenX = Math.round(centerX - size / 2);
+        const tokenY = Math.round(centerY - size / 2);
 
         renderer.worldImage(
           carrierImg,
@@ -230,15 +218,18 @@ export class SpriteRenderer {
           LETTER_CARRIER_BOUNDS.sh,
           tokenX,
           tokenY,
-          tokenW,
-          tokenH,
+          size,
+          size,
         );
 
-        renderer.worldText(item.label, item.x + item.w / 2, drawY + item.h / 2, {
-          color: isTarget ? '#142420' : '#483522',
-          font: 'bold 20px "Trebuchet MS", "Courier New", monospace',
+        // Letter centered with crisp font, identical and aligned on all tokens
+        renderer.worldText(item.label, centerX, centerY, {
+          color: '#1a1a1a',
+          font: 'bold 21px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Trebuchet MS", sans-serif',
+          align: 'center',
         });
       } else {
+        const isTarget = item.type === 'target';
         renderer.worldFillRect(item.x, item.y, item.w, item.h, isTarget ? COLORS.target : COLORS.distractor);
         renderer.worldText(item.label, item.x + item.w / 2, item.y + item.h / 2 + 1, {
           color: '#ffffff',
