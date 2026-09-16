@@ -1,6 +1,7 @@
 import { button, clear, el } from './dom.js';
 import { CHARACTERS } from '../content/characters.js';
 import { POSE_FRAMES } from '../render/atlas-meta.js';
+import { createPixelLogoSvg } from './pixel-logo.js';
 
 /** Which frame of the celebrate sheet reads best as a static victory pose. */
 const VICTORY_FRAME_INDEX = 2;
@@ -51,54 +52,209 @@ export class MenuOverlay {
 
   // --- Screens -------------------------------------------------------------
 
+  /**
+   * Home Screen (Aventura das Letras):
+   * Pixel art layout matching reference Image 2.
+   */
   showMainMenu(options) {
     const {
-      profiles,
-      activeProfileId,
+      profiles = [],
+      activeProfileId = null,
+      selectedCharacterId = null,
       completedCount = 0,
       totalLessons = 0,
+      currentLessonTitle = 'Família B',
       onPlay,
       onSelectProfile,
       onCreateProfile,
+      onSelectCharacter,
       onOpenCharacterPicker,
       onOpenLessonPicker,
       onResetProgress,
     } = options;
+
     const active = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? null;
+    const currentCharacterId = selectedCharacterId || active?.characterId || CHARACTERS[0].id;
 
-    const profileList = el('div', { class: 'profile-list' }, [
-      ...profiles.map((profile) =>
-        button(profile.name, {
-          primary: profile.id === activeProfileId,
-          ariaPressed: profile.id === activeProfileId,
-          onClick: () => onSelectProfile(profile.id),
-        }),
-      ),
-      button('+ Novo jogador', { onClick: () => this._showNameForm(onCreateProfile, () => this.showMainMenu(options)) }),
+    // --- Left Column ---
+    // 1. Pixel art Logo + semantic accessible h1
+    const logoNode = el('div', { class: 'pixel-logo-wrapper' }, [
+      el('h1', { class: 'sr-only', text: 'Aventura das Letras' }),
+      createPixelLogoSvg(),
     ]);
 
-    const progressText = active
-      ? `Fases concluídas: ${completedCount} de ${totalLessons}`
-      : 'Crie um jogador para começar';
+    // 2. Tagline
+    const tagline = el('div', { class: 'home-tagline', text: 'PULE. DESCUBRA. BRINQUE.' });
 
-    const screen = el('div', { class: 'overlay' }, [
-      el('h1', { text: 'Aventura das Letras' }),
-      el('p', { text: 'Escolha quem vai jogar e colete a letra certa!' }),
-      el('h2', { text: active ? `Jogador: ${active.name}` : 'Nenhum jogador ainda' }),
-      profileList,
-      el('p', { text: progressText }),
-      el('div', { class: 'overlay-actions' }, [
-        button('Jogar', { primary: true, onClick: onPlay }),
-        active
-          ? button('Trocar personagem', {
-              onClick: () => onOpenCharacterPicker(active.characterId),
-            })
-          : null,
-        button('Escolher fase', { onClick: onOpenLessonPicker }),
-        active ? button('Zerar progresso', { onClick: onResetProgress }) : null,
-      ]),
-      this._controlsHelp(),
+    // 3. Profiles section: "QUEM VAI BRINCAR?"
+    const profileTitle = el('div', { class: 'home-section-title', text: 'QUEM VAI BRINCAR?' });
+
+    const profileButtons = profiles.slice(0, 2).map((profile) => {
+      const isSelected = profile.id === activeProfileId;
+      return el('button', {
+        class: `profile-tab ${isSelected ? 'selected' : ''}`,
+        type: 'button',
+        tabindex: '-1',
+        text: (isSelected ? '● ' : '') + profile.name,
+        onClick: () => onSelectProfile(profile.id),
+      });
+    });
+
+    // Convidado / Novo profile tab
+    const guestSelected = !activeProfileId || profiles.length === 0;
+    profileButtons.push(
+      el('button', {
+        class: `profile-tab ${guestSelected ? 'selected' : ''}`,
+        type: 'button',
+        tabindex: '-1',
+        text: (guestSelected ? '● ' : '') + (active ? '+ Novo jogador' : 'Convidado'),
+        onClick: () => this._showNameForm(onCreateProfile, () => this.showMainMenu(options)),
+      }),
+    );
+
+    const profileRow = el('div', { class: 'profile-tab-row' }, profileButtons);
+
+    // 4. Companions section: "ESCOLHA SEU COMPANHEIRO"
+    const companionTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU COMPANHEIRO' });
+
+    const companionCards = CHARACTERS.map((char) => {
+      const isSelected = char.id === currentCharacterId;
+      const isAvailable = char.available !== false;
+
+      const avatar = char.portrait
+        ? el('img', {
+            class: 'companion-avatar',
+            src: char.portrait,
+            alt: char.name,
+          })
+        : el('div', {
+            class: 'companion-swatch',
+            style: `background: ${char.color}`,
+          });
+
+      const nameLabel = el('div', { class: 'companion-name', text: char.name });
+      const badge = !isAvailable
+        ? el('span', { class: 'companion-status-badge', text: 'Em breve' })
+        : null;
+
+      return el(
+        'button',
+        {
+          class: `companion-card ${isSelected ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}`,
+          type: 'button',
+          tabindex: '-1',
+          'aria-pressed': String(isSelected),
+          onClick: () => {
+            if (isAvailable && onSelectCharacter) {
+              onSelectCharacter(char.id);
+            } else if (!isAvailable) {
+              // Informative behavior when clicking a companion in development
+              alert(`${char.name} estará disponível em breve com novos superpoderes!`);
+            }
+          },
+        },
+        [avatar, nameLabel, badge],
+      );
+    });
+
+    const companionGrid = el('div', { class: 'companion-grid' }, companionCards);
+
+    const leftColumn = el('div', { class: 'home-col-left' }, [
+      logoNode,
+      tagline,
+      profileTitle,
+      profileRow,
+      companionTitle,
+      companionGrid,
     ]);
+
+    // --- Right Column ---
+    const discoveryTitle = el('div', { class: 'discovery-title', text: 'SUA PRÓXIMA DESCOBERTA' });
+    const discoveryTarget = el('div', { class: 'discovery-target', text: currentLessonTitle });
+
+    const btnStart = el('button', {
+      class: 'btn-retro btn-primary-gold',
+      type: 'button',
+      tabindex: '-1',
+      text: active && completedCount > 0 ? 'Continuar aventura' : 'Começar aventura',
+      onClick: onPlay,
+    });
+
+    const btnSpeedrun = el('button', {
+      class: 'btn-retro btn-secondary-green',
+      type: 'button',
+      tabindex: '-1',
+      text: 'Speed Run',
+      onClick: () => onPlay(),
+    });
+
+    const btnStages = el('button', {
+      class: 'btn-retro btn-secondary-green',
+      type: 'button',
+      tabindex: '-1',
+      text: 'Escolher fase',
+      onClick: onOpenLessonPicker,
+    });
+
+    const btnPowers = el('button', {
+      class: 'btn-retro btn-secondary-green',
+      type: 'button',
+      tabindex: '-1',
+      text: 'Poderes e duração',
+      onClick: () => this.showControls({ onBack: () => this.showMainMenu(options) }),
+    });
+
+    const btnSensor = el('button', {
+      class: 'btn-util',
+      type: 'button',
+      tabindex: '-1',
+      text: 'Com sensor',
+      onClick: () => {
+        alert('Modo teclado e controle nativo ativo. ESP32 desabilitado no momento.');
+      },
+    });
+
+    const btnSettings = el('button', {
+      class: 'btn-util',
+      type: 'button',
+      tabindex: '-1',
+      text: 'Ajustes',
+      onClick: () => this.showControls({ onBack: () => this.showMainMenu(options) }),
+    });
+
+    const btnExit = el('button', {
+      class: 'btn-util',
+      type: 'button',
+      tabindex: '-1',
+      text: active ? 'Zerar' : 'Sair',
+      onClick: active ? onResetProgress : () => this.showControls({ onBack: () => this.showMainMenu(options) }),
+    });
+
+    const utilRow = el('div', { class: 'home-util-row' }, [btnSensor, btnSettings, btnExit]);
+    const subStatus = el('div', {
+      class: 'home-substatus',
+      text: `Aventura contínua · ${completedCount} de ${totalLessons} fases`,
+    });
+
+    const rightColumn = el('div', { class: 'home-col-right' }, [
+      discoveryTitle,
+      discoveryTarget,
+      btnStart,
+      btnSpeedrun,
+      btnStages,
+      btnPowers,
+      utilRow,
+      subStatus,
+    ]);
+
+    // --- Footer Tips ---
+    const footerTips = el('div', {
+      class: 'home-footer-tips',
+      text: 'Setas ou controle para escolher · Enter para brincar',
+    });
+
+    const board = el('div', { class: 'home-board' }, [leftColumn, rightColumn]);
+    const screen = el('div', { class: 'overlay home-screen' }, [board, footerTips]);
 
     this._mount(screen, { primary: onPlay, back: null });
   }
@@ -108,7 +264,7 @@ export class MenuOverlay {
       el(
         'button',
         {
-          class: 'character-card',
+          class: 'companion-card',
           type: 'button',
           tabindex: '-1',
           'aria-pressed': String(character.id === selectedId),
@@ -117,15 +273,15 @@ export class MenuOverlay {
         [
           character.portrait
             ? el('img', {
-                class: 'character-portrait',
+                class: 'companion-avatar',
                 src: character.portrait,
                 alt: character.name,
               })
             : el('span', {
-                class: 'character-swatch',
+                class: 'companion-swatch',
                 style: `background:${character.color}`,
               }),
-          el('span', { text: character.name }),
+          el('span', { class: 'companion-name', text: character.name }),
         ],
       ),
     );
@@ -249,7 +405,7 @@ export class MenuOverlay {
       placeholder: 'Nome do jogador',
       'aria-label': 'Nome do jogador',
       style:
-        'font:inherit;padding:10px 12px;border-radius:10px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:inherit;text-align:center;',
+        'font-family:var(--font-pixel);font-size:0.9rem;padding:10px 14px;border-radius:4px;border:3px solid var(--color-ink);background:var(--color-cream);color:var(--color-ink);text-align:center;box-shadow:0 3px 0 var(--color-green-dark);',
     });
 
     const submit = () => {
@@ -257,8 +413,6 @@ export class MenuOverlay {
       onSubmit(name === '' ? 'Jogador' : name);
     };
 
-    // A real <form> gives us Enter-to-submit for free — no raw key listener,
-    // so the input layer stays the only place that knows about keystrokes.
     const form = el(
       'form',
       {

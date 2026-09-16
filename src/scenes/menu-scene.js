@@ -19,12 +19,22 @@ export class MenuScene extends Scene {
   render() {
     const { profiles, progress, menu } = this.game;
     const activeProfile = profiles.getActiveProfile();
+    const { lessonOrder, getLesson } = this.game.curriculum;
+    const nextLessonId = activeProfile
+      ? (progress.getNextLesson(activeProfile.id, lessonOrder) ?? lessonOrder[0])
+      : lessonOrder[0];
+    const nextLesson = getLesson(nextLessonId);
+    const discoveryTitle = nextLesson
+      ? (nextLesson.target ? `Família ${nextLesson.target}` : (nextLesson.title ?? 'Família B'))
+      : 'Família B';
 
     menu.showMainMenu({
       profiles: profiles.listProfiles(),
       activeProfileId: activeProfile?.id ?? null,
+      selectedCharacterId: activeProfile?.characterId ?? null,
       completedCount: activeProfile ? progress.completedCount(activeProfile.id) : 0,
       totalLessons: this.game.curriculum.lessons.length,
+      currentLessonTitle: discoveryTitle,
       onPlay: () => this.playNext(),
       onSelectProfile: (profileId) => {
         profiles.setActiveProfile(profileId);
@@ -32,6 +42,11 @@ export class MenuScene extends Scene {
       },
       onCreateProfile: (name) => {
         profiles.createProfile(name);
+        this.render();
+      },
+      onSelectCharacter: (characterId) => {
+        const profile = profiles.getActiveProfile();
+        if (profile) profiles.setCharacter(profile.id, characterId);
         this.render();
       },
       onOpenCharacterPicker: (characterId) => this.openCharacterPicker(characterId),
