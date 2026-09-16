@@ -18,6 +18,8 @@ export class LevelManager {
     this.collected = new Set();
     this._touchingHazards = new Set();
     this._fellReported = false;
+    /** Respawn point, tracked here so levels can stay frozen even as checkpoints advance. */
+    this.currentCheckpoint = level.checkpoint;
   }
 
   get targetCollected() {
@@ -31,7 +33,12 @@ export class LevelManager {
   }
 
   getRespawnPoint() {
-    return this.level.checkpoint;
+    return this.currentCheckpoint;
+  }
+
+  /** Advances the respawn point (e.g. speedrun segment progress) without mutating the level. */
+  setCheckpoint(point) {
+    this.currentCheckpoint = point;
   }
 
   /** @param {{ body: {x:number,y:number,w:number,h:number} }} player */

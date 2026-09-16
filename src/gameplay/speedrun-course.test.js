@@ -24,6 +24,17 @@ describe('SpeedrunCourse', () => {
     expect(distractors).toHaveLength(78);
   });
 
+  it('is frozen, just like any regular level, so nothing can mutate it in place', () => {
+    const course = buildSpeedrunCourse();
+    expect(Object.isFrozen(course)).toBe(true);
+    expect(Object.isFrozen(course.checkpoint)).toBe(true);
+    expect(Object.isFrozen(course.items)).toBe(true);
+    expect(Object.isFrozen(course.items[0])).toBe(true);
+    expect(() => {
+      course.checkpoint = { x: 0, y: 0 };
+    }).toThrow();
+  });
+
   it('randomizes item positions between runs', () => {
     const run1 = buildSpeedrunCourse({ random: () => 0.1 });
     const run2 = buildSpeedrunCourse({ random: () => 0.8 });

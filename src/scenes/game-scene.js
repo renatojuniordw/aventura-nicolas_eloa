@@ -231,7 +231,7 @@ export class GameScene extends Scene {
           this.lesson = nextLesson;
           this.validator = new AnswerValidator(this.lesson);
           if (this.speedrunCheckpoints?.[this.currentIndex]) {
-            this.level.checkpoint = { ...this.speedrunCheckpoints[this.currentIndex] };
+            this.levelManager.setCheckpoint({ ...this.speedrunCheckpoints[this.currentIndex] });
           }
 
           this.hudModel.setObjective(this.lesson.objective);

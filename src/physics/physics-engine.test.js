@@ -93,4 +93,34 @@ describe('PhysicsEngine.move', () => {
     const airborne = makeBody({ y: 0 });
     expect(engine.isGrounded(airborne, level)).toBe(false);
   });
+
+  it('resolves collisions correctly in a wide world with solids far from the body (broad-phase)', () => {
+    // A ~50,000px-wide world (Speed Run scale) with solids scattered across many
+    // broad-phase buckets; only the one actually under the body should matter.
+    const farSolids = [];
+    for (let i = 0; i < 200; i += 1) {
+      farSolids.push({ x: i * 256, y: 9999, w: 10, h: 10 }); // decoys, out of the body's way
+    }
+    const relevantSolid = { x: 25000, y: 50, w: 200, h: 10 };
+    const level = { solids: [...farSolids, relevantSolid] };
+
+    const body = makeBody({ x: 25000, y: 0, vy: 100 });
+    const collisions = engine.move(body, 0.5, level);
+
+    expect(collisions.bottom).toBe(true);
+    expect(body.grounded).toBe(true);
+    expect(body.y).toBe(40);
+  });
+
+  it('does not collide with a solid far outside the body path', () => {
+    const level = {
+      solids: [
+        { x: 0, y: 0, w: 10, h: 10 },
+        { x: 40000, y: 0, w: 10, h: 10 },
+      ],
+    };
+    const body = makeBody({ x: 5, y: 0, vy: 100 });
+    const collisions = engine.move(body, 0.5, level);
+    expect(collisions.bottom).toBe(false);
+  });
 });

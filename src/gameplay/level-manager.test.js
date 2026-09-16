@@ -82,6 +82,16 @@ describe('LevelManager', () => {
     expect(manager.targetCollected).toBe(true);
   });
 
+  it('advances the respawn point via setCheckpoint without touching the level object', () => {
+    const frozenLevel = Object.freeze({ ...LEVEL, checkpoint: Object.freeze({ x: 50, y: 400 }) });
+    const manager = new LevelManager({ level: frozenLevel });
+
+    manager.setCheckpoint({ x: 900, y: 300 });
+
+    expect(manager.getRespawnPoint()).toEqual({ x: 900, y: 300 });
+    expect(frozenLevel.checkpoint).toEqual({ x: 50, y: 400 });
+  });
+
   it('works without an event bus (defensive default)', () => {
     const manager = new LevelManager({ level: LEVEL });
     expect(() => manager.update({ body: body(0, 0) })).not.toThrow();

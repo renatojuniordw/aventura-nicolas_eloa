@@ -205,7 +205,7 @@ function assertInsideWorld(entries, worldWidth, worldHeight, levelId) {
   }
 }
 
-function deepFreeze(object) {
+export function deepFreeze(object) {
   for (const value of Object.values(object)) {
     if (value && typeof value === 'object') {
       Object.freeze(value);

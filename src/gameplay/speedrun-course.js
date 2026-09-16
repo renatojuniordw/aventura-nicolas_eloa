@@ -1,5 +1,5 @@
 import { getLevelData } from '../content/level-registry.js';
-import { loadLevel } from '../content/level-loader.js';
+import { loadLevel, deepFreeze } from '../content/level-loader.js';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const SEGMENT_WIDTH = 1920; // 60 tiles * 32px
@@ -214,7 +214,7 @@ export function buildSpeedrunCourse({ random = Math.random } = {}) {
     }
   }
 
-  return {
+  return deepFreeze({
     schemaVersion: 1,
     id: 'speedrun-maratona-alfabeto',
     name: 'Maratona do Alfabeto',
@@ -240,5 +240,5 @@ export function buildSpeedrunCourse({ random = Math.random } = {}) {
     worldHeight,
     checkpoints,
     alphabet: ALPHABET,
-  };
+  });
 }
