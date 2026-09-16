@@ -36,11 +36,14 @@ export class GameScene extends Scene {
     this._unsubscribers = [];
   }
 
-  enter({ lessonId } = {}) {
+  enter({ lessonId, mode = 'normal', speedrunState = null } = {}) {
     const lesson = this.game.curriculum.getLesson(lessonId);
     if (!lesson) throw new Error(`Unknown lesson: ${lessonId}`);
     const levelData = getLevelData(lesson.levelId);
     if (!levelData) throw new Error(`Missing level file for lesson ${lessonId}`);
+
+    this.mode = mode;
+    this.speedrunState = speedrunState ? { ...speedrunState } : null;
 
     this.lesson = lesson;
     this.level = loadLevel(levelData);
@@ -61,11 +64,19 @@ export class GameScene extends Scene {
     });
     this.camera.snapTo(this.player.body);
 
+    const isSpeedrun = this.mode === 'speedrun';
+    const progressText = isSpeedrun && this.speedrunState
+      ? `${this.speedrunState.currentIndex + 1}/${this.speedrunState.lessonIds.length}`
+      : '';
+
     this.hudModel = new HudModel({
       objective: lesson.objective,
       levelName: this.level.name,
       lives: this.lives.lives,
       maxLives: this.lives.maxLives,
+      isSpeedrun,
+      timer: this.speedrunState?.elapsed ?? 0,
+      speedrunProgress: progressText,
     });
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
     this.mistakes = 0;
@@ -93,6 +104,11 @@ export class GameScene extends Scene {
     }
 
     if (this.status === Status.PAUSED || this.status === Status.GAME_OVER) return;
+
+    if (this.mode === 'speedrun' && this.speedrunState) {
+      this.speedrunState.elapsed += dt;
+      this.hudModel.setTimer(this.speedrunState.elapsed);
+    }
 
     if (this.status === Status.WON) {
       this._winTimer -= dt;
@@ -212,7 +228,7 @@ export class GameScene extends Scene {
 
   winLevel() {
     this.status = Status.WON;
-    this._winTimer = GAMEPLAY.celebrationDuration;
+    this._winTimer = this.mode === 'speedrun' ? 0.6 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
       this.player.body.x + this.player.body.w / 2,
       this.player.body.y,
@@ -226,6 +242,41 @@ export class GameScene extends Scene {
       ? this.game.progress.completeLesson(profile.id, this.lesson.id, { mistakes: this.mistakes })
       : null;
 
+    if (this.mode === 'speedrun' && this.speedrunState) {
+      const { lessonIds, currentIndex, elapsed, mistakes } = this.speedrunState;
+      const totalMistakes = mistakes + this.mistakes;
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex < lessonIds.length) {
+        const nextLessonId = lessonIds[nextIndex];
+        this.game.scenes.switchTo('game', {
+          lessonId: nextLessonId,
+          mode: 'speedrun',
+          speedrunState: {
+            lessonIds,
+            currentIndex: nextIndex,
+            elapsed,
+            mistakes: totalMistakes,
+          },
+        });
+        return;
+      }
+
+      const result = profile
+        ? this.game.progress.recordSpeedrunTime(profile.id, elapsed)
+        : { bestTime: elapsed, isNewBest: true };
+
+      this.game.scenes.switchTo('victory', {
+        mode: 'speedrun',
+        elapsed,
+        mistakes: totalMistakes,
+        isNewBest: result?.isNewBest ?? false,
+        bestTime: result?.bestTime ?? elapsed,
+        totalLetters: lessonIds.length,
+      });
+      return;
+    }
+
     this.game.scenes.switchTo('victory', {
       lessonId: this.lesson.id,
       mistakes: this.mistakes,
@@ -235,6 +286,14 @@ export class GameScene extends Scene {
 
   onGameOver() {
     this.status = Status.GAME_OVER;
+    if (this.mode === 'speedrun') {
+      this.game.menu.showGameOver({
+        lesson: this.lesson,
+        onRetry: () => this.game.startSpeedrun(),
+        onMenu: () => this.game.scenes.switchTo('menu'),
+      });
+      return;
+    }
     this.game.menu.showGameOver({
       lesson: this.lesson,
       onRetry: () => this.game.scenes.switchTo('game', { lessonId: this.lesson.id }),
@@ -255,7 +314,13 @@ export class GameScene extends Scene {
     this.game.input.reset();
     this.game.menu.showPause({
       onResume: () => this.resume(),
-      onRestart: () => this.game.scenes.switchTo('game', { lessonId: this.lesson.id }),
+      onRestart: () => {
+        if (this.mode === 'speedrun') {
+          this.game.startSpeedrun();
+        } else {
+          this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
+        }
+      },
       onMenu: () => this.game.scenes.switchTo('menu'),
     });
   }

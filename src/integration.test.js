@@ -253,4 +253,32 @@ describe('game integration', () => {
     expect(scene.lives.lives).toBe(3);
     expect(Actions.JUMP).toBe('jump');
   });
+
+  it('runs speedrun mode continuously through letters', () => {
+    const game = mountGame();
+    tick(game, 2);
+    game.profiles.createProfile('Veloz');
+    game.startSpeedrun();
+    tick(game, 5);
+
+    expect(game.scenes.currentName).toBe('game');
+    const scene = game.scenes.current;
+    expect(scene.mode).toBe('speedrun');
+    expect(scene.lesson.id).toBe('alfabeto-a');
+    expect(scene.hudModel.isSpeedrun).toBe(true);
+    expect(scene.hudModel.speedrunProgress).toBe('1/26');
+
+    // Collect target 'A'
+    const target = scene.level.items.find((item) => item.type === 'target');
+    scene.player.body.x = target.x;
+    scene.player.body.y = target.y;
+    // Tick through the fast celebration (~0.6s -> 40 frames)
+    tick(game, 50);
+
+    // Should transition directly to next lesson ('alfabeto-b') in speedrun mode
+    expect(game.scenes.currentName).toBe('game');
+    expect(game.scenes.current.mode).toBe('speedrun');
+    expect(game.scenes.current.lesson.id).toBe('alfabeto-b');
+    expect(game.scenes.current.hudModel.speedrunProgress).toBe('2/26');
+  });
 });

@@ -2,6 +2,7 @@ import { button, clear, el } from './dom.js';
 import { CHARACTERS } from '../content/characters.js';
 import { POSE_FRAMES } from '../render/atlas-meta.js';
 import { createPixelLogoSvg } from './pixel-logo.js';
+import { formatTime } from '../content/text-utils.js';
 
 /** Which frame of the celebrate sheet reads best as a static victory pose. */
 const VICTORY_FRAME_INDEX = 2;
@@ -64,7 +65,9 @@ export class MenuOverlay {
       completedCount = 0,
       totalLessons = 0,
       currentLessonTitle = 'Família B',
+      speedrunBestTime = null,
       onPlay,
+      onSpeedrun,
       onSelectCharacter,
       onOpenLessonPicker,
       onResetProgress,
@@ -161,12 +164,17 @@ export class MenuOverlay {
       onClick: onPlay,
     });
 
+    const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
+    const speedrunText = bestTimeStr
+      ? `⚡ Speed Run (${bestTimeStr})`
+      : '⚡ Speed Run (A ao Z)';
+
     const btnSpeedrun = el('button', {
       class: 'btn-retro btn-secondary-green',
       type: 'button',
       tabindex: '-1',
-      text: 'Speed Run',
-      onClick: () => onPlay(),
+      text: speedrunText,
+      onClick: onSpeedrun,
     });
 
     const btnStages = el('button', {
@@ -321,6 +329,40 @@ export class MenuOverlay {
       ]),
     ]);
     this._mount(screen, { primary: hasNext ? onNext : onReplay, back: onMenu });
+  }
+
+  showSpeedrunVictory({
+    character,
+    elapsed = 0,
+    mistakes = 0,
+    isNewBest = false,
+    bestTime = 0,
+    totalLetters = 26,
+    onReplay,
+    onMenu,
+  }) {
+    const timeStr = formatTime(elapsed);
+    const bestStr = formatTime(bestTime);
+    const celebrateImage = character?.sprites?.celebrate;
+
+    const screen = el('div', { class: 'overlay' }, [
+      el('h1', { text: isNewBest ? '🏆 NOVO RECORDE!' : '🏁 Maratona Concluída!' }),
+      celebrateImage ? this._celebrateBadge(celebrateImage, character.name) : null,
+      el('h2', { text: `Tempo da Corrida: ⏱️ ${timeStr}` }),
+      el('p', {
+        text: isNewBest
+          ? '⭐ Esse foi o seu melhor tempo pessoal!'
+          : `Melhor tempo salvo: ${bestStr}`,
+      }),
+      el('p', {
+        text: `Todas as ${totalLetters} letras coletadas com ${mistakes} erro${mistakes === 1 ? '' : 's'}!`,
+      }),
+      el('div', { class: 'overlay-actions' }, [
+        button('Correr de novo ⚡', { primary: true, onClick: onReplay }),
+        button('Menu principal', { onClick: onMenu }),
+      ]),
+    ]);
+    this._mount(screen, { primary: onReplay, back: onMenu });
   }
 
   // --- Internals -----------------------------------------------------------

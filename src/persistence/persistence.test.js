@@ -191,4 +191,30 @@ describe('ProgressStore', () => {
     expect(progress.isLessonComplete('p-1', 'l1')).toBe(true);
     expect(progress.isLessonComplete('p-2', 'l1')).toBe(false);
   });
+
+  it('records and updates speedrun best time', () => {
+    const { progress } = setupProgress();
+    expect(progress.getSpeedrunBestTime('p-1')).toBeNull();
+
+    const first = progress.recordSpeedrunTime('p-1', 45.2);
+    expect(first.isNewBest).toBe(true);
+    expect(first.bestTime).toBe(45.2);
+    expect(progress.getSpeedrunBestTime('p-1')).toBe(45.2);
+
+    // Slower time does not overwrite best
+    const second = progress.recordSpeedrunTime('p-1', 50.0);
+    expect(second.isNewBest).toBe(false);
+    expect(second.bestTime).toBe(45.2);
+    expect(progress.getSpeedrunBestTime('p-1')).toBe(45.2);
+
+    // Faster time overwrites best
+    const third = progress.recordSpeedrunTime('p-1', 38.5);
+    expect(third.isNewBest).toBe(true);
+    expect(third.bestTime).toBe(38.5);
+    expect(progress.getSpeedrunBestTime('p-1')).toBe(38.5);
+
+    // Reset clears best time
+    progress.resetProgress('p-1');
+    expect(progress.getSpeedrunBestTime('p-1')).toBeNull();
+  });
 });

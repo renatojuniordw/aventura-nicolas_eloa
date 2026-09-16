@@ -1,5 +1,6 @@
 import { COLORS, VIEWPORT } from '../core/config.js';
 import { FeedbackKind } from './hud-model.js';
+import { formatTime } from '../content/text-utils.js';
 
 /**
  * Draws the heads-up display: level name, objective banner, hearts and the
@@ -16,6 +17,9 @@ export class Hud {
     this._drawLevelName(model);
     this._drawObjective(model);
     this._drawHearts(model);
+    if (model.isSpeedrun) {
+      this._drawSpeedrun(model);
+    }
     this._drawFeedback(model);
   }
 
@@ -23,6 +27,23 @@ export class Hud {
     this.renderer.screenText(`Fase: ${model.levelName}`, 20, 22, {
       color: COLORS.hudText,
       font: 'bold 16px "Trebuchet MS", sans-serif',
+      align: 'left',
+    });
+  }
+
+  _drawSpeedrun(model) {
+    const timeStr = `⏱️ ${formatTime(model.timer)}`;
+    const progressStr = model.speedrunProgress ? ` · ${model.speedrunProgress}` : '';
+    const label = `${timeStr}${progressStr}`;
+    const width = 168;
+    const height = 28;
+    const x = 20;
+    const y = 44;
+
+    this.renderer.screenRoundRect(x, y, width, height, 8, 'rgba(18, 24, 38, 0.85)');
+    this.renderer.screenText(label, x + 12, y + 15, {
+      color: '#ffd166',
+      font: 'bold 14px "Trebuchet MS", sans-serif',
       align: 'left',
     });
   }

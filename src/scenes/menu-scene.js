@@ -49,7 +49,9 @@ export class MenuScene extends Scene {
       completedCount: activeProfile ? progress.completedCount(activeProfile.id) : 0,
       totalLessons: this.game.curriculum.lessons.length,
       currentLessonTitle: discoveryTitle,
+      speedrunBestTime: activeProfile ? progress.getSpeedrunBestTime(activeProfile.id) : null,
       onPlay: () => this.playNext(),
+      onSpeedrun: () => this.startSpeedrun(),
       onSelectProfile: (profileId) => {
         profiles.setActiveProfile(profileId);
         this.render();
@@ -67,6 +69,10 @@ export class MenuScene extends Scene {
         this.render();
       },
     });
+  }
+
+  startSpeedrun() {
+    this.game.startSpeedrun();
   }
 
   /** Start the first unfinished lesson, creating a profile if needed. */

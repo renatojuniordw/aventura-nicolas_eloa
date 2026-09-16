@@ -42,3 +42,14 @@ export function letters(word) {
 export function displayLabel(value) {
   return String(value ?? '').toLocaleUpperCase('pt-BR');
 }
+
+/** Format elapsed seconds as MM:SS.d for speedrun timers. */
+export function formatTime(seconds) {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const m = Math.floor(safe / 60);
+  const s = Math.floor(safe % 60);
+  const d = Math.floor((safe * 10) % 10);
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return `${mm}:${ss}.${d}`;
+}

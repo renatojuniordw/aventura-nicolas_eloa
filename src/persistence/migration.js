@@ -108,6 +108,7 @@ export function normalizeDocument(doc) {
         correct: Number(profile.stats?.correct) || 0,
         wrong: Number(profile.stats?.wrong) || 0,
       },
+      speedrunBestTime: Number.isFinite(profile.speedrunBestTime) ? profile.speedrunBestTime : null,
     };
   }
 

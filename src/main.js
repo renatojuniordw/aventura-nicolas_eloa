@@ -65,8 +65,24 @@ export function createGame({ canvas, overlayRoot, storage = globalThis.localStor
       },
     },
     /** Jump to a lesson by id (used by menus and the victory screen). */
-    startLesson(lessonId) {
-      scenes.switchTo('game', { lessonId });
+    startLesson(lessonId, options = {}) {
+      scenes.switchTo('game', { lessonId, ...options });
+    },
+    /** Start a continuous speedrun through the alphabet lessons (A to Z). */
+    startSpeedrun() {
+      const alphabetLessons = curriculum.lessonsOfUnit('alfabeto');
+      const lessonIds = alphabetLessons.map((lesson) => lesson.id);
+      if (lessonIds.length === 0) return;
+      scenes.switchTo('game', {
+        lessonId: lessonIds[0],
+        mode: 'speedrun',
+        speedrunState: {
+          lessonIds,
+          currentIndex: 0,
+          elapsed: 0,
+          mistakes: 0,
+        },
+      });
     },
   };
 

@@ -12,12 +12,31 @@ export const FeedbackKind = Object.freeze({
 });
 
 export class HudModel {
-  constructor({ objective = '', levelName = '', lives = 3, maxLives = 3 } = {}) {
+  constructor({
+    objective = '',
+    levelName = '',
+    lives = 3,
+    maxLives = 3,
+    isSpeedrun = false,
+    timer = 0,
+    speedrunProgress = '',
+  } = {}) {
     this.objective = objective;
     this.levelName = levelName;
     this.lives = lives;
     this.maxLives = maxLives;
+    this.isSpeedrun = isSpeedrun;
+    this.timer = timer;
+    this.speedrunProgress = speedrunProgress;
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
+  }
+
+  setTimer(timer) {
+    this.timer = timer;
+  }
+
+  setSpeedrunProgress(progress) {
+    this.speedrunProgress = progress;
   }
 
   setLives(lives) {

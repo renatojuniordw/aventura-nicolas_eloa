@@ -38,4 +38,16 @@ describe('HudModel', () => {
     model.update(1);
     expect(model.feedback.timer).toBe(0);
   });
+
+  it('tracks speedrun timer and progress', () => {
+    const model = new HudModel({ isSpeedrun: true, timer: 12.5, speedrunProgress: '5/26' });
+    expect(model.isSpeedrun).toBe(true);
+    expect(model.timer).toBe(12.5);
+    expect(model.speedrunProgress).toBe('5/26');
+
+    model.setTimer(15.2);
+    model.setSpeedrunProgress('6/26');
+    expect(model.timer).toBe(15.2);
+    expect(model.speedrunProgress).toBe('6/26');
+  });
 });

@@ -81,7 +81,26 @@ export class ProgressStore {
       if (!profile) return null;
       profile.progress = {};
       profile.stats = { correct: 0, wrong: 0 };
+      delete profile.speedrunBestTime;
       return profile;
+    });
+  }
+
+  getSpeedrunBestTime(profileId) {
+    const profile = this._saves.read().profiles[profileId];
+    return profile?.speedrunBestTime ?? null;
+  }
+
+  recordSpeedrunTime(profileId, timeSeconds) {
+    return this._saves.update((doc) => {
+      const profile = doc.profiles[profileId];
+      if (!profile) return null;
+      const prev = profile.speedrunBestTime;
+      const isNewBest = prev == null || timeSeconds < prev;
+      if (isNewBest) {
+        profile.speedrunBestTime = timeSeconds;
+      }
+      return { bestTime: profile.speedrunBestTime, isNewBest };
     });
   }
 

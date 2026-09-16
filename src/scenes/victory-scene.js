@@ -8,9 +8,34 @@ import { getCharacter } from '../content/characters.js';
  * lesson. Progress was already persisted by the game scene.
  */
 export class VictoryScene extends Scene {
-  enter({ lessonId, stars = 0, mistakes = 0 } = {}) {
-    this.lesson = this.game.curriculum.getLesson(lessonId);
+  enter({
+    lessonId,
+    stars = 0,
+    mistakes = 0,
+    mode = 'normal',
+    elapsed = 0,
+    isNewBest = false,
+    bestTime = 0,
+    totalLetters = 26,
+  } = {}) {
     const profile = this.game.profiles.getActiveProfile();
+
+    if (mode === 'speedrun') {
+      this.game.effects.spawnConfetti(this.game.renderer.width / 2, 140, 96);
+      this.game.menu.showSpeedrunVictory({
+        character: getCharacter(profile?.characterId),
+        elapsed,
+        mistakes,
+        isNewBest,
+        bestTime,
+        totalLetters,
+        onReplay: () => this.game.startSpeedrun(),
+        onMenu: () => this.game.scenes.switchTo('menu'),
+      });
+      return;
+    }
+
+    this.lesson = this.game.curriculum.getLesson(lessonId);
     this.nextLessonId = profile
       ? this.game.progress.getNextLesson(profile.id, this.game.curriculum.lessonOrder)
       : null;

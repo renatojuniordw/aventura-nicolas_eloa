@@ -579,3 +579,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
   font-family: inherit;
 }
+
+/* Speedrun Victory */
+.speedrun-victory h2 {
+  font-size: 1.35rem;
+  color: var(--color-gold);
+  margin: 10px 0 6px;
+}
+
+.speedrun-victory p {
+  font-size: 0.95rem;
+  margin: 4px 0;
+}

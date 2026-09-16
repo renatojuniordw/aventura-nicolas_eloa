@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { normalize, equalsIgnoreAccent, displayLabel, letters } from './text-utils.js';
+import { normalize, equalsIgnoreAccent, displayLabel, letters, formatTime } from './text-utils.js';
 
 describe('text-utils', () => {
+  it('formats speedrun time as MM:SS.d', () => {
+    expect(formatTime(0)).toBe('00:00.0');
+    expect(formatTime(9.4)).toBe('00:09.4');
+    expect(formatTime(65.2)).toBe('01:05.2');
+    expect(formatTime(125.89)).toBe('02:05.8');
+    expect(formatTime(-5)).toBe('00:00.0');
+    expect(formatTime(null)).toBe('00:00.0');
+  });
   it('normalizes case', () => {
     expect(normalize('BOLA')).toBe('bola');
     expect(normalize('bola')).toBe('bola');
