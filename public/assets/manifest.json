@@ -23,9 +23,7 @@
     "prompt": "Edit the supplied João Miguel cartoon image. Keep the character EXACTLY unchanged: face, hair, clothes, pose, contours and colors. Remove the entire gray checkerboard background and the pale wisps. Deliver an isolated character PNG with a REAL ALPHA CHANNEL, fully transparent outside the character. Do not DRAW a checkerboard or any representation of transparency. No floor shadow, no added scenery. This must be usable as a 2D game sprite.",
     "destination": "production/results/joao-miguel-alpha-attempt.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v1.png"],
     "source": "private generation source (not distributed)",
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
@@ -44,9 +42,7 @@
     "prompt": "Use case: stylized-concept. Create the master full-body 2D game character Luna. Image 1 is the identity and outfit reference: the blonde little girl with straight long blonde hair partly pinned at the side, small stud earrings, warm cheerful toothy smile, pink and dark plum horizontal-striped long-sleeve top with small heart on chest, pink trousers and pale pink sneakers. Preserve her face, actual child proportions, skin tone, hair and the distinctive clothing. Remove fruit and picnic setting. Image 2 is ONLY an illustration-style reference from this same game; do NOT copy the boy's identity, clothing or checkerboard. Premium hand-drawn 2D cartoon platformer game art, family adventure, clean confident dark colored outlines, polished cel shading with two soft shade steps, bright but tasteful colors, readable simple silhouette, warm expressive face, crisp edges, not pixel art, not 3D or CGI. Consistent storybook platform game art. Whole body, horizontal side-scroller character standing facing screen-right, torso mostly side view, head slightly three-quarter turned toward viewer enough to preserve likeness. Neutral ready-to-play pose with feet apart, relaxed arms, complete head hair hands and shoes visible, generous empty margins. Single isolated character on a perfectly flat pure white #FFFFFF background, no checkerboard, no texture, no floor shadow, no scenery, no labels, no lettering, no watermark. Square canvas.",
     "destination": "assets/characters/luna/master-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v1.png"],
     "source": "private generation source (not distributed)",
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
@@ -65,9 +61,7 @@
     "prompt": "Use case: stylized-concept. Create master full-body 2D game character Lucas o Engenheiro. Image 1 is the identity reference: adult man with round dark eyeglasses, dark short slightly tousled hair, dark full short beard and moustache, expressive brows, friendly smile. Preserve his facial likeness and adult appearance. He wears the brown short-sleeve T-shirt actually worn underneath the garment he holds, light taupe trousers and dark sneakers. Remove held black sweatshirt with lettering, lanyard and entire event setting. Do not add helmet/tools/uniform. Image 2 is ONLY the game's illustration style reference, not identity or age, and do not copy its checkerboard. Use adult body proportions in the same slightly stylized cartoon family. Premium hand-drawn 2D cartoon platformer game art, family adventure, clean confident dark colored outlines, polished cel shading with two soft shade steps, bright but tasteful colors, readable simple silhouette, warm expressive face, crisp edges, not pixel art, not 3D or CGI. Consistent storybook platform game art. Whole body, horizontal side-scroller character standing facing screen-right, torso mostly side view, head slightly three-quarter turned toward viewer enough to preserve likeness. Neutral ready-to-play pose with feet apart, relaxed arms, complete head hair hands and shoes visible, generous empty margins. Single isolated character on a perfectly flat pure white #FFFFFF background, no checkerboard, no texture, no floor shadow, no scenery, no labels, no lettering, no watermark. Square canvas.",
     "destination": "assets/characters/lucas_engenheiro/master-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v1.png"],
     "source": "private generation source (not distributed)",
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
@@ -86,9 +80,7 @@
     "prompt": "Use case: stylized-concept. Create master full-body 2D game character Samara. Image 1 is her identity and clothing reference: adult woman with long dark wavy hair, curtain bangs, hair lifted at crown, brown eyes, defined brows, warm medium skin, small silver earrings and delicate silver pendant. Preserve facial likeness and adult appearance. Keep her brown sleeveless gathered dress, natural neckline and small book/celestial forearm tattoo on the same arm visible in reference. Complete the lower dress modestly around mid-calf and simple flat light sneakers, a proposed practical platformer outfit where photo ends. Relaxed friendly smile. No new accessories. Image 2 is ONLY the game's illustration style reference, not the boy's features or age or checkerboard. Same visual family with adult proportions. Premium hand-drawn 2D cartoon platformer game art, family adventure, clean confident dark colored outlines, polished cel shading with two soft shade steps, bright but tasteful colors, readable simple silhouette, warm expressive face, crisp edges, not pixel art, not 3D or CGI. Consistent storybook platform game art. Whole body, horizontal side-scroller character standing facing screen-right, torso mostly side view, head slightly three-quarter turned toward viewer enough to preserve likeness. Neutral ready-to-play pose with feet apart, relaxed arms, complete head hair hands and shoes visible, generous empty margins. Single isolated character on a perfectly flat pure white #FFFFFF background, no checkerboard, no texture, no floor shadow, no scenery, no labels, no lettering, no watermark. Square canvas.",
     "destination": "assets/characters/samara/master-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v1.png"],
     "source": "private generation source (not distributed)",
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
@@ -108,9 +100,7 @@
     "prompt": "Edit the supplied João Miguel character artwork. Preserve the ENTIRE character unchanged: identical face, smile, eyes, dark tousled hair, olive green sweatshirt, navy joggers, off-white sneakers, pose, proportions, every outline and shading. Replace ONLY all of the checkerboard background and background wisps with one completely flat solid pure white #FFFFFF background. Absolutely no checkerboard, no texture, no gradients, no floor shadow. Whole body, same square framing. This is a clean master reference image, not a transparency preview.",
     "destination": "assets/characters/joao_miguel/master-v2.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -129,9 +119,7 @@
     "prompt": "Use case: stylized-concept. Asset: wide background painting for a premium family educational 2D side-scrolling platform game. Match the attached character reference's hand-drawn cartoon line quality, warm cel-shaded palette and polished finish; DO NOT include the character. Paint a tranquil sunlit garden panorama: clear soft blue sky, a few rounded soft clouds, gently rolling distant green hills, a few rounded leafy trees on the sides, small flowers and low vegetation near the very bottom. Strict side view; no isometric or receding path perspective. Upper and middle two thirds stay visually calm and open for jumping characters and letters to be layered later. Full-bleed wide landscape 16:9 or wider, opaque background. No letters, numbers, UI, buildings, people, animals, collectible objects or floating game platforms. No foreground solid ground slab: terrain is a separate layer. Do not imitate exact branded game assets. Charming coherent art with readable simple shapes, not 3D render, not pixel art. This is one flattened background layer, no panels.",
     "destination": "assets/backgrounds/garden-background-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/luna/master-v1.png"
-    ],
+    "references": ["assets/characters/luna/master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -150,9 +138,7 @@
     "prompt": "Use case: stylized-concept. Asset: terrain design sheet for the same 2D side-scrolling platformer as the attached cartoon character style reference. No characters. Create a neat 3-column by 2-row sheet of SIX distinct separated terrain modules on a perfectly solid white background, each centered within its own equal-sized cell with generous separation, no visible grid or labels. Top row: left end of grass-topped earth ground, seamless-looking center ground block, right end ground. Bottom row: short grass-topped floating platform with rounded underside, longer grass-topped platform, simple wooden bridge plank module. Strict side elevation: flat horizontal walkable tops, no perspective side faces, no top-down view. Warm brown soil with a few stones, lush green rim, dark clean outlines and cel shading matching the character art. All modules use same grass thickness and palette. No cast ground shadows, no checkerboard, no text, no icons. This is a visual module-design sheet; individual cuts and collision geometry will be prepared later.",
     "destination": "assets/terrain/garden-modules-concept-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/luna/master-v1.png"
-    ],
+    "references": ["assets/characters/luna/master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -171,9 +157,7 @@
     "prompt": "Use case: stylized-concept. Asset: EIGHT-frame walk-cycle development sheet for a 2D side-scrolling platformer. Use the attached João Miguel master as the exact character reference: same child identity, dark tousled hair, expressive smiling face, olive green sweatshirt, navy joggers and off-white sneakers. Maintain head/body proportions, face, clothes and palette across ALL frames. He walks facing RIGHT in strict side view, with face only slightly three-quarter so still recognizable. Create exactly EIGHT full-body poses sequentially: right-foot contact, down, passing, up, left-foot contact, down, passing, up, with arms swinging opposite legs and a subtle natural vertical bob. Organize on a precisely regular FOUR-column TWO-row square-celled layout, read left-to-right then top-to-bottom. Each cell equal size, baseline consistent, body center stationary inside each cell; full head and shoes fit with margin. Pure flat white background everywhere, no grid, checkerboard, borders, labels or text. Keep the warm polished 2D cartoon outlines and cel shading of reference. Do not show eight identical standing poses: show the actual alternating walk sequence. This is a study sheet for later frame extraction and game validation.",
     "destination": "assets/characters/joao_miguel/walk-study-v1.png",
     "status": "superseded_by_pixel_art_direction",
-    "references": [
-      "assets/characters/joao_miguel/master-v2.png"
-    ],
+    "references": ["assets/characters/joao_miguel/master-v2.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -211,9 +195,7 @@
     "destination": "assets/characters/joao_miguel/pixel-master-v1.png",
     "source": "private generation source (not distributed)",
     "prompt": "Use case: stylized-concept. Create João Miguel as a LOW-RES PIXEL ART player sprite for a classic 16-bit console-style family platformer. Image 1 is this person's identity reference: young boy, dark brown short tousled hair, smiling face and bright brown eyes, olive green crewneck long-sleeve sweatshirt, navy jogger trousers and light sneakers. Preserve his actual child's identity and age appearance. Image 2 is ONLY the new style reference for pixel size, chunky silhouette, outline and shading of this game's new pixel art. Match its visual pixel scale; do not copy Samara's face, hairstyle or outfit. Authentic classic 16-bit console platformer PIXEL ART sprite. Intentionally LOW logical resolution: the full character is approximately 32 pixels wide and 48 pixels tall, on a plain 64 by 64 logical-pixel square canvas, shown greatly enlarged with NEAREST NEIGHBOR so every square pixel is big, hard-edged and clearly visible. Compact appealing platformer proportions with a large head and short limbs; adult characters remain visibly adult. Deliberately simplified silhouette, 1 logical-pixel dark outline, restricted palette of about 16-24 solid colors, maximum 2-3 shades per material. All contours made of chunky stair-step square pixel clusters. Absolutely no antialiasing, no soft edges, no gradients, no painterly rendering, no detailed vector cartoon, no photorealism, no tiny high-res face details. Not an illustration with a mosaic filter: design a genuine small game sprite from scratch. Single full-body idle pose facing screen-right, side-scrolling view, head slightly three-quarter only for recognition. All hair hands and feet visible, feet level, generous margins. Plain flat pure white background, no checkerboard, no floor shadow, no labels or scenery.",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -232,9 +214,7 @@
     "destination": "assets/characters/luna/pixel-master-v1.png",
     "source": "private generation source (not distributed)",
     "prompt": "Use case: stylized-concept. Create Luna as a LOW-RES PIXEL ART player sprite for a classic 16-bit console-style family platformer. Image 1 is this person's identity reference: young blonde girl, long straight golden-blonde hair with a small pink side clip, cheerful smile, pink and dark plum horizontal striped long sleeve shirt with tiny heart mark, pink trousers and pale pink sneakers. Preserve her child identity. Image 2 is ONLY the new style reference for pixel size, chunky silhouette, outline and shading of this game's new pixel art. Match its visual pixel scale; do not copy Samara's face, hairstyle or outfit. Authentic classic 16-bit console platformer PIXEL ART sprite. Intentionally LOW logical resolution: the full character is approximately 32 pixels wide and 48 pixels tall, on a plain 64 by 64 logical-pixel square canvas, shown greatly enlarged with NEAREST NEIGHBOR so every square pixel is big, hard-edged and clearly visible. Compact appealing platformer proportions with a large head and short limbs; adult characters remain visibly adult. Deliberately simplified silhouette, 1 logical-pixel dark outline, restricted palette of about 16-24 solid colors, maximum 2-3 shades per material. All contours made of chunky stair-step square pixel clusters. Absolutely no antialiasing, no soft edges, no gradients, no painterly rendering, no detailed vector cartoon, no photorealism, no tiny high-res face details. Not an illustration with a mosaic filter: design a genuine small game sprite from scratch. Single full-body idle pose facing screen-right, side-scrolling view, head slightly three-quarter only for recognition. All hair hands and feet visible, feet level, generous margins. Plain flat pure white background, no checkerboard, no floor shadow, no labels or scenery.",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -253,9 +233,7 @@
     "destination": "assets/characters/lucas_engenheiro/pixel-master-v1.png",
     "source": "private generation source (not distributed)",
     "prompt": "Use case: stylized-concept. Create Lucas o Engenheiro as a LOW-RES PIXEL ART player sprite for a classic 16-bit console-style family platformer. Image 1 is this person's identity reference: adult man, dark short tousled hair, round dark-rimmed eyeglasses, dark short beard and moustache, friendly smile, brown short-sleeve T-shirt, light taupe trousers, black sneakers. Preserve adult appearance; no helmet or tools. Remove the held printed garment and event lanyard from the photo. Image 2 is ONLY the new style reference for pixel size, chunky silhouette, outline and shading of this game's new pixel art. Match its visual pixel scale; do not copy Samara's face, hairstyle or outfit. Authentic classic 16-bit console platformer PIXEL ART sprite. Intentionally LOW logical resolution: the full character is approximately 32 pixels wide and 48 pixels tall, on a plain 64 by 64 logical-pixel square canvas, shown greatly enlarged with NEAREST NEIGHBOR so every square pixel is big, hard-edged and clearly visible. Compact appealing platformer proportions with a large head and short limbs; adult characters remain visibly adult. Deliberately simplified silhouette, 1 logical-pixel dark outline, restricted palette of about 16-24 solid colors, maximum 2-3 shades per material. All contours made of chunky stair-step square pixel clusters. Absolutely no antialiasing, no soft edges, no gradients, no painterly rendering, no detailed vector cartoon, no photorealism, no tiny high-res face details. Not an illustration with a mosaic filter: design a genuine small game sprite from scratch. Single full-body idle pose facing screen-right, side-scrolling view, head slightly three-quarter only for recognition. All hair hands and feet visible, feet level, generous margins. Plain flat pure white background, no checkerboard, no floor shadow, no labels or scenery.",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -274,9 +252,7 @@
     "destination": "assets/backgrounds/garden-pixel-v1.png",
     "source": "private generation source (not distributed)",
     "prompt": "Create a genuinely low-resolution 16-bit PIXEL ART background for a classic side-scrolling platform game with an original retro-console visual identity. The attached pixel character is only a STYLE reference; include no characters. Wide 16:9 panoramic composition. Design at about 320 by 180 logical pixels, enlarged with crisp nearest-neighbor square pixels. Limited bright palette, flat colors and stepped pixel clusters. Blue sky occupying the upper two-thirds, simple puffy clouds with stair-step outlines, rounded distant green hills, sparse rounded green trees at left and right, tiny pixel flowers/bushes along the bottom. Central area open and calm for gameplay. Side-on view, no perspective path. No gradient shading, no smooth painted leaves, no high-resolution illustration, no antialiasing. Opaque full-bleed image. No solid playable ground slab, no floating platforms, letters, numbers, text, UI or characters. This is only a background layer.",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -296,9 +272,7 @@
     "destination": "assets/terrain/garden-pixel-modules-v1.png",
     "source": "private generation source (not distributed)",
     "prompt": "Create a SIX-module terrain reference sheet for a classic 16-bit 2D PIXEL ART platformer. Match the attached sprite's chunky square pixels, flat limited colors, dark pixel outlines. No characters. Three columns, two rows, equal spacious cells on solid pure white background. Top row: left-end grass-and-earth ground tile; center grass-and-earth ground tile; right-end grass-and-earth ground tile. Bottom row: short floating grass platform; long floating grass platform; small wooden bridge. Strict side elevation, straight horizontal collision tops, no isometric top faces. Design tiles as tiny 16x16 logical pixel motifs and platforms as multiples of that, greatly enlarged nearest-neighbor with large obvious square pixels. Grass is simple stepped green edge, dirt flat brown with a few chunky rock pixels; wood 2-3 browns. No smooth leaf illustration, no gradients, no antialiasing, no texture noise, no cast shadows, no letters, gridlines or labels. This is a clean visual design sheet for subsequent extraction, not a screenshot of a game.",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "model_requested": "ChatGPT Image 2.5",
     "model_actual": "not_exposed_by_builtin_tool",
     "tool": "image_gen",
@@ -316,10 +290,8 @@
     "id": "joao_miguel_portrait_pixel_v1",
     "name": "Retrato — João Miguel",
     "destination": "assets/portraits/joao_miguel/portrait-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura das Letras. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: João Miguel. Essential traits: young boy, tousled short dark brown hair, cheerful toothy smile, olive green crewneck sweatshirt.",
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura do Nicolas&Eloá. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: João Miguel. Essential traits: young boy, tousled short dark brown hair, cheerful toothy smile, olive green crewneck sweatshirt.",
     "category": "portrait",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_portrait_pixel_v1.txt",
@@ -336,10 +308,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "ce7136aace7042cf111bb226a46564f8266db8e2ebf32f8c7f47a8786f4ccf22",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -349,10 +318,8 @@
     "id": "luna_portrait_pixel_v1",
     "name": "Retrato — Luna",
     "destination": "assets/portraits/luna/portrait-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura das Letras. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Luna. Essential traits: young blonde girl, long blonde hair with pink side clip, pink/plum striped long-sleeve top with small heart, friendly smile.",
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura do Nicolas&Eloá. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Luna. Essential traits: young blonde girl, long blonde hair with pink side clip, pink/plum striped long-sleeve top with small heart, friendly smile.",
     "category": "portrait",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_portrait_pixel_v1.txt",
@@ -369,10 +336,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "e8a5a4a96853b5b55971f28eee6af803537fd2a9d70edb374340c22805dc7c08",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -382,10 +346,8 @@
     "id": "lucas_engenheiro_portrait_pixel_v1",
     "name": "Retrato — Lucas o Engenheiro",
     "destination": "assets/portraits/lucas_engenheiro/portrait-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura das Letras. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Lucas o Engenheiro. Essential traits: adult man, short tousled dark hair, round dark eyeglasses, dark beard and moustache, brown T-shirt, friendly smile.",
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura do Nicolas&Eloá. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Lucas o Engenheiro. Essential traits: adult man, short tousled dark hair, round dark eyeglasses, dark beard and moustache, brown T-shirt, friendly smile.",
     "category": "portrait",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_portrait_pixel_v1.txt",
@@ -402,10 +364,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "ad1f6fc7964decdb1315253263277969e40dda2ee10315bc93effa78aac6412c",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -415,10 +374,8 @@
     "id": "samara_portrait_pixel_v1",
     "name": "Retrato — Samara",
     "destination": "assets/portraits/samara/portrait-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura das Letras. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Samara. Essential traits: adult woman, long dark wavy hair and curtain bangs, tiny silver earring, chocolate brown oversized hoodie with hood down; keep her own face, no dress.",
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Create a single character-selection portrait for the family 2D platform game Aventura do Nicolas&Eloá. Input image is the exact existing pixel character identity, clothing, color and style reference. Preserve those features closely. Authentic classic 16-bit pixel art: big obvious square pixels, limited flat color clusters, stair-step outlines, no gradients, no smooth painting or antialiasing. Compose one centered head-and-shoulders bust, head slightly turned toward screen-right, eyes visible, warm expression. Same portrait template across the cast: complete hair with 10 percent top margin, shoulders end around 85 percent of canvas height; hair may extend alongside shoulders; no hands, waist or legs. Approximate native logical design 64x64 greatly enlarged with crisp nearest-neighbor pixel appearance. Square canvas, isolated on genuine transparent background, preserve real alpha; never draw a checkerboard. No frame, circle, text, name, icons, floor or scenery. Character: Samara. Essential traits: adult woman, long dark wavy hair and curtain bangs, tiny silver earring, chocolate brown oversized hoodie with hood down; keep her own face, no dress.",
     "category": "portrait",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_portrait_pixel_v1.txt",
@@ -435,10 +392,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "91d17e372c602f1678c6e379583daa10291071446c1bbf8038c888b7db636b50",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -448,10 +402,8 @@
     "id": "letter_carrier_pixel_v1",
     "name": "Suporte de letra",
     "destination": "assets/items/letter-carrier-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Asset for Aventura das Letras, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single floating collectible letter token: square golden frame with softly stepped pixel corners, very thin bronze outline, warm pale cream flat opaque center completely blank and occupying at least 70 percent of the token width. Front-on view. The center must remain clear for a large real-font alphabet letter added later by the game. No actual letters, numbers, question mark, face, decoration inside, glints or stand. Logical native motif around 32x32 pixels greatly enlarged. This is a token to collect, not a ground block.",
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Asset for Aventura do Nicolas&Eloá, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single floating collectible letter token: square golden frame with softly stepped pixel corners, very thin bronze outline, warm pale cream flat opaque center completely blank and occupying at least 70 percent of the token width. Front-on view. The center must remain clear for a large real-font alphabet letter added later by the game. No actual letters, numbers, question mark, face, decoration inside, glints or stand. Logical native motif around 32x32 pixels greatly enlarged. This is a token to collect, not a ground block.",
     "category": "item",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/letter_carrier_pixel_v1.txt",
@@ -468,10 +420,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "0bb04525f6dd2b0d7d6247dae06688f0653c1cb22cc2fb42b01618751600fbc7",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -481,10 +430,8 @@
     "id": "speed_item_pixel_v1",
     "name": "Poder de velocidade",
     "destination": "assets/items/speed-item-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Asset for Aventura das Letras, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single collectible speed-power icon: one sporty turquoise sneaker in strict side view, toe pointing RIGHT, pale cream sole and one bold gold lightning-bolt emblem on its side. Two short blocky gold motion dashes behind the heel, contained in same compact icon. No wing, no word, no laces finer than a logical pixel. Recognizable sneaker silhouette even tiny. Logical motif around32x32 enlarged.",
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Asset for Aventura do Nicolas&Eloá, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single collectible speed-power icon: one sporty turquoise sneaker in strict side view, toe pointing RIGHT, pale cream sole and one bold gold lightning-bolt emblem on its side. Two short blocky gold motion dashes behind the heel, contained in same compact icon. No wing, no word, no laces finer than a logical pixel. Recognizable sneaker silhouette even tiny. Logical motif around32x32 enlarged.",
     "category": "item",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/speed_item_pixel_v1.txt",
@@ -501,10 +448,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "346687634fad534770ad95fcdbb8e9ff65eec19c30c750afc79bae02c4a03d81",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -514,10 +458,8 @@
     "id": "checkpoint_pixel_v1",
     "name": "Ponto de retorno",
     "destination": "assets/objects/checkpoint-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Asset for Aventura das Letras, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single friendly activated checkpoint flag for the garden level: short wooden vertical pole, rounded gold finial at top, teal fabric pennant extending RIGHT bearing one simple cream circular-arrow pictogram symbolizing return, small sturdy mossy stone base. Flat side elevation, no top faces or scenery. Full flag and base visible. Outline shape must read as safe return marker. Logical motif around32x48 pixels enlarged. No letters or numbers.",
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Asset for Aventura do Nicolas&Eloá, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single friendly activated checkpoint flag for the garden level: short wooden vertical pole, rounded gold finial at top, teal fabric pennant extending RIGHT bearing one simple cream circular-arrow pictogram symbolizing return, small sturdy mossy stone base. Flat side elevation, no top faces or scenery. Full flag and base visible. Outline shape must read as safe return marker. Logical motif around32x48 pixels enlarged. No letters or numbers.",
     "category": "object",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/checkpoint_pixel_v1.txt",
@@ -534,10 +476,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "94fdd741404e75781beec7c8ba3f004d2865cd2268441924ba8615be4d6f2252",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -547,10 +486,8 @@
     "id": "finish_portal_pixel_v1",
     "name": "Portal de chegada",
     "destination": "assets/objects/finish-portal-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
-    "prompt": "Use case: stylized-concept. Asset for Aventura das Letras, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single welcoming level-finish garden portal: simple rounded arch made from chunky honey-gold stone blocks, a small five-point golden star centered atop arch, two small green leaves on its sides, flat step at base. Inside arch is a flat pale sky-blue portal field with 2-3 tiny square gold sparkles near its upper edge; center and lower area clear. Friendly safe adventure mood. Front-on flat view suitable for side-scrolling level, no isometric floor, no landscape inside. Logical motif around48x64 pixels enlarged. No characters, banners, text or numbers.",
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
+    "prompt": "Use case: stylized-concept. Asset for Aventura do Nicolas&Eloá, an educational 2D side-scrolling platformer with classic 16-bit pixel art with an original retro-console visual identity. Attached character is STYLE ONLY; do not include any person. Draw chunky clearly visible square pixels, stepped dark outlines, compact readable silhouette, limited flat-color clusters, at most 3 solid shades per material. No gradients, glow blur, antialiasing, smooth digital painting, perspective/isometric view, lettering or watermark. One isolated asset centered on square canvas, entire object visible with wide clear margins. GENUINELY TRANSPARENT background with real alpha, never draw a checkerboard or a black/white matte. A single welcoming level-finish garden portal: simple rounded arch made from chunky honey-gold stone blocks, a small five-point golden star centered atop arch, two small green leaves on its sides, flat step at base. Inside arch is a flat pale sky-blue portal field with 2-3 tiny square gold sparkles near its upper edge; center and lower area clear. Friendly safe adventure mood. Front-on flat view suitable for side-scrolling level, no isometric floor, no landscape inside. Logical motif around48x64 pixels enlarged. No characters, banners, text or numbers.",
     "category": "object",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/finish_portal_pixel_v1.txt",
@@ -567,10 +504,7 @@
     "height": 1254,
     "color_mode": "RGBA",
     "alpha_channel": true,
-    "alpha_extrema": [
-      0,
-      255
-    ],
+    "alpha_extrema": [0, 255],
     "transparency_verified": true,
     "sha256": "c071427aa8e15467b06a0bf189c73b02c59f356414d3e18c408632c675332a89",
     "notes": "Aparência pixelada ampliada; há suavização/variação tonal dentro de alguns blocos. Normalizar grade, paleta e bordas antes de integrar; animações e testes no jogo pendentes.",
@@ -584,9 +518,7 @@
     "rows": 2,
     "count": 8,
     "destination": "assets/characters/luna/walk-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Create the EIGHT-frame WALK cycle sprite sheet for this exact Luna pixel character. Reference image defines identity, blonde child with long hair, pink side clip, pink/plum striped long sleeve top with small heart, pink trousers, pale pink shoes. Preserve character across all frames. Authentic low-resolution 16-bit pixel art with large crisp square blocks, fixed limited flat palette, no gradients or soft edges. EXACTLY 4 columns and 2 rows, eight equal square cells; read left-to-right top-to-bottom. One complete whole-body character centered in EACH cell, same scale (height 75% of cell) and same foot baseline at 88% cell, blank margins; no overlap or cropped parts. Walking facing RIGHT, mostly side view, recognizable face. Frame order: right-foot forward contact, down, left-leg passing, up, left-foot forward contact, down, right-leg passing, up. Actual opposite arm/leg alternation, rear limb shaded a little darker to distinguish it; no duplicate standing poses. Pure REAL transparent alpha outside all characters, absolutely no drawn checkerboard, no matte or ground shadow, no labels, letters, grid lines or scenery. Square overall canvas. Each pose must remain clean readable pixels when reduced for a platform game.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_walk_pixel_v1.txt",
@@ -611,9 +543,7 @@
     "rows": 2,
     "count": 8,
     "destination": "assets/characters/lucas_engenheiro/walk-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Create the EIGHT-frame WALK cycle sprite sheet for this exact Lucas o Engenheiro pixel character. Reference image defines identity, adult man with round dark glasses, short dark hair, dark beard, brown T-shirt, light taupe trousers, black sneakers. Preserve character across all frames. Authentic low-resolution 16-bit pixel art with large crisp square blocks, fixed limited flat palette, no gradients or soft edges. EXACTLY 4 columns and 2 rows, eight equal square cells; read left-to-right top-to-bottom. One complete whole-body character centered in EACH cell, same scale (height 75% of cell) and same foot baseline at 88% cell, blank margins; no overlap or cropped parts. Walking facing RIGHT, mostly side view, recognizable face. Frame order: right-foot forward contact, down, left-leg passing, up, left-foot forward contact, down, right-leg passing, up. Actual opposite arm/leg alternation, rear limb shaded a little darker to distinguish it; no duplicate standing poses. Pure REAL transparent alpha outside all characters, absolutely no drawn checkerboard, no matte or ground shadow, no labels, letters, grid lines or scenery. Square overall canvas. Each pose must remain clean readable pixels when reduced for a platform game.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_walk_pixel_v1.txt",
@@ -638,9 +568,7 @@
     "rows": 2,
     "count": 8,
     "destination": "assets/characters/samara/walk-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Create the EIGHT-frame WALK cycle sprite sheet for this exact Samara pixel character. Reference image defines identity, adult woman with long dark wavy hair and bangs, chocolate brown hoodie hood down, baggy light blue jeans with white waist cord, dark flats; no dress. Preserve character across all frames. Authentic low-resolution 16-bit pixel art with large crisp square blocks, fixed limited flat palette, no gradients or soft edges. EXACTLY 4 columns and 2 rows, eight equal square cells; read left-to-right top-to-bottom. One complete whole-body character centered in EACH cell, same scale (height 75% of cell) and same foot baseline at 88% cell, blank margins; no overlap or cropped parts. Walking facing RIGHT, mostly side view, recognizable face. Frame order: right-foot forward contact, down, left-leg passing, up, left-foot forward contact, down, right-leg passing, up. Actual opposite arm/leg alternation, rear limb shaded a little darker to distinguish it; no duplicate standing poses. Pure REAL transparent alpha outside all characters, absolutely no drawn checkerboard, no matte or ground shadow, no labels, letters, grid lines or scenery. Square overall canvas. Each pose must remain clean readable pixels when reduced for a platform game.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_walk_pixel_v1.txt",
@@ -665,9 +593,7 @@
     "rows": 1,
     "count": 1,
     "destination": "assets/terrain/grass-tile-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Create ONE square terrain tile for this classic 16-bit pixel-art platform game. Attached character is style-only, no person in output. Full-bleed square tile entirely filled with terrain, no margins or background. Strict front side view. Native design EXACTLY16x16 logical pixels greatly enlarged with crisp nearest-neighbor square blocks, very limited palette of 3 greens and 3 browns. Top 4 logical pixel rows form a simple flat horizontal grassy edge, remaining12rows flat brown earth with a few chunky 2-pixel stones. Left/right edges match for horizontal repeat. No bevel, perspective, rounded corners, extrusions, text, gradient, smooth shading, outside stroke or antialiasing. Opaque RGB entire tile, every pixel filled. This image will repeat on physical ground in the game.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/grass_tile_pixel_v1.txt",
@@ -692,9 +618,7 @@
     "rows": 2,
     "count": 8,
     "destination": "assets/characters/joao_miguel/walk-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Create the EIGHT-frame WALK cycle sprite sheet for this exact João Miguel pixel character. Reference image defines identity, olive green sweatshirt, navy trousers, white sneakers, dark tousled short hair, cheerful child face. Preserve character across all frames. Authentic low-resolution 16-bit pixel art with large crisp square blocks, fixed limited flat palette, no gradients or soft edges. EXACTLY 4 columns and 2 rows, eight equal square cells; read left-to-right top-to-bottom. One complete whole-body character centered in EACH cell, same scale (height 75% of cell) and same foot baseline at 88% cell, blank margins; no overlap or cropped parts. Walking facing RIGHT, mostly side view, recognizable face. Frame order: right-foot forward contact, down, left-leg passing, up, left-foot forward contact, down, right-leg passing, up. Actual opposite arm/leg alternation, rear limb shaded a little darker to distinguish it; no duplicate standing poses. Pure REAL transparent alpha outside all characters, absolutely no drawn checkerboard, no matte or ground shadow, no labels, letters, grid lines or scenery. Square overall canvas. Each pose must remain clean readable pixels when reduced for a platform game.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_walk_pixel_v1.txt",
@@ -720,9 +644,7 @@
     "rows": 2,
     "text": "SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game.",
     "destination": "assets/characters/joao_miguel/jump_cycle-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached João Miguel pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_jump_cycle_pixel_v1.txt",
@@ -748,9 +670,7 @@
     "rows": 2,
     "text": "SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game.",
     "destination": "assets/characters/luna/jump_cycle-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Luna pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_jump_cycle_pixel_v1.txt",
@@ -776,9 +696,7 @@
     "rows": 2,
     "text": "SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game.",
     "destination": "assets/characters/lucas_engenheiro/jump_cycle-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Lucas o Engenheiro pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_jump_cycle_pixel_v1.txt",
@@ -804,9 +722,7 @@
     "rows": 2,
     "text": "SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game.",
     "destination": "assets/characters/samara/jump_cycle-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Samara pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. SIX-frame single JUMP action cycle,3 columns x2rows. Frame1 takeoff extended legs one arm up; frame2 rising with knees bent; frame3 at apex arms gently out knees bent; frame4 descending legs extend and arms balance; frame5 landing with knees flexed; frame6 recovered standing. Keep exactly same face/head scale across the6poses. Pose6 full standing body is scale reference, other poses may change silhouette height naturally. All poses held centered horizontally with bottom feet near common baseline; movement of body through air is done in game. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_jump_cycle_pixel_v1.txt",
@@ -832,9 +748,7 @@
     "rows": 2,
     "text": "FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1.",
     "destination": "assets/characters/joao_miguel/idle-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached João Miguel pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_idle_pixel_v1.txt",
@@ -860,9 +774,7 @@
     "rows": 2,
     "text": "FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1.",
     "destination": "assets/characters/luna/idle-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Luna pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_idle_pixel_v1.txt",
@@ -888,9 +800,7 @@
     "rows": 2,
     "text": "FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1.",
     "destination": "assets/characters/lucas_engenheiro/idle-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Lucas o Engenheiro pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_idle_pixel_v1.txt",
@@ -916,9 +826,7 @@
     "rows": 2,
     "text": "EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks.",
     "destination": "assets/characters/joao_miguel/run-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached João Miguel pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_run_pixel_v1.txt",
@@ -944,9 +852,7 @@
     "rows": 2,
     "text": "EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks.",
     "destination": "assets/characters/luna/run-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Luna pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_run_pixel_v1.txt",
@@ -972,9 +878,7 @@
     "rows": 2,
     "text": "EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks.",
     "destination": "assets/characters/lucas_engenheiro/run-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Lucas o Engenheiro pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_run_pixel_v1.txt",
@@ -1000,9 +904,7 @@
     "rows": 2,
     "text": "FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins.",
     "destination": "assets/characters/joao_miguel/celebrate-pixel-v1.png",
-    "references": [
-      "assets/characters/joao_miguel/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/joao_miguel/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached João Miguel pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/joao_miguel_celebrate_pixel_v1.txt",
@@ -1028,9 +930,7 @@
     "rows": 2,
     "text": "FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins.",
     "destination": "assets/characters/luna/celebrate-pixel-v1.png",
-    "references": [
-      "assets/characters/luna/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/luna/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Luna pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/luna_celebrate_pixel_v1.txt",
@@ -1056,9 +956,7 @@
     "rows": 2,
     "text": "FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins.",
     "destination": "assets/characters/lucas_engenheiro/celebrate-pixel-v1.png",
-    "references": [
-      "assets/characters/lucas_engenheiro/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/lucas_engenheiro/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Lucas o Engenheiro pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/lucas_engenheiro_celebrate_pixel_v1.txt",
@@ -1084,9 +982,7 @@
     "rows": 2,
     "text": "FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins.",
     "destination": "assets/characters/samara/celebrate-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Samara pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. FOUR-frame friendly CELEBRATION,2 columns x2rows. Frame1 standing smiling with hands on hips;frame2 both arms rise above shoulders;frame3 both hands raised overhead with big happy smile;frame4 arms return halfway down. Feet remain planted. No confetti or objects. Full overhead hands fit with margins. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_celebrate_pixel_v1.txt",
@@ -1112,9 +1008,7 @@
     "rows": 2,
     "text": "EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks.",
     "destination": "assets/characters/samara/run-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/pixel-master-v1.png"
-    ],
+    "references": ["assets/characters/samara/pixel-master-v1.png"],
     "prompt": "Use case: stylized-concept. Generate animation sprite sheet of EXACT attached Samara pixel game character. Preserve identity, age, hair, facial features, clothing and colors from reference. Samara's outfit when applicable is brown hoodie/light-blue loose jeans; Lucas keeps glasses/beard. Authentic classic16-bit pixel art, same crisp square pixels, dark stepped outlines, few flat solid colors, no smooth shading, gradients or antialiasing. EIGHT-frame RUNNING cycle,4 columns x2rows: right-foot contact, compress, pass, flight, left-foot contact, compress, pass, flight. Torso leans slightly forward, arms pump opposite legs, knees lift, brief airborne running phase. Clearly different dynamic action from walking, no speed streaks. Equal spacious cells, read left-to-right top-to-bottom, same character and head scale across all frames, fixed foot baseline, whole hair/body/hands/feet inside every cell, no overlaps. Single action with clean distinct poses. Slight side/front three-quarter face recognizable, moving/looking toward RIGHT. Real transparent alpha outside characters; no checkerboard or matte, floor shadow, labels, numbers, grid lines or scenery. Square overall canvas.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_run_pixel_v1.txt",
@@ -1140,9 +1034,7 @@
     "rows": 2,
     "text": "FOUR-frame IDLE breathing animation, 2 columns x2 rows. All four poses standing, feet planted, arms relaxed, gentle breathing only and a subtle blink in third frame. Do not walk or raise hands. Pose4 returns to pose1.",
     "destination": "assets/characters/samara/idle-pixel-v1.png",
-    "references": [
-      "assets/characters/samara/celebrate-pixel-v1.png"
-    ],
+    "references": ["assets/characters/samara/celebrate-pixel-v1.png"],
     "prompt": "Create a four frame idle sprite sheet of the woman in the attached sprite sheet, preserving her dark wavy hair, brown hooded sweatshirt, baggy blue jeans with white cord and black shoes. She stands calmly with arms relaxed beside body: neutral, small breath, blink, neutral. Same crisp chunky retro 16-bit pixel art. 2 columns 2 rows, full body in each equal cell, consistent feet baseline. CRITICAL PNG with TRUE TRANSPARENT alpha background, absolutely no gray checkerboard pattern, no background pixels or shadows. Make background transparent as in the reference. No celebration or raised arms. Whole body visible in every frame.",
     "source": "private generation source (not distributed)",
     "prompt_file": "production/prompts/samara_idle_pixel_v4.txt",
@@ -1165,9 +1057,7 @@
     "runtime_file": "game/art/primavera-pomar.png",
     "prompt": "Use case: stylized-concept. Game asset: a single extra-wide panoramic BACKGROUND for a polished child-friendly 2D side-scrolling pixel-art platformer. Image 1 is STYLE REFERENCE ONLY; create a genuinely different environment. SPRING BLOSSOM ORCHARD. Pink flowering trees, mint green rolling hills, light turquoise sky, soft peach sun. Left has a cherry tree grove, center a distant little stream, right an apple blossom meadow. Panoramic 3:1 landscape canvas, entire canvas is the one continuous scene, no panels. Crisp visibly square pixel clusters, limited harmonious 16-bit palette, flat shading, no blur, no photography, no 3D. Distant scenery only: decorative ground horizon at bottom 20%; keep middle 40%-70% height quiet and lower contrast for large readable letter pickups. Sky fills upper half. Interesting distinct landmarks across width so different crops feel like different locations. No characters, enemies, lettering, UI, collectible blocks, coins, portals or walkable foreground platforms. No frame or watermark. Preserve nostalgic pixel-platformer aesthetic with original scenery.",
     "source": "private generation source (not distributed)",
-    "references": [
-      "game/art/garden.png"
-    ],
+    "references": ["game/art/garden.png"],
     "prompt_file": "production/prompts/primavera-pomar-v1.txt",
     "tool": "image_gen",
     "model_requested": "ChatGPT Image 2.5",
@@ -1185,9 +1075,7 @@
     "runtime_file": "game/art/outono-bosque.png",
     "prompt": "Use case: stylized-concept. Game asset: a single extra-wide panoramic BACKGROUND for a polished child-friendly 2D side-scrolling pixel-art platformer. Image 1 is STYLE REFERENCE ONLY; create a genuinely different environment. AUTUMN AMBER FOREST. Ochre and burnt orange foliage, burgundy shrubs, warm pale apricot sky, golden light. Left has tall russet trees, center distant layered amber hills, right copper grove and tiny distant rustic cottage. Panoramic 3:1 landscape canvas, entire canvas is the one continuous scene, no panels. Crisp visibly square pixel clusters, limited harmonious 16-bit palette, flat shading, no blur, no photography, no 3D. Distant scenery only: decorative ground horizon at bottom 20%; keep middle 40%-70% height quiet and lower contrast for large readable letter pickups. Sky fills upper half. Interesting distinct landmarks across width so different crops feel like different locations. No characters, enemies, lettering, UI, collectible blocks, coins, portals or walkable foreground platforms. No frame or watermark. Preserve nostalgic pixel-platformer aesthetic with original scenery.",
     "source": "private generation source (not distributed)",
-    "references": [
-      "game/art/garden.png"
-    ],
+    "references": ["game/art/garden.png"],
     "prompt_file": "production/prompts/outono-bosque-v1.txt",
     "tool": "image_gen",
     "model_requested": "ChatGPT Image 2.5",
@@ -1205,9 +1093,7 @@
     "runtime_file": "game/art/primavera-lago.png",
     "prompt": "Use case: stylized-concept. Game asset: a single extra-wide panoramic BACKGROUND for a polished child-friendly 2D side-scrolling pixel-art platformer. Image 1 is STYLE REFERENCE ONLY; create a genuinely different environment. SPRING LAKESIDE GARDEN. Lavender and lilac flowering trees, lush light green reeds, tranquil turquoise lake, blue sky with small ivory clouds. Left distant waterfall, center reflective lake, right flower meadow. Panoramic 3:1 landscape canvas, entire canvas is the one continuous scene, no panels. Crisp visibly square pixel clusters, limited harmonious 16-bit palette, flat shading, no blur, no photography, no 3D. Distant scenery only: decorative ground horizon at bottom 20%; keep middle 40%-70% height quiet and lower contrast for large readable letter pickups. Sky fills upper half. Interesting distinct landmarks across width so different crops feel like different locations. No characters, enemies, lettering, UI, collectible blocks, coins, portals or walkable foreground platforms. No frame or watermark. Preserve nostalgic pixel-platformer aesthetic with original scenery.",
     "source": "private generation source (not distributed)",
-    "references": [
-      "game/art/garden.png"
-    ],
+    "references": ["game/art/garden.png"],
     "prompt_file": "production/prompts/primavera-lago-v1.txt",
     "tool": "image_gen",
     "model_requested": "ChatGPT Image 2.5",
@@ -1225,9 +1111,7 @@
     "runtime_file": "game/art/outono-vale.png",
     "prompt": "Use case: stylized-concept. Game asset: a single extra-wide panoramic BACKGROUND for a polished child-friendly 2D side-scrolling pixel-art platformer. Image 1 is STYLE REFERENCE ONLY; create a genuinely different environment. AUTUMN SUNSET VALLEY. Coral peach sky, terracotta hills, rust red maples, golden wheat and amber leaves. Left distant windmill, center terraced rolling valley, right golden birches. Warm and cheerful, never dark. Panoramic 3:1 landscape canvas, entire canvas is the one continuous scene, no panels. Crisp visibly square pixel clusters, limited harmonious 16-bit palette, flat shading, no blur, no photography, no 3D. Distant scenery only: decorative ground horizon at bottom 20%; keep middle 40%-70% height quiet and lower contrast for large readable letter pickups. Sky fills upper half. Interesting distinct landmarks across width so different crops feel like different locations. No characters, enemies, lettering, UI, collectible blocks, coins, portals or walkable foreground platforms. No frame or watermark. Preserve nostalgic pixel-platformer aesthetic with original scenery.",
     "source": "private generation source (not distributed)",
-    "references": [
-      "game/art/garden.png"
-    ],
+    "references": ["game/art/garden.png"],
     "prompt_file": "production/prompts/outono-vale-v1.txt",
     "tool": "image_gen",
     "model_requested": "ChatGPT Image 2.5",

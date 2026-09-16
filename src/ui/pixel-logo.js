@@ -13,7 +13,7 @@ const GLYPHS = {
 };
 
 /**
- * Generates an SVG element for the authentic pixel art title "AVENTURA DAS LETRAS".
+ * Generates an SVG element for the authentic pixel art title "Aventura do Nicolas&Eloá".
  * Uses the exact font matrix from the original game.
  */
 export function createPixelLogoSvg() {
@@ -67,7 +67,7 @@ export function createPixelLogoSvg() {
   });
 
   const svgString = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" class="pixel-logo-svg" role="img" aria-label="Aventura das Letras">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" class="pixel-logo-svg" role="img" aria-label="Aventura do Nicolas&Eloá">
       <g class="logo-outline">${outlineRects.join('')}</g>
       <g class="logo-fill">${fillRects.join('')}</g>
     </svg>

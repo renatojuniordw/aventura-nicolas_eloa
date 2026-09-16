@@ -54,7 +54,7 @@ export class MenuOverlay {
   // --- Screens -------------------------------------------------------------
 
   /**
-   * Home Screen (Aventura das Letras):
+   * Home Screen (Aventura do Nicolas&Eloá):
    * Pixel art layout matching reference Image 2.
    */
   showMainMenu(options) {
@@ -79,7 +79,7 @@ export class MenuOverlay {
     // --- Left Column ---
     // 1. Pixel art Logo + semantic accessible h1
     const logoNode = el('div', { class: 'pixel-logo-wrapper' }, [
-      el('h1', { class: 'sr-only', text: 'Aventura das Letras' }),
+      el('h1', { class: 'sr-only', text: 'Aventura do Nicolas&Eloá' }),
       createPixelLogoSvg(),
     ]);
 

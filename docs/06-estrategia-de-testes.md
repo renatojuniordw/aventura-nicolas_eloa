@@ -14,13 +14,13 @@ npm run test:watch  # modo observador durante o desenvolvimento
 
 ## 1. Filosofia
 
-| Princípio | Como aparece no projeto |
-|---|---|
-| Teste o que decide, não o que desenha | Física, validação, input e migração são testados; desenho não |
-| Injeção de dependência em vez de mock de DOM | `FakeAdapter`, `MemoryStorageAdapter`, `NullRenderer` |
-| Regras de arquitetura como testes | `src/architecture.test.js` |
-| Um teste de integração, não vinte | `src/integration.test.js` (jsdom), cobre o caminho completo |
-| Testes são documentação | Os nomes dos testes descrevem o comportamento esperado |
+| Princípio                                    | Como aparece no projeto                                       |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| Teste o que decide, não o que desenha        | Física, validação, input e migração são testados; desenho não |
+| Injeção de dependência em vez de mock de DOM | `FakeAdapter`, `MemoryStorageAdapter`, `NullRenderer`         |
+| Regras de arquitetura como testes            | `src/architecture.test.js`                                    |
+| Um teste de integração, não vinte            | `src/integration.test.js` (jsdom), cobre o caminho completo   |
+| Testes são documentação                      | Os nomes dos testes descrevem o comportamento esperado        |
 
 Por que não testar renderização: um teste que só verifica "a função de desenhar foi
 chamada" trava mudanças visuais sem pegar bug real. Preferimos concentrar a lógica em
@@ -30,29 +30,29 @@ módulos puros — que são a maioria — e deixar o desenho fino e burro.
 
 ## 2. Mapa de testes
 
-| Arquivo | Testes | O que garante |
-|---|---:|---|
-| `core/event-bus.test.js` | 5 | Assinatura, cancelamento, `once`, remoção durante o despacho |
-| `core/game-loop.test.js` | 6 | Timestep fixo: 0,5 s → 30 passos; 10 s → limitado a 5 e descarta o resto |
-| `core/scene-manager.test.js` | 5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente |
-| `input/keyboard-keymap.test.js` | 8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado |
-| `input/input-manager.test.js` | 9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
-| `physics/aabb.test.js` | 6 | Sobreposição de caixas, encostar ≠ sobrepor, caixa envolvente |
-| `physics/physics-engine.test.js` | 10 | Gravidade, velocidade terminal, colisão nos 4 lados, plataforma de mão única |
-| `gameplay/player/player-controller.test.js` | 12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições |
-| `gameplay/lives-manager.test.js` | 5 | Perda de coração, esgotamento anunciado uma vez, nunca negativo |
-| `gameplay/level-manager.test.js` | 7 | Coleta única, perigo ao entrar, queda anunciada uma vez |
-| `content/text-utils.test.js` | 8 | Acentos, cedilha, caixa, espaços, entrada inválida |
-| `content/answer-validator.test.js` | 7 | Acerto, acento, variantes, rejeição de distratores |
-| `content/level-loader.test.js` | 12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas |
-| `content/curriculum.test.js` | 14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos |
-| `persistence/migration.test.js` | 9 | Primeira execução, migração v0→v1, save corrompido, versão futura |
-| `persistence/persistence.test.js` | 17 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial |
-| `render/camera.test.js` | 6 | Conversão mundo→tela, limite de rolagem, suavização |
-| `render/hud-model.test.js` | 5 | Corações, mensagem que aparece e desaparece |
-| `render/effects.test.js` | 5 | Partículas nascem, caem, morrem; desenho sem canvas real |
-| `architecture.test.js` | 5 | **As regras de arquitetura** (ver seção 3) |
-| `integration.test.js` | 10 | **O jogo inteiro**, em jsdom (ver seção 4) |
+| Arquivo                                     | Testes | O que garante                                                                |
+| ------------------------------------------- | -----: | ---------------------------------------------------------------------------- |
+| `core/event-bus.test.js`                    |      5 | Assinatura, cancelamento, `once`, remoção durante o despacho                 |
+| `core/game-loop.test.js`                    |      6 | Timestep fixo: 0,5 s → 30 passos; 10 s → limitado a 5 e descarta o resto     |
+| `core/scene-manager.test.js`                |      5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente             |
+| `input/keyboard-keymap.test.js`             |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado                |
+| `input/input-manager.test.js`               |      9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador   |
+| `physics/aabb.test.js`                      |      6 | Sobreposição de caixas, encostar ≠ sobrepor, caixa envolvente                |
+| `physics/physics-engine.test.js`            |     10 | Gravidade, velocidade terminal, colisão nos 4 lados, plataforma de mão única |
+| `gameplay/player/player-controller.test.js` |     12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições     |
+| `gameplay/lives-manager.test.js`            |      5 | Perda de coração, esgotamento anunciado uma vez, nunca negativo              |
+| `gameplay/level-manager.test.js`            |      7 | Coleta única, perigo ao entrar, queda anunciada uma vez                      |
+| `content/text-utils.test.js`                |      8 | Acentos, cedilha, caixa, espaços, entrada inválida                           |
+| `content/answer-validator.test.js`          |      7 | Acerto, acento, variantes, rejeição de distratores                           |
+| `content/level-loader.test.js`              |     12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas     |
+| `content/curriculum.test.js`                |     14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos       |
+| `persistence/migration.test.js`             |      9 | Primeira execução, migração v0→v1, save corrompido, versão futura            |
+| `persistence/persistence.test.js`           |     17 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial |
+| `render/camera.test.js`                     |      6 | Conversão mundo→tela, limite de rolagem, suavização                          |
+| `render/hud-model.test.js`                  |      5 | Corações, mensagem que aparece e desaparece                                  |
+| `render/effects.test.js`                    |      5 | Partículas nascem, caem, morrem; desenho sem canvas real                     |
+| `architecture.test.js`                      |      5 | **As regras de arquitetura** (ver seção 3)                                   |
+| `integration.test.js`                       |     10 | **O jogo inteiro**, em jsdom (ver seção 4)                                   |
 
 ---
 
@@ -61,13 +61,13 @@ módulos puros — que são a maioria — e deixar o desenho fino e burro.
 Estes cinco testes transformam decisões de design em algo que a suíte verifica sozinha.
 Se alguém violar a regra no futuro, o teste falha e explica o porquê.
 
-| Teste | Regra que protege |
-|---|---|
-| `the input layer never depends on gameplay, physics, render or scenes` | Adaptadores de entrada não podem conhecer regras de jogo |
-| `keyboard listeners exist only inside the input layer` | Ninguém registra `keydown`/`keyup` fora de `src/input/` |
-| `physical key codes are handled only inside the input layer` | `event.code` só existe no mapa de teclas |
-| `the jump impulse is applied only by the player controller` | `jumpVelocity` só aparece em `config.js` e `player-controller.js` |
-| `semantic actions are never redefined outside actions.js` | As ações têm uma única definição |
+| Teste                                                                  | Regra que protege                                                 |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `the input layer never depends on gameplay, physics, render or scenes` | Adaptadores de entrada não podem conhecer regras de jogo          |
+| `keyboard listeners exist only inside the input layer`                 | Ninguém registra `keydown`/`keyup` fora de `src/input/`           |
+| `physical key codes are handled only inside the input layer`           | `event.code` só existe no mapa de teclas                          |
+| `the jump impulse is applied only by the player controller`            | `jumpVelocity` só aparece em `config.js` e `player-controller.js` |
+| `semantic actions are never redefined outside actions.js`              | As ações têm uma única definição                                  |
 
 **Na prática, foi isso que pegou um bug real durante o desenvolvimento:** um formulário de
 menu tinha um `addEventListener('keydown')` cru para o Enter. O teste apontou o arquivo, e
@@ -116,12 +116,12 @@ jogo continua testada de forma pura.
 Alguns testes fazem o papel de "documentação executável" e precisam ser atualizados junto
 com os textos:
 
-| Se você mudar... | Atualize também |
-|---|---|
-| Quantidade de lições/unidades | `docs/02` (tabela de conteúdo) e este documento |
-| Uma regra de arquitetura | `src/architecture.test.js` e `docs/01`/`docs/05` |
-| Regras do jogo (vidas, estrelas) | `docs/02` e `src/gameplay/*` |
-| Formato de fase/currículo | `docs/04` e os testes de conteúdo |
+| Se você mudar...                 | Atualize também                                  |
+| -------------------------------- | ------------------------------------------------ |
+| Quantidade de lições/unidades    | `docs/02` (tabela de conteúdo) e este documento  |
+| Uma regra de arquitetura         | `src/architecture.test.js` e `docs/01`/`docs/05` |
+| Regras do jogo (vidas, estrelas) | `docs/02` e `src/gameplay/*`                     |
+| Formato de fase/currículo        | `docs/04` e os testes de conteúdo                |
 
 ---
 
@@ -131,12 +131,14 @@ O que os testes automáticos **não** cobrem e precisa de olho humano. Rode `npm
 confira:
 
 **Menu**
-- [ ] O título "Aventura das Letras" aparece e os botões respondem ao clique.
+
+- [ ] O título "Aventura do Nicolas&Eloá" aparece e os botões respondem ao clique.
 - [ ] Dá para criar um jogador e ele passa a aparecer na lista.
 - [ ] Trocar de personagem muda a cor do personagem no jogo.
 - [ ] "Escolher fase" lista apenas as fases liberadas.
 
 **Durante o jogo**
+
 - [ ] Andar com `←`/`→` e com `A`/`D` funciona igual.
 - [ ] `Espaço` pula; segurar pula mais alto; soltar cedo encurta o pulo.
 - [ ] É possível pular logo depois de sair da borda de uma plataforma (tempo de coiote).
@@ -146,6 +148,7 @@ confira:
 - [ ] Nenhum caractere aparece na tela ao digitar durante o jogo.
 
 **Regras**
+
 - [ ] Item errado: perde um coração e aparece a mensagem com a dica.
 - [ ] Item certo: confete, mensagem de acerto e a tela de vitória.
 - [ ] Cair no buraco (fase "Rio"): volta ao início **sem** perder coração.
@@ -153,6 +156,7 @@ confira:
 - [ ] Com 0 corações: aparece "Acabaram os corações" e "Tentar de novo" funciona.
 
 **Robustez**
+
 - [ ] `Esc` pausa; continuar não faz o personagem continuar andando sozinho.
 - [ ] Trocar de aba durante o jogo pausa automaticamente; ao voltar, nenhuma tecla fica presa.
 - [ ] Recarregar a página (F5) mantém o progresso e as estrelas.
@@ -160,6 +164,7 @@ confira:
 - [ ] No console do navegador não há erros nem avisos.
 
 **Conteúdo**
+
 - [ ] O objetivo no topo ("Colete a letra A") muda conforme a lição.
 - [ ] As opções erradas na tela não incluem a resposta certa.
 - [ ] A fase de palavras mostra palavras; a de sílabas, sílabas.
@@ -168,10 +173,10 @@ confira:
 
 ## 7. Depuração
 
-| Ferramenta | Como usar |
-|---|---|
-| Hitboxes | `F2` durante o jogo: contornos de terreno, plataformas, itens, perigos e do jogador |
+| Ferramenta            | Como usar                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| Hitboxes              | `F2` durante o jogo: contornos de terreno, plataformas, itens, perigos e do jogador      |
 | Grade da sprite sheet | Ao ligar a arte real, use as medidas de `render/atlas-meta.js` para conferir os recortes |
-| Save inspecionável | DevTools → Application → Local Storage → `joguinho.sobrinhos.v1` |
-| Save corrompido | Comparar com `joguinho.sobrinhos.v1.degraded` |
-| Reset de progresso | Botão "Zerar progresso" no menu (ou apagar a chave no DevTools) |
+| Save inspecionável    | DevTools → Application → Local Storage → `joguinho.sobrinhos.v1`                         |
+| Save corrompido       | Comparar com `joguinho.sobrinhos.v1.degraded`                                            |
+| Reset de progresso    | Botão "Zerar progresso" no menu (ou apagar a chave no DevTools)                          |

@@ -1,4 +1,4 @@
-# Aventura das Letras
+# Aventura do Nicolas&Eloá
 
 Jogo de plataforma 2D educativo, em português, para crianças em alfabetização.
 O jogador corre e pula para coletar **a letra, sílaba ou palavra pedida**.
@@ -22,27 +22,27 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:5173`).
 
 ### Outros comandos
 
-| Comando | O que faz |
-|---|---|
-| `npm run dev` | Servidor de desenvolvimento com recarga automática |
-| `npm test` | Roda os 171 testes |
-| `npm run test:watch` | Testes em modo observador |
-| `npm run build` | Gera a versão de produção em `dist/` |
-| `npm run preview` | Serve a versão de produção localmente |
-| `npm run generate:levels` | Regenera as fases a partir do currículo |
+| Comando                   | O que faz                                          |
+| ------------------------- | -------------------------------------------------- |
+| `npm run dev`             | Servidor de desenvolvimento com recarga automática |
+| `npm test`                | Roda os 171 testes                                 |
+| `npm run test:watch`      | Testes em modo observador                          |
+| `npm run build`           | Gera a versão de produção em `dist/`               |
+| `npm run preview`         | Serve a versão de produção localmente              |
+| `npm run generate:levels` | Regenera as fases a partir do currículo            |
 
 ---
 
 ## Como jogar
 
-| Ação | Teclas |
-|---|---|
-| Andar | `←` `→` ou `A` `D` |
-| Pular | `Espaço`, `↑`, `W` ou `Z` |
-| Pausar | `Esc` ou `P` |
-| Confirmar (menus) | `Enter` |
-| Voltar (menus) | `Backspace` |
-| Mostrar hitboxes | `F2` |
+| Ação              | Teclas                    |
+| ----------------- | ------------------------- |
+| Andar             | `←` `→` ou `A` `D`        |
+| Pular             | `Espaço`, `↑`, `W` ou `Z` |
+| Pausar            | `Esc` ou `P`              |
+| Confirmar (menus) | `Enter`                   |
+| Voltar (menus)    | `Backspace`               |
+| Mostrar hitboxes  | `F2`                      |
 
 - Colete o item indicado **no topo da tela**.
 - **Acertar** comemora e conclui a fase. **Errar** custa um coração (são 3).
@@ -66,17 +66,17 @@ Todo o conteúdo é **dado**: acrescentar palavras é editar
 
 Toda a documentação está em [`docs/`](docs/README.md), em português:
 
-| Documento | Assunto |
-|---|---|
-| [01 — Arquitetura](docs/01-arquitetura.md) | Camadas, fluxo de dados, laço de jogo, cenas |
-| [02 — Gameplay e controles](docs/02-gameplay-e-controles.md) | Regras, vidas, movimento, progressão |
-| [03 — Abstração de input](docs/03-abstracao-de-input.md) | **Documento central**: teclado sem lógica de jogo e o caminho para o ESP32 |
-| [04 — Modelo de conteúdo](docs/04-modelo-de-conteudo.md) | Schemas de currículo, fases e save |
-| [05 — SOLID e padrões](docs/05-solid-e-padroes-de-projeto.md) | Onde cada princípio vive no código |
-| [06 — Estratégia de testes](docs/06-estrategia-de-testes.md) | O que é testado, como e checklist de QA |
-| [07 — Plano por fases](docs/07-plano-de-desenvolvimento-fases.md) | Roadmap e critérios de aceite |
-| [08 — Evolução futura](docs/08-evolucao-futura.md) | Pulo duplo, poderes, som, toque, ESP32 |
-| [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md) | Termos, nomes e regras de código |
+| Documento                                                         | Assunto                                                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [01 — Arquitetura](docs/01-arquitetura.md)                        | Camadas, fluxo de dados, laço de jogo, cenas                               |
+| [02 — Gameplay e controles](docs/02-gameplay-e-controles.md)      | Regras, vidas, movimento, progressão                                       |
+| [03 — Abstração de input](docs/03-abstracao-de-input.md)          | **Documento central**: teclado sem lógica de jogo e o caminho para o ESP32 |
+| [04 — Modelo de conteúdo](docs/04-modelo-de-conteudo.md)          | Schemas de currículo, fases e save                                         |
+| [05 — SOLID e padrões](docs/05-solid-e-padroes-de-projeto.md)     | Onde cada princípio vive no código                                         |
+| [06 — Estratégia de testes](docs/06-estrategia-de-testes.md)      | O que é testado, como e checklist de QA                                    |
+| [07 — Plano por fases](docs/07-plano-de-desenvolvimento-fases.md) | Roadmap e critérios de aceite                                              |
+| [08 — Evolução futura](docs/08-evolucao-futura.md)                | Pulo duplo, poderes, som, toque, ESP32                                     |
+| [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md)  | Termos, nomes e regras de código                                           |
 
 ---
 

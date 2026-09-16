@@ -91,7 +91,7 @@ describe('game integration', () => {
     const game = mountGame();
     tick(game, 2);
     expect(game.scenes.currentName).toBe('menu');
-    expect(overlayText('.overlay h1')).toContain('Aventura das Letras');
+    expect(overlayText('.overlay h1')).toContain('Aventura do Nicolas&Eloá');
   });
 
   it('enters a lesson from the curriculum and loads its level file', () => {

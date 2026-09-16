@@ -1,4 +1,4 @@
-# Documentação — Aventura das Letras (JS)
+# Documentação — Aventura do Nicolas&Eloá (JS)
 
 Jogo de plataforma 2D educativo, em português, feito em **JavaScript puro com Canvas 2D**.
 O jogador corre e pula para coletar a letra, sílaba ou palavra pedida.
@@ -13,32 +13,32 @@ projeto. O **código é escrito em inglês** (identificadores e comentários), a
 
 Se é a primeira vez no projeto, leia nesta ordem:
 
-| # | Documento | Para quê serve |
-|---|---|---|
-| 01 | [Arquitetura](01-arquitetura.md) | Camadas, fluxo de dados, laço de jogo, cenas e regras de dependência |
-| 02 | [Gameplay e controles](02-gameplay-e-controles.md) | Regras do jogo: como se joga, vidas, acertos, erros, quedas |
-| 03 | [Abstração de input](03-abstracao-de-input.md) | **Documento central**: teclado nunca contém lógica de jogo; como o ESP32 entra depois |
-| 04 | [Modelo de conteúdo](04-modelo-de-conteudo.md) | Schemas JSON de fase e currículo, exemplos completos |
-| 05 | [SOLID e padrões de projeto](05-solid-e-padroes-de-projeto.md) | Onde cada princípio vive no código e por quê |
-| 06 | [Estratégia de testes](06-estrategia-de-testes.md) | O que é testado, como e por quê; checklist de QA manual |
-| 07 | [Plano de desenvolvimento por fases](07-plano-de-desenvolvimento-fases.md) | Roadmap com entregáveis e critérios de aceite |
-| 08 | [Evolução futura](08-evolucao-futura.md) | Duplo pulo, poderes, som, toque e **adaptador ESP32**: onde cada um encaixa |
-| 09 | [Glossário e convenções](09-glossario-e-convencoes.md) | Termos pedagógicos, convenções de nomes e de código |
+| #   | Documento                                                                  | Para quê serve                                                                        |
+| --- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 01  | [Arquitetura](01-arquitetura.md)                                           | Camadas, fluxo de dados, laço de jogo, cenas e regras de dependência                  |
+| 02  | [Gameplay e controles](02-gameplay-e-controles.md)                         | Regras do jogo: como se joga, vidas, acertos, erros, quedas                           |
+| 03  | [Abstração de input](03-abstracao-de-input.md)                             | **Documento central**: teclado nunca contém lógica de jogo; como o ESP32 entra depois |
+| 04  | [Modelo de conteúdo](04-modelo-de-conteudo.md)                             | Schemas JSON de fase e currículo, exemplos completos                                  |
+| 05  | [SOLID e padrões de projeto](05-solid-e-padroes-de-projeto.md)             | Onde cada princípio vive no código e por quê                                          |
+| 06  | [Estratégia de testes](06-estrategia-de-testes.md)                         | O que é testado, como e por quê; checklist de QA manual                               |
+| 07  | [Plano de desenvolvimento por fases](07-plano-de-desenvolvimento-fases.md) | Roadmap com entregáveis e critérios de aceite                                         |
+| 08  | [Evolução futura](08-evolucao-futura.md)                                   | Duplo pulo, poderes, som, toque e **adaptador ESP32**: onde cada um encaixa           |
+| 09  | [Glossário e convenções](09-glossario-e-convencoes.md)                     | Termos pedagógicos, convenções de nomes e de código                                   |
 
 ## Mapa rápido: onde está cada coisa
 
-| Quero mexer em... | Vá para |
-|---|---|
-| Números do jogo (gravidade, velocidade, vidas) | `src/core/config.js` |
-| Quais teclas fazem o quê | `src/input/keyboard-keymap.js` |
-| O que significa "pular" | `src/gameplay/player/player-controller.js` |
-| Regras de colisão e movimento | `src/physics/` |
-| O que o jogador vê | `src/render/` |
-| Textos e telas de menu | `src/ui/menu.js` |
-| Conteúdo pedagógico (letras, sílabas, palavras) | `src/content/curriculum.json` |
-| Fases (terreno e itens) | `src/content/levels/*.json` (gerados) |
-| Salvar/carregar progresso | `src/persistence/` |
-| Plugar o ESP32 | `src/input/` — ver [03](03-abstracao-de-input.md) e [08](08-evolucao-futura.md) |
+| Quero mexer em...                               | Vá para                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| Números do jogo (gravidade, velocidade, vidas)  | `src/core/config.js`                                                            |
+| Quais teclas fazem o quê                        | `src/input/keyboard-keymap.js`                                                  |
+| O que significa "pular"                         | `src/gameplay/player/player-controller.js`                                      |
+| Regras de colisão e movimento                   | `src/physics/`                                                                  |
+| O que o jogador vê                              | `src/render/`                                                                   |
+| Textos e telas de menu                          | `src/ui/menu.js`                                                                |
+| Conteúdo pedagógico (letras, sílabas, palavras) | `src/content/curriculum.json`                                                   |
+| Fases (terreno e itens)                         | `src/content/levels/*.json` (gerados)                                           |
+| Salvar/carregar progresso                       | `src/persistence/`                                                              |
+| Plugar o ESP32                                  | `src/input/` — ver [03](03-abstracao-de-input.md) e [08](08-evolucao-futura.md) |
 
 ## Comandos do projeto
 
