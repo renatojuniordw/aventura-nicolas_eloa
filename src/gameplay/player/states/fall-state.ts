@@ -2,11 +2,11 @@ import { PlayerState, PlayerStateId } from '../player-state.js';
 
 /** Airborne and descending (or having walked off a ledge). */
 export class FallState extends PlayerState {
-  get id() {
+  override get id() {
     return PlayerStateId.FALL;
   }
 
-  update(_dt) {
+  override update(_dt: number): void {
     const player = this.player;
     player.applyAirMovement();
 

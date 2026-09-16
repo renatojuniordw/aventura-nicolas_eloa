@@ -1,9 +1,5 @@
-/**
- * Escapes XML special characters for safe SVG embedding.
- * @param {string} str
- * @returns {string}
- */
-function escapeXml(str) {
+/** Escapes XML special characters for safe SVG embedding. */
+function escapeXml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -16,11 +12,8 @@ function escapeXml(str) {
  * Generates an SVG element for the authentic retro pixel art title "Aventura do Nicolas&Eloá".
  * Uses the retro font "Silkscreen" with pixel outlines and styled highlights,
  * supporting the full character set including accents (á), 'O', and '&'.
- *
- * @param {string[]} [customRows] - Optional array of rows to render.
- * @returns {Element} SVG element
  */
-export function createPixelLogoSvg(customRows) {
+export function createPixelLogoSvg(customRows?: string[]): Element | null {
   const rows = customRows || ['Aventura do', 'Nicolas & Eloá'];
   const row1 = escapeXml(rows[0] ?? '');
   const row2 = escapeXml(rows[1] ?? '');

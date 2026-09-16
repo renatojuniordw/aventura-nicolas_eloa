@@ -11,27 +11,66 @@
 
 import { normalize } from './text-utils.js';
 
+export interface RawUnit {
+  id: string;
+  title: string;
+  order?: number;
+  type?: string;
+  icon?: string;
+  pool?: string[];
+  distractorPool?: string[];
+  objectiveTemplate?: string;
+}
+
+export interface RawCurriculum {
+  units: RawUnit[];
+}
+
+export interface Lesson {
+  id: string;
+  unitId: string;
+  unitTitle: string;
+  type: string;
+  target: string;
+  variants: string[];
+  objective: string;
+  levelId: string;
+  index: number;
+}
+
+export interface Unit {
+  id: string;
+  title: string;
+  order: number;
+  type: string;
+  icon: string;
+  pool: string[];
+  distractorPool: string[];
+  objectiveTemplate: string;
+  lessons: Lesson[];
+}
+
+function isRawCurriculum(raw: unknown): raw is RawCurriculum {
+  return Boolean(raw) && Array.isArray((raw as { units?: unknown }).units);
+}
+
 /** URL/file-safe slug that keeps the label readable. */
-export function slugify(value) {
+export function slugify(value: unknown): string {
   return String(value ?? '')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 
-/**
- * @param {object} raw parsed curriculum.json
- * @returns {{ units: Array, lessons: Array }}
- */
-export function expandCurriculum(raw) {
-  if (!raw || !Array.isArray(raw.units)) {
+export function expandCurriculum(raw: unknown): { units: Unit[]; lessons: Lesson[] } {
+  if (!isRawCurriculum(raw)) {
     throw new Error('Curriculum must expose a "units" array');
   }
   assertUniqueUnitIds(raw.units);
 
-  const units = [...raw.units]
+  const units: Unit[] = [...raw.units]
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((unit) => ({
       id: unit.id,
@@ -53,16 +92,15 @@ export function expandCurriculum(raw) {
  * with the answer rotated to a position that varies between lessons so it is
  * never always in the same slot.
  *
- * @param {object} unit expanded unit (needs `pool`/`distractorPool`)
- * @param {object} lesson expanded lesson
- * @param {number} count maximum number of choices (including the answer)
- * @returns {string[]}
+ * @param unit expanded unit (needs `pool`/`distractorPool`)
+ * @param lesson expanded lesson
+ * @param count maximum number of choices (including the answer)
  */
-export function choicesForLesson(unit, lesson, count = 4) {
+export function choicesForLesson(unit: Unit, lesson: Lesson, count = 4): string[] {
   // Exclude anything that normalises to the answer: VOVÔ and VOVÓ are the same
   // word for the answer rule, so one must never appear as a distractor.
   const answer = normalize(lesson.target);
-  const isDistinct = (label) => label !== lesson.target && normalize(label) !== answer;
+  const isDistinct = (label: string) => label !== lesson.target && normalize(label) !== answer;
 
   const pool = (unit.pool ?? []).filter(isDistinct);
   const extras = (unit.distractorPool ?? []).filter(
@@ -70,7 +108,7 @@ export function choicesForLesson(unit, lesson, count = 4) {
   );
   const candidates = [...pool, ...extras];
 
-  const distractors = [];
+  const distractors: string[] = [];
   for (let step = 0; step < candidates.length && distractors.length < count - 1; step += 1) {
     const label = candidates[(lesson.index + step) % candidates.length];
     if (!distractors.includes(label)) distractors.push(label);
@@ -83,8 +121,8 @@ export function choicesForLesson(unit, lesson, count = 4) {
   return [...labels.slice(shift), ...labels.slice(0, shift)];
 }
 
-function buildLessons(unit) {
-  const usedSlugs = new Set();
+function buildLessons(unit: RawUnit): Lesson[] {
+  const usedSlugs = new Set<string>();
   return (unit.pool ?? []).map((target, index) => {
     // Labels that differ only by accent (VOVÔ/VOVÓ) collapse to the same slug,
     // which would overwrite one level with another. Disambiguate with a suffix.
@@ -112,12 +150,12 @@ function buildLessons(unit) {
   });
 }
 
-function uniqueLabels(labels) {
+function uniqueLabels(labels: string[]): string[] {
   return [...new Set(labels.filter(Boolean))];
 }
 
-function assertUniqueUnitIds(units) {
-  const seen = new Set();
+function assertUniqueUnitIds(units: RawUnit[]): void {
+  const seen = new Set<string>();
   for (const unit of units) {
     if (!unit.id) throw new Error('Every curriculum unit requires an "id"');
     if (seen.has(unit.id)) throw new Error(`Duplicated curriculum unit id: ${unit.id}`);

@@ -1,6 +1,11 @@
-import { COLORS, VIEWPORT } from '../core/config.js';
-import { FeedbackKind } from './hud-model.js';
+import { COLORS, VIEWPORT, type Viewport } from '../core/config.js';
+import { FeedbackKind, type HudModel } from './hud-model.js';
 import { formatTime } from '../content/text-utils.js';
+import type { CanvasRenderer } from './canvas-renderer.js';
+
+interface HudOptions {
+  viewport?: Viewport;
+}
 
 /**
  * Draws the heads-up display: level name, objective banner, hearts and the
@@ -8,12 +13,15 @@ import { formatTime } from '../content/text-utils.js';
  * game state.
  */
 export class Hud {
-  constructor(renderer, { viewport = VIEWPORT } = {}) {
+  renderer: CanvasRenderer;
+  viewport: Viewport;
+
+  constructor(renderer: CanvasRenderer, { viewport = VIEWPORT }: HudOptions = {}) {
     this.renderer = renderer;
     this.viewport = viewport;
   }
 
-  draw(model) {
+  draw(model: HudModel): void {
     this._drawLevelName(model);
     this._drawObjective(model);
     this._drawHearts(model);
@@ -23,7 +31,7 @@ export class Hud {
     this._drawFeedback(model);
   }
 
-  _drawLevelName(model) {
+  private _drawLevelName(model: HudModel): void {
     this.renderer.screenText(`Fase: ${model.levelName}`, 20, 22, {
       color: COLORS.hudText,
       font: 'bold 16px "Trebuchet MS", sans-serif',
@@ -31,7 +39,7 @@ export class Hud {
     });
   }
 
-  _drawSpeedrun(model) {
+  private _drawSpeedrun(model: HudModel): void {
     const timeStr = `⏱️ ${formatTime(model.timer)}`;
     const progressStr = model.speedrunProgress ? ` · ${model.speedrunProgress}` : '';
     const label = `${timeStr}${progressStr}`;
@@ -48,7 +56,7 @@ export class Hud {
     });
   }
 
-  _drawObjective(model) {
+  private _drawObjective(model: HudModel): void {
     const text = model.objective || '';
     const width = Math.max(260, text.length * 9 + 48);
     const x = this.viewport.width / 2 - width / 2;
@@ -59,7 +67,7 @@ export class Hud {
     });
   }
 
-  _drawHearts(model) {
+  private _drawHearts(model: HudModel): void {
     const size = 22;
     const gap = 8;
     const startX = this.viewport.width - 20 - (size + gap) * model.maxLives;
@@ -73,7 +81,7 @@ export class Hud {
     });
   }
 
-  _drawFeedback(model) {
+  private _drawFeedback(model: HudModel): void {
     if (!model.isFeedbackVisible) return;
     const isCorrect = model.feedback.kind === FeedbackKind.CORRECT;
     const color = isCorrect ? 'rgba(46, 125, 50, 0.92)' : 'rgba(163, 46, 46, 0.92)';

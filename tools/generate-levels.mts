@@ -14,7 +14,7 @@ import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { expandCurriculum, choicesForLesson } from '../src/content/curriculum-model.js';
+import { expandCurriculum, choicesForLesson, type Unit, type Lesson } from '../src/content/curriculum-model.js';
 import { loadLevel } from '../src/content/level-loader.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -36,7 +36,14 @@ function emptyRows() {
   return Array.from({ length: ROWS }, () => Array(COLS).fill('.'));
 }
 
-function fill(rows, rowFrom, rowTo, colFrom, colTo, char) {
+function fill(
+  rows: string[][],
+  rowFrom: number,
+  rowTo: number,
+  colFrom: number,
+  colTo: number,
+  char: string,
+): void {
   for (let row = rowFrom; row <= rowTo; row += 1) {
     for (let column = colFrom; column <= colTo; column += 1) {
       rows[row][column] = char;
@@ -128,8 +135,16 @@ function rio() {
 
 const TEMPLATES = [planicie, degraus, plataformas, rio];
 
+interface Template {
+  name: string;
+  solid: string[][];
+  platform: string[][];
+  slots: { x: number; y: number }[];
+  hazards: unknown[];
+}
+
 // --- Level assembly ---------------------------------------------------------
-function buildLevel(lesson, unit, template) {
+function buildLevel(lesson: Lesson, unit: Unit, template: Template) {
   const choices = choicesForLesson(unit, lesson, MAX_CHOICES);
   const items = choices.map((label, index) => ({
     id: label === lesson.target ? 'item-alvo' : `item-opcao-${index}`,

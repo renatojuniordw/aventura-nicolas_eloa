@@ -1,6 +1,10 @@
 import { clear, el } from './dom.js';
 import { Actions } from '../input/actions.js';
 
+interface TouchControlsOptions {
+  root: HTMLElement;
+}
+
 /**
  * On-screen D-pad + jump button, mounted in its own root (separate from
  * HudControls' root, which HudControls clears wholesale for the pause
@@ -11,10 +15,26 @@ import { Actions } from '../input/actions.js';
  * same elements the player sees; this module never talks to InputManager
  * directly, keeping DOM and input translation separate (Single
  * Responsibility).
+ *
+ * Deliberately NOT a React component: `main.ts` builds one `TouchAdapter`
+ * whose listeners are attached to these specific button elements once, for
+ * the whole session (`show()`/`hide()` are called on every scene
+ * enter/exit). A React-rendered version would create fresh DOM elements on
+ * every mount, silently orphaning the adapter's listeners on the old ones
+ * after the first re-render. Building these three stable buttons once with
+ * the same `el()` helper the rest of the codebase used before the React
+ * migration avoids that class of bug entirely.
  */
 export class TouchControls {
-  /** @param {{ root: HTMLElement }} options */
-  constructor({ root }) {
+  buttons: { element: HTMLElement; action: string }[];
+
+  private _root: HTMLElement;
+  private _left: HTMLElement;
+  private _right: HTMLElement;
+  private _jump: HTMLElement;
+  private _dpad: HTMLElement;
+
+  constructor({ root }: TouchControlsOptions) {
     this._root = root;
     this._left = el('button', {
       class: 'touch-btn touch-btn-left',
@@ -49,13 +69,13 @@ export class TouchControls {
   }
 
   /** Mount the buttons and make them visible. */
-  show() {
+  show(): void {
     clear(this._root);
     this._root.append(this._dpad, this._jump);
   }
 
   /** Unmount the buttons (they keep listening; TouchAdapter still owns that). */
-  hide() {
+  hide(): void {
     clear(this._root);
   }
 }

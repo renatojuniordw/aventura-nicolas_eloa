@@ -1,9 +1,33 @@
 import { PHYSICS, PLAYER } from '../../core/config.js';
-import { PlayerStateId } from './player-state.js';
+import { PlayerStateId, PlayerState, type PlayerStateIdValue } from './player-state.js';
 import { IdleState } from './states/idle-state.js';
 import { WalkState } from './states/walk-state.js';
 import { JumpState } from './states/jump-state.js';
 import { FallState } from './states/fall-state.js';
+import type { Body } from '../../physics/physics-engine.js';
+import type { Box } from '../../physics/aabb.js';
+
+export interface PhysicsLike {
+  applyGravity(body: Body, dt: number, overrides?: { gravity?: number; maxFallSpeed?: number }): void;
+  move(body: Body, dt: number, level: { solids?: Box[]; oneWayPlatforms?: Box[] }): unknown;
+}
+
+export interface PlayerLevel {
+  solids?: Box[];
+  oneWayPlatforms?: Box[];
+  physics?: { gravity?: number; maxFallSpeed?: number };
+}
+
+type PlayerConfig = typeof PHYSICS & typeof PLAYER;
+
+interface PlayerControllerOptions {
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  physics: PhysicsLike;
+  config?: Partial<PlayerConfig>;
+}
 
 /**
  * The semantic layer between abstracted input and physics.
@@ -20,14 +44,22 @@ import { FallState } from './states/fall-state.js';
  * architectural requirement of this project.
  */
 export class PlayerController {
-  constructor({
-    x,
-    y,
-    width = PLAYER.width,
-    height = PLAYER.height,
-    physics,
-    config = {},
-  }) {
+  body: Body;
+  spawn: { x: number; y: number };
+  facing: 1 | -1;
+  /** -1 left, 0 none, 1 right. Set through the semantic move methods. */
+  moveIntent: -1 | 0 | 1;
+
+  private _physics: PhysicsLike;
+  private _config: PlayerConfig;
+  private _jumpBufferTimer = 0;
+  private _coyoteTimer = 0;
+  private _jumpHeld = false;
+  private _jumpCutPending = false;
+  private _states: Map<PlayerStateIdValue, PlayerState>;
+  private _state!: PlayerState;
+
+  constructor({ x, y, width = PLAYER.width, height = PLAYER.height, physics, config = {} }: PlayerControllerOptions) {
     if (!physics) throw new TypeError('PlayerController requires a physics engine');
 
     this._physics = physics;
@@ -35,30 +67,23 @@ export class PlayerController {
     this.body = { x, y, w: width, h: height, vx: 0, vy: 0, grounded: false };
     this.spawn = { x, y };
     this.facing = 1;
-    /** -1 left, 0 none, 1 right. Set through the semantic move methods. */
     this.moveIntent = 0;
 
-    this._jumpBufferTimer = 0;
-    this._coyoteTimer = 0;
-    this._jumpHeld = false;
-    this._jumpCutPending = false;
-
-    this._states = new Map([
+    this._states = new Map<PlayerStateIdValue, PlayerState>([
       [PlayerStateId.IDLE, new IdleState(this)],
       [PlayerStateId.WALK, new WalkState(this)],
       [PlayerStateId.JUMP, new JumpState(this)],
       [PlayerStateId.FALL, new FallState(this)],
     ]);
-    this._state = null;
     this.setState(PlayerStateId.IDLE);
   }
 
-  /** @returns {string} current state id */
-  get state() {
+  /** @returns current state id */
+  get state(): PlayerStateIdValue | 'base' {
     return this._state.id;
   }
 
-  get grounded() {
+  get grounded(): boolean {
     return this.body.grounded;
   }
 
@@ -66,25 +91,25 @@ export class PlayerController {
   // Semantic input API — called by the scene, never by a raw key handler.
   // ---------------------------------------------------------------------------
 
-  moveLeft() {
+  moveLeft(): void {
     this.moveIntent = -1;
   }
 
-  moveRight() {
+  moveRight(): void {
     this.moveIntent = 1;
   }
 
-  stop() {
+  stop(): void {
     this.moveIntent = 0;
   }
 
   /** Buffered request: pressing slightly before landing still jumps. */
-  jump() {
+  jump(): void {
     this._jumpBufferTimer = this._config.jumpBufferTime;
   }
 
   /** Whether the jump action is still held (drives variable jump height). */
-  holdJump(held) {
+  holdJump(held: boolean): void {
     this._jumpHeld = Boolean(held);
   }
 
@@ -92,11 +117,8 @@ export class PlayerController {
   // Simulation
   // ---------------------------------------------------------------------------
 
-  /**
-   * @param {number} dt fixed timestep
-   * @param {{ solids: Array, oneWayPlatforms?: Array, physics?: object }} level
-   */
-  update(dt, level) {
+  /** @param dt fixed timestep */
+  update(dt: number, level: PlayerLevel): void {
     this._tickTimers(dt);
     this._tryBufferedJump();
     this._state.update(dt);
@@ -108,19 +130,19 @@ export class PlayerController {
   }
 
   /** Used by states: instant stop/run on the ground. */
-  applyGroundMovement() {
+  applyGroundMovement(): void {
     this.body.vx = this.moveIntent * this._config.walkSpeed;
   }
 
   /** Used by states: reduced steering mid-air, momentum kept when no input. */
-  applyAirMovement() {
+  applyAirMovement(): void {
     if (this.moveIntent !== 0) {
       this.body.vx = this.moveIntent * this._config.walkSpeed * this._config.airControl;
     }
   }
 
   /** Swap the active state. */
-  setState(stateId) {
+  setState(stateId: PlayerStateIdValue): void {
     const next = this._states.get(stateId);
     if (!next) throw new Error(`Unknown player state: ${stateId}`);
     if (this._state === next) return;
@@ -130,7 +152,7 @@ export class PlayerController {
   }
 
   /** Teleport back to a spawn/checkpoint and clear transient motion. */
-  reset(position = this.spawn) {
+  reset(position: { x: number; y: number } = this.spawn): void {
     this.body.x = position.x;
     this.body.y = position.y;
     this.body.vx = 0;
@@ -148,19 +170,19 @@ export class PlayerController {
   // Internals
   // ---------------------------------------------------------------------------
 
-  _tickTimers(dt) {
+  private _tickTimers(dt: number): void {
     this._jumpBufferTimer = Math.max(0, this._jumpBufferTimer - dt);
     this._coyoteTimer = Math.max(0, this._coyoteTimer - dt);
   }
 
-  _tryBufferedJump() {
+  private _tryBufferedJump(): void {
     const canJump = this.body.grounded || this._coyoteTimer > 0;
     if (this._jumpBufferTimer > 0 && canJump) {
       this._performJump();
     }
   }
 
-  _performJump() {
+  private _performJump(): void {
     this.body.vy = this._config.jumpVelocity;
     this.body.grounded = false;
     this._jumpBufferTimer = 0;
@@ -170,7 +192,7 @@ export class PlayerController {
   }
 
   /** Releasing jump early shortens the arc (applied once per jump). */
-  _applyJumpCut() {
+  private _applyJumpCut(): void {
     if (this._jumpCutPending && !this._jumpHeld && this.body.vy < 0) {
       this.body.vy = Math.max(
         this.body.vy,
@@ -180,13 +202,13 @@ export class PlayerController {
     }
   }
 
-  _refreshGrounding() {
+  private _refreshGrounding(): void {
     if (this.body.grounded) {
       this._coyoteTimer = this._config.coyoteTime;
     }
   }
 
-  _refreshFacing() {
+  private _refreshFacing(): void {
     if (this.moveIntent !== 0) {
       this.facing = this.moveIntent;
     }

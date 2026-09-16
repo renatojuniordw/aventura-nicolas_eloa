@@ -11,7 +11,34 @@ export const FeedbackKind = Object.freeze({
   WRONG: 'wrong',
 });
 
+type FeedbackKindValue = (typeof FeedbackKind)[keyof typeof FeedbackKind];
+
+interface Feedback {
+  kind: FeedbackKindValue;
+  message: string;
+  timer: number;
+}
+
+interface HudModelOptions {
+  objective?: string;
+  levelName?: string;
+  lives?: number;
+  maxLives?: number;
+  isSpeedrun?: boolean;
+  timer?: number;
+  speedrunProgress?: string;
+}
+
 export class HudModel {
+  objective: string;
+  levelName: string;
+  lives: number;
+  maxLives: number;
+  isSpeedrun: boolean;
+  timer: number;
+  speedrunProgress: string;
+  feedback: Feedback;
+
   constructor({
     objective = '',
     levelName = '',
@@ -20,7 +47,7 @@ export class HudModel {
     isSpeedrun = false,
     timer = 0,
     speedrunProgress = '',
-  } = {}) {
+  }: HudModelOptions = {}) {
     this.objective = objective;
     this.levelName = levelName;
     this.lives = lives;
@@ -31,41 +58,41 @@ export class HudModel {
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
   }
 
-  setTimer(timer) {
+  setTimer(timer: number): void {
     this.timer = timer;
   }
 
-  setSpeedrunProgress(progress) {
+  setSpeedrunProgress(progress: string): void {
     this.speedrunProgress = progress;
   }
 
-  setLives(lives) {
+  setLives(lives: number): void {
     this.lives = Math.max(0, lives);
   }
 
-  setObjective(objective) {
+  setObjective(objective: string): void {
     this.objective = objective;
   }
 
-  /** @param {number} duration seconds the banner stays visible */
-  showFeedback(kind, message, duration) {
+  /** @param duration seconds the banner stays visible */
+  showFeedback(kind: FeedbackKindValue, message: string, duration: number): void {
     this.feedback = { kind, message, timer: duration };
   }
 
-  clearFeedback() {
+  clearFeedback(): void {
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
   }
 
-  get isFeedbackVisible() {
+  get isFeedbackVisible(): boolean {
     return this.feedback.timer > 0 && this.feedback.kind !== FeedbackKind.NONE;
   }
 
   /** Hearts remaining as filled/empty flags, left to right. */
-  get hearts() {
+  get hearts(): boolean[] {
     return Array.from({ length: this.maxLives }, (_, index) => index < this.lives);
   }
 
-  update(dt) {
+  update(dt: number): void {
     if (this.feedback.timer <= 0) return;
     this.feedback.timer = Math.max(0, this.feedback.timer - dt);
     if (this.feedback.timer === 0) {

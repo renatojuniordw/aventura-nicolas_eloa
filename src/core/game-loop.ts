@@ -1,5 +1,15 @@
 import { FIXED_STEP, MAX_STEPS_PER_FRAME } from './config.js';
 
+export interface GameLoopOptions {
+  update: (step: number) => void;
+  render: () => void;
+  step?: number;
+  maxSteps?: number;
+  now?: () => number;
+  requestFrame?: (cb: FrameRequestCallback) => number;
+  cancelFrame?: (id: number) => void;
+}
+
 /**
  * Fixed-timestep game loop (accumulator pattern).
  *
@@ -12,6 +22,19 @@ import { FIXED_STEP, MAX_STEPS_PER_FRAME } from './config.js';
  * unit-testable without a browser.
  */
 export class GameLoop {
+  private _update: (step: number) => void;
+  private _render: () => void;
+  private _step: number;
+  private _maxSteps: number;
+  private _now: () => number;
+  private _requestFrame: (cb: FrameRequestCallback) => number;
+  private _cancelFrame: (id: number) => void;
+
+  private _accumulator = 0;
+  private _lastTime = 0;
+  private _frameId: number | null = null;
+  private _running = false;
+
   constructor({
     update,
     render,
@@ -20,7 +43,7 @@ export class GameLoop {
     now = () => performance.now(),
     requestFrame = (cb) => requestAnimationFrame(cb),
     cancelFrame = (id) => cancelAnimationFrame(id),
-  }) {
+  }: GameLoopOptions) {
     if (typeof update !== 'function') throw new TypeError('update callback is required');
     if (typeof render !== 'function') throw new TypeError('render callback is required');
 
@@ -31,18 +54,13 @@ export class GameLoop {
     this._now = now;
     this._requestFrame = requestFrame;
     this._cancelFrame = cancelFrame;
-
-    this._accumulator = 0;
-    this._lastTime = 0;
-    this._frameId = null;
-    this._running = false;
   }
 
-  get running() {
+  get running(): boolean {
     return this._running;
   }
 
-  start() {
+  start(): void {
     if (this._running) return;
     this._running = true;
     this._lastTime = this._now();
@@ -50,7 +68,7 @@ export class GameLoop {
     this._scheduleNextFrame();
   }
 
-  stop() {
+  stop(): void {
     this._running = false;
     if (this._frameId !== null) {
       this._cancelFrame(this._frameId);
@@ -58,7 +76,7 @@ export class GameLoop {
     }
   }
 
-  _scheduleNextFrame() {
+  private _scheduleNextFrame(): void {
     this._frameId = this._requestFrame(() => {
       if (!this._running) return;
       const time = this._now();
@@ -71,9 +89,9 @@ export class GameLoop {
 
   /**
    * Feed a real-time delta into the accumulator.
-   * @returns {number} how many fixed steps were simulated
+   * @returns how many fixed steps were simulated
    */
-  advance(deltaSeconds) {
+  advance(deltaSeconds: number): number {
     this._accumulator += deltaSeconds;
     let steps = 0;
     while (this._accumulator >= this._step && steps < this._maxSteps) {

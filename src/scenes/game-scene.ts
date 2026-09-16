@@ -5,7 +5,7 @@ import { GAMEPLAY } from '../core/config.js';
 import { PhysicsEngine } from '../physics/physics-engine.js';
 import { PlayerController } from '../gameplay/player/player-controller.js';
 import { LivesManager } from '../gameplay/lives-manager.js';
-import { LevelManager } from '../gameplay/level-manager.js';
+import { LevelManager, type Level, type LevelItem, type Point } from '../gameplay/level-manager.js';
 import { AnswerValidator } from '../content/answer-validator.js';
 import { getLevelData } from '../content/level-registry.js';
 import { loadLevel } from '../content/level-loader.js';
@@ -13,6 +13,8 @@ import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
+import type { CanvasRenderer } from '../render/canvas-renderer.js';
+import type { Lesson } from '../content/curriculum-model.js';
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -20,6 +22,25 @@ const Status = Object.freeze({
   WON: 'won',
   GAME_OVER: 'gameOver',
 });
+
+type StatusValue = (typeof Status)[keyof typeof Status];
+
+/** Level shape plus the extra fields game-scene reads (playerStart, camera, viewport, name). */
+interface GameLevel extends Level {
+  name: string;
+  playerStart: Point;
+  viewport: unknown;
+  camera: { maxX: number; startX: number; smoothing: number };
+  checkpoints?: Point[];
+  alphabet?: string[];
+}
+
+interface EnterParams {
+  lessonId?: string;
+  mode?: 'normal' | 'speedrun';
+  speedrunCourse?: GameLevel | null;
+  speedrunState?: { elapsed?: number } | null;
+}
 
 /**
  * Orchestrates one lesson: reads the abstracted input, drives the player
@@ -30,32 +51,54 @@ const Status = Object.freeze({
  * every one of those pieces independent and testable.
  */
 export class GameScene extends Scene {
-  constructor(game) {
-    super(game);
-    this.physics = new PhysicsEngine();
-    /** @type {Array<() => void>} */
-    this._unsubscribers = [];
-  }
+  physics = new PhysicsEngine();
+  private _unsubscribers: Array<() => void> = [];
 
-  enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null } = {}) {
+  mode: 'normal' | 'speedrun' = 'normal';
+  mistakes = 0;
+  status: StatusValue = Status.RUNNING;
+  private _winTimer = 0;
+
+  level!: GameLevel;
+  lesson!: Lesson;
+  validator!: AnswerValidator;
+  levelManager!: LevelManager;
+  lives!: LivesManager;
+  player!: PlayerController;
+  camera!: Camera;
+  hudModel!: HudModel;
+  character: ReturnType<typeof getCharacter> | null = null;
+
+  speedrunCheckpoints?: Point[];
+  alphabet?: string[];
+  currentIndex = 0;
+  speedrunElapsed = 0;
+
+  override enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null }: EnterParams = {}): void {
     this.mode = mode;
     this.mistakes = 0;
     this.status = Status.RUNNING;
     this._winTimer = 0;
 
     if (this.mode === 'speedrun') {
-      const course = speedrunCourse ?? buildSpeedrunCourse();
+      const course = speedrunCourse ?? (buildSpeedrunCourse() as unknown as GameLevel);
       this.level = course;
       this.speedrunCheckpoints = course.checkpoints;
       this.alphabet = course.alphabet;
       this.currentIndex = 0;
       this.speedrunElapsed = speedrunState?.elapsed ?? 0;
 
-      const firstLetter = this.alphabet[0];
+      const firstLetter = this.alphabet![0];
       this.lesson = this.game.curriculum?.getLesson?.(`alfabeto-${firstLetter.toLowerCase()}`) ?? {
         id: `alfabeto-${firstLetter.toLowerCase()}`,
+        unitId: 'alfabeto',
+        unitTitle: 'Alfabeto',
+        type: 'letter',
         target: firstLetter,
+        variants: [firstLetter],
         objective: `Colete a letra ${firstLetter}`,
+        levelId: `alfabeto-${firstLetter.toLowerCase()}`,
+        index: 0,
       };
       this.validator = new AnswerValidator(this.lesson);
     } else {
@@ -65,7 +108,7 @@ export class GameScene extends Scene {
       if (!levelData) throw new Error(`Missing level file for lesson ${lessonId}`);
 
       this.lesson = lesson;
-      this.level = loadLevel(levelData);
+      this.level = loadLevel(levelData) as unknown as GameLevel;
       this.validator = new AnswerValidator(lesson);
     }
 
@@ -78,7 +121,7 @@ export class GameScene extends Scene {
       physics: this.physics,
     });
     this.camera = new Camera({
-      viewport: this.level.viewport,
+      viewport: this.level.viewport as never,
       maxX: this.level.camera.maxX,
       startX: this.level.camera.startX,
       smoothing: this.level.camera.smoothing,
@@ -108,7 +151,7 @@ export class GameScene extends Scene {
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
   }
 
-  exit() {
+  override exit(): void {
     for (const unsubscribe of this._unsubscribers) unsubscribe();
     this._unsubscribers = [];
     this.game.menu.hide();
@@ -117,7 +160,7 @@ export class GameScene extends Scene {
     this.game.effects.clear();
   }
 
-  update(dt) {
+  override update(dt: number): void {
     if (this.game.input.consumePressed(Actions.DEBUG)) {
       this.game.debug.toggle();
     }
@@ -148,14 +191,14 @@ export class GameScene extends Scene {
     this.game.effects.update(dt);
   }
 
-  draw(renderer) {
+  override draw(renderer: CanvasRenderer): void {
     this.game.sprites.drawBackground(renderer, this.camera?.x ?? 0);
     renderer.setCamera(this.camera.x, this.camera.y);
     this.game.sprites.drawTerrain(renderer);
     this.game.sprites.drawObjects(
       renderer,
       this.level,
-      this.mode === 'speedrun' ? this.speedrunCheckpoints : null,
+      this.mode === 'speedrun' ? (this.speedrunCheckpoints ?? null) : null,
     );
     this.game.sprites.drawItems(renderer, this.level.items, this.levelManager.collected);
     this.game.sprites.drawHazards(renderer, this.level.hazards);
@@ -180,7 +223,7 @@ export class GameScene extends Scene {
    * The ONLY bridge from input to gameplay. Note that no jump rule lives here:
    * this asks the controller to try, and the controller decides.
    */
-  _applyInput() {
+  private _applyInput(): void {
     const axis = this.game.input.getMoveAxis();
     if (axis < 0) this.player.moveLeft();
     else if (axis > 0) this.player.moveRight();
@@ -192,13 +235,14 @@ export class GameScene extends Scene {
 
   // --- Event reactions ------------------------------------------------------
 
-  _subscribe() {
-    const on = (event, handler) => this._unsubscribers.push(this.game.bus.on(event, handler));
+  private _subscribe(): void {
+    const on = <T,>(event: string, handler: (payload: T) => void) =>
+      this._unsubscribers.push(this.game.bus.on(event as never, handler as never));
 
-    on(Events.ITEM_COLLECTED, ({ item }) => this.onItemCollected(item));
+    on<{ item: LevelItem }>(Events.ITEM_COLLECTED, ({ item }) => this.onItemCollected(item));
     on(Events.HAZARD_HIT, () => this.onHazardHit());
     on(Events.PLAYER_FELL, () => this.respawn());
-    on(Events.LIVES_CHANGED, ({ lives, maxLives }) => {
+    on<{ lives: number; maxLives: number }>(Events.LIVES_CHANGED, ({ lives, maxLives }) => {
       this.hudModel.setLives(lives);
       this.hudModel.maxLives = maxLives;
     });
@@ -206,7 +250,7 @@ export class GameScene extends Scene {
     on(Events.APP_BLURRED, () => this.pause());
   }
 
-  onItemCollected(item) {
+  onItemCollected(item: LevelItem & { segmentIndex?: number; label?: string }): void {
     if (this.mode === 'speedrun' && item.segmentIndex != null && item.segmentIndex > this.currentIndex) {
       this.levelManager.collected.delete(item.id);
       this.hudModel.showFeedback(
@@ -231,7 +275,12 @@ export class GameScene extends Scene {
   }
 
   /** Correct-answer flow: record, celebrate, then advance (speedrun) or win (normal). */
-  _handleCorrectAnswer(item, profile, centerX, centerY) {
+  private _handleCorrectAnswer(
+    item: LevelItem,
+    profile: { id: string } | null,
+    centerX: number,
+    centerY: number,
+  ): void {
     if (profile) this.game.progress.recordAnswer(profile.id, true);
     this.game.effects.spawnConfetti(centerX, centerY, 56);
 
@@ -249,14 +298,20 @@ export class GameScene extends Scene {
   }
 
   /** Speedrun advance: next letter checkpoint, or marathon victory on Z. */
-  _advanceSpeedrun() {
-    if (this.currentIndex < this.alphabet.length - 1) {
+  private _advanceSpeedrun(): void {
+    if (this.currentIndex < this.alphabet!.length - 1) {
       this.currentIndex += 1;
-      const nextLetter = this.alphabet[this.currentIndex];
+      const nextLetter = this.alphabet![this.currentIndex];
       const nextLesson = this.game.curriculum?.getLesson?.(`alfabeto-${nextLetter.toLowerCase()}`) ?? {
         id: `alfabeto-${nextLetter.toLowerCase()}`,
+        unitId: 'alfabeto',
+        unitTitle: 'Alfabeto',
+        type: 'letter',
         target: nextLetter,
+        variants: [nextLetter],
         objective: `Colete a letra ${nextLetter}`,
+        levelId: `alfabeto-${nextLetter.toLowerCase()}`,
+        index: this.currentIndex,
       };
       this.lesson = nextLesson;
       this.validator = new AnswerValidator(this.lesson);
@@ -264,8 +319,8 @@ export class GameScene extends Scene {
         this.levelManager.setCheckpoint({ ...this.speedrunCheckpoints[this.currentIndex] });
       }
 
-      this.hudModel.setObjective(this.lesson.objective);
-      this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet.length}`);
+      this.hudModel.setObjective(this.lesson.objective ?? '');
+      this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet!.length}`);
       this.hudModel.showFeedback(
         FeedbackKind.CORRECT,
         `Boa! Agora letra ${nextLetter}!`,
@@ -281,7 +336,12 @@ export class GameScene extends Scene {
   }
 
   /** Wrong-answer flow: count the mistake, cost a heart, show guidance. */
-  _handleWrongAnswer(item, profile, centerX, centerY) {
+  private _handleWrongAnswer(
+    item: LevelItem & { label?: string },
+    profile: { id: string } | null,
+    centerX: number,
+    centerY: number,
+  ): void {
     this.mistakes += 1;
     if (profile) this.game.progress.recordAnswer(profile.id, false);
     this.lives.loseHeart();
@@ -293,7 +353,7 @@ export class GameScene extends Scene {
     );
   }
 
-  onHazardHit() {
+  onHazardHit(): void {
     this.lives.loseHeart();
     this.hudModel.showFeedback(
       FeedbackKind.WRONG,
@@ -304,14 +364,14 @@ export class GameScene extends Scene {
   }
 
   /** Falling costs no heart — the player just returns to the checkpoint. */
-  respawn() {
+  respawn(): void {
     this.player.reset(this.levelManager.getRespawnPoint());
     this.levelManager.resetTransientState();
     this.camera.snapTo(this.player.body);
     this.game.effects.clear();
   }
 
-  winLevel() {
+  winLevel(): void {
     this.status = Status.WON;
     this._winTimer = this.mode === 'speedrun' ? 1.2 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
@@ -321,7 +381,7 @@ export class GameScene extends Scene {
     );
   }
 
-  finishLevel() {
+  finishLevel(): void {
     const profile = this.game.profiles.getActiveProfile();
 
     if (this.mode === 'speedrun') {
@@ -352,7 +412,7 @@ export class GameScene extends Scene {
     });
   }
 
-  onGameOver() {
+  onGameOver(): void {
     this.status = Status.GAME_OVER;
     if (this.mode === 'speedrun') {
       this.game.menu.showGameOver({
@@ -371,19 +431,19 @@ export class GameScene extends Scene {
 
   // --- Pause ----------------------------------------------------------------
 
-  togglePause() {
+  togglePause(): void {
     if (this.status === Status.PAUSED) this.resume();
     else this.pause();
   }
 
-  pause() {
+  pause(): void {
     if (this.status !== Status.RUNNING) return;
     this.status = Status.PAUSED;
     this.game.input.reset();
     this._showPauseMenu();
   }
 
-  _showPauseMenu() {
+  private _showPauseMenu(): void {
     this.game.menu.showPause({
       isSpeedrun: this.mode === 'speedrun',
       isMuted: this.game.audio.isMuted,
@@ -403,7 +463,7 @@ export class GameScene extends Scene {
     });
   }
 
-  resume() {
+  resume(): void {
     if (this.status !== Status.PAUSED) return;
     this.status = Status.RUNNING;
     this.game.menu.hide();

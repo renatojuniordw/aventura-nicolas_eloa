@@ -1,4 +1,4 @@
-import { VIEWPORT } from '../core/config.js';
+import { VIEWPORT, type Viewport } from '../core/config.js';
 
 /**
  * Turns a raw level file (JSON) into a validated, immutable Level object.
@@ -10,7 +10,7 @@ import { VIEWPORT } from '../core/config.js';
  */
 
 export class LevelValidationError extends Error {
-  constructor(message) {
+  constructor(message: string) {
     super(message);
     this.name = 'LevelValidationError';
   }
@@ -20,13 +20,87 @@ const DEFAULT_TILE_SIZE = 32;
 const SOLID_CHAR = '#';
 const PLATFORM_CHAR = '=';
 
-/**
- * @param {object} raw level data as authored in JSON
- * @param {{ viewport?: {width:number,height:number} }} [options]
- * @returns {Readonly<object>} normalized level
- */
-export function loadLevel(raw, options = {}) {
-  if (!raw || typeof raw !== 'object') {
+interface RawPoint {
+  x: number;
+  y: number;
+}
+
+interface RawRect {
+  id?: string;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  type?: string;
+  [key: string]: unknown;
+}
+
+/** Loosely-typed shape of a level file as authored in JSON. */
+interface RawLevelInput {
+  id: string;
+  name: string;
+  schemaVersion?: number;
+  tileset?: string;
+  tileSize?: number;
+  viewport?: Viewport;
+  background?: string;
+  music?: string | null;
+  map?: { solid?: string[]; platform?: string[] };
+  items?: RawRect[];
+  hazards?: RawRect[];
+  decorations?: Record<string, unknown>[];
+  playerStart?: RawPoint;
+  checkpoint?: RawPoint;
+  camera?: { startX?: number; maxX?: number; smoothing?: number };
+  physics?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface Rectangle {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface NormalizedRect extends Rectangle {
+  id: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+export interface LoadedLevel {
+  schemaVersion: number;
+  id: string;
+  name: string;
+  tileset: string;
+  viewport: Viewport;
+  tileSize: number;
+  background: string;
+  music: string | null;
+  playerStart: RawPoint;
+  checkpoint: RawPoint;
+  camera: { startX: number; maxX: number; smoothing: number };
+  physics: Record<string, unknown>;
+  solids: Rectangle[];
+  oneWayPlatforms: Rectangle[];
+  items: NormalizedRect[];
+  hazards: NormalizedRect[];
+  decorations: Record<string, unknown>[];
+  worldWidth: number;
+  worldHeight: number;
+}
+
+interface LoadLevelOptions {
+  viewport?: Viewport;
+}
+
+function isRawLevelInput(raw: unknown): raw is RawLevelInput {
+  return Boolean(raw) && typeof raw === 'object';
+}
+
+export function loadLevel(raw: unknown, options: LoadLevelOptions = {}): Readonly<LoadedLevel> {
+  if (!isRawLevelInput(raw)) {
     throw new LevelValidationError('Level data must be an object');
   }
   if (!raw.id) throw new LevelValidationError('Level requires an "id"');
@@ -112,8 +186,8 @@ export function loadLevel(raw, options = {}) {
  * by merging horizontal runs per row. Fewer, wider rectangles mean fewer
  * collision checks and no phantom internal edges.
  */
-export function gridToRectangles(rows, tileSize, solidChar) {
-  const rectangles = [];
+export function gridToRectangles(rows: string[], tileSize: number, solidChar: string): Rectangle[] {
+  const rectangles: Rectangle[] = [];
   rows.forEach((row, rowIndex) => {
     let runStart = -1;
     for (let column = 0; column <= row.length; column += 1) {
@@ -134,7 +208,7 @@ export function gridToRectangles(rows, tileSize, solidChar) {
   return rectangles;
 }
 
-function assertUniformRows(rows, levelId, field) {
+function assertUniformRows(rows: string[], levelId: string, field: string): void {
   if (rows.length === 0) return;
   const width = rows[0].length;
   rows.forEach((row, index) => {
@@ -149,15 +223,13 @@ function assertUniformRows(rows, levelId, field) {
   });
 }
 
-function normalizeRect(source, levelId, kind) {
+function normalizeRect(source: RawRect, levelId: string, kind: string): NormalizedRect {
   const rect = {
-    x: source.x,
-    y: source.y,
-    w: source.w ?? 32,
-    h: source.h ?? 32,
+    w: 32,
+    h: 32,
     ...source,
-  };
-  for (const axis of ['x', 'y', 'w', 'h']) {
+  } as NormalizedRect;
+  for (const axis of ['x', 'y', 'w', 'h'] as const) {
     if (!Number.isFinite(rect[axis])) {
       throw new LevelValidationError(
         `Level "${levelId}": ${kind} "${source.id ?? '?'}" has an invalid "${axis}"`,
@@ -170,7 +242,7 @@ function normalizeRect(source, levelId, kind) {
   return rect;
 }
 
-function normalizePoint(point, levelId, field, worldWidth) {
+function normalizePoint(point: RawPoint | undefined, levelId: string, field: string, worldWidth: number): RawPoint {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
     throw new LevelValidationError(`Level "${levelId}": ${field} requires numeric x and y`);
   }
@@ -180,8 +252,8 @@ function normalizePoint(point, levelId, field, worldWidth) {
   return { x: point.x, y: point.y };
 }
 
-function assertUniqueIds(entries, levelId, kind) {
-  const seen = new Set();
+function assertUniqueIds(entries: NormalizedRect[], levelId: string, kind: string): void {
+  const seen = new Set<string>();
   for (const entry of entries) {
     if (seen.has(entry.id)) {
       throw new LevelValidationError(`Level "${levelId}": duplicated ${kind} id "${entry.id}"`);
@@ -190,7 +262,7 @@ function assertUniqueIds(entries, levelId, kind) {
   }
 }
 
-function assertInsideWorld(entries, worldWidth, worldHeight, levelId) {
+function assertInsideWorld(entries: NormalizedRect[], worldWidth: number, worldHeight: number, levelId: string): void {
   for (const entry of entries) {
     if (
       entry.x < 0 ||
@@ -205,7 +277,7 @@ function assertInsideWorld(entries, worldWidth, worldHeight, levelId) {
   }
 }
 
-export function deepFreeze(object) {
+export function deepFreeze<T extends object>(object: T): Readonly<T> {
   for (const value of Object.values(object)) {
     if (value && typeof value === 'object') {
       Object.freeze(value);

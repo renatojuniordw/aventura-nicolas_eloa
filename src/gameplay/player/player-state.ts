@@ -1,3 +1,5 @@
+import type { PlayerController } from './player-controller.js';
+
 /**
  * States of the player state machine (State pattern).
  *
@@ -12,27 +14,28 @@ export const PlayerStateId = Object.freeze({
   FALL: 'fall',
 });
 
+export type PlayerStateIdValue = (typeof PlayerStateId)[keyof typeof PlayerStateId];
+
 /**
  * Base class. States drive horizontal intent and decide transitions; the
  * controller owns the body, physics and the timers.
  */
 export class PlayerState {
-  /** @param {import('./player-controller.js').PlayerController} player */
-  constructor(player) {
+  player: PlayerController;
+
+  constructor(player: PlayerController) {
     this.player = player;
   }
 
-  /** @returns {string} */
-  get id() {
+  get id(): PlayerStateIdValue | 'base' {
     return 'base';
   }
 
   /** Called when the state becomes active. */
-  enter() {}
+  enter(): void {}
 
   /** Called when leaving the state. */
-  exit() {}
+  exit(): void {}
 
-  /** @param {number} _dt */
-  update(_dt) {}
+  update(_dt: number): void {}
 }

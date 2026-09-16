@@ -2,13 +2,30 @@ import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
 import { getCharacter } from '../content/characters.js';
+import type { CanvasRenderer } from '../render/canvas-renderer.js';
+import type { Lesson } from '../content/curriculum-model.js';
+
+interface VictoryParams {
+  lessonId?: string;
+  stars?: number;
+  mistakes?: number;
+  mode?: 'normal' | 'speedrun';
+  elapsed?: number;
+  isNewBest?: boolean;
+  bestTime?: number;
+  totalLetters?: number;
+}
 
 /**
  * Level-complete screen: stars earned, celebration, and a shortcut to the next
  * lesson. Progress was already persisted by the game scene.
  */
 export class VictoryScene extends Scene {
-  enter({
+  lesson: Lesson | null = null;
+  nextLessonId: string | null = null;
+  hasNext = false;
+
+  override enter({
     lessonId,
     stars = 0,
     mistakes = 0,
@@ -17,7 +34,7 @@ export class VictoryScene extends Scene {
     isNewBest = false,
     bestTime = 0,
     totalLetters = 26,
-  } = {}) {
+  }: VictoryParams = {}): void {
     const profile = this.game.profiles.getActiveProfile();
 
     if (mode === 'speedrun') {
@@ -55,18 +72,18 @@ export class VictoryScene extends Scene {
     });
   }
 
-  exit() {
+  override exit(): void {
     this.game.menu.hide();
     this.game.effects.clear();
   }
 
-  update(dt) {
+  override update(dt: number): void {
     this.game.effects.update(dt);
     if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
     if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
   }
 
-  draw(renderer) {
+  override draw(renderer: CanvasRenderer): void {
     renderer.clear(COLORS.sky);
     // Effects are world-space; reset the camera so they land on screen.
     renderer.setCamera(0, 0);

@@ -1,12 +1,16 @@
 import { COLORS, VIEWPORT } from '../core/config.js';
 import { PlayerStateId } from '../gameplay/player/player-state.js';
-import { POSE_BY_STATE, POSE_FRAMES, frameRect } from './atlas-meta.js';
+import { POSE_BY_STATE, POSE_FRAMES, frameRect } from '../content/atlas-meta.js';
 import {
   CHECKPOINT_BOUNDS,
   FINISH_PORTAL_BOUNDS,
   LETTER_CARRIER_BOUNDS,
   resolveBackgroundKey,
 } from './sprite-assets.js';
+import type { CanvasRenderer } from './canvas-renderer.js';
+import type { Box } from '../physics/aabb.js';
+import type { PlayerController } from '../gameplay/player/player-controller.js';
+import type { AssetManager } from '../core/asset-manager.js';
 
 /** How long each animation frame stays on screen. */
 const FRAME_DURATION_MS = 110;
@@ -18,31 +22,73 @@ const FRAME_DURATION_MS = 110;
  */
 const SPRITE_SCALE = 1.8;
 
+interface RenderItem extends Box {
+  id: string;
+  type: string;
+  label: string;
+}
+
+interface RenderHazard extends Box {
+  id: string;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/** Shape read from a loaded level. Mirrors `gameplay/level-manager.js`'s `Level`. */
+interface RenderLevel {
+  id?: string;
+  background?: string;
+  solids: Box[];
+  oneWayPlatforms: Box[];
+  checkpoint?: Point;
+  worldWidth?: number;
+  worldHeight?: number;
+  [key: string]: unknown;
+}
+
+interface CharacterLike {
+  id: string;
+  sprites?: Partial<Record<string, string>>;
+}
+
+interface SpriteRendererOptions {
+  atlas?: unknown;
+  assets?: AssetManager | null;
+  now?: () => number;
+}
+
 /**
  * Draws the world: panoramic parallax backgrounds, terrain, checkpoints,
  * finish portals, letter tokens, hazards and animated player.
  */
 export class SpriteRenderer {
-  constructor({ atlas = null, assets = null, now = () => Date.now() } = {}) {
+  atlas: unknown;
+  private _assets: AssetManager | null;
+  private _now: () => number;
+  private _level: RenderLevel | null = null;
+  private _surfaces: Box[] = [];
+  private _animPose: string | null = null;
+  private _animStart = 0;
+
+  constructor({ atlas = null, assets = null, now = () => Date.now() }: SpriteRendererOptions = {}) {
     this.atlas = atlas;
     this._assets = assets;
     this._now = now;
-    this._level = null;
-    this._surfaces = [];
-    this._animPose = null;
-    this._animStart = 0;
   }
 
   /** Cache per-level render data (grass tops) when a level is loaded. */
-  setLevel(level) {
+  setLevel(level: RenderLevel): void {
     this._level = level;
     this._surfaces = computeSurfaces(level.solids);
   }
 
   /** Draw panoramic background with smooth camera parallax. */
-  drawBackground(renderer, cameraX = 0) {
+  drawBackground(renderer: CanvasRenderer, cameraX = 0): void {
     const bgKey = resolveBackgroundKey(this._level);
-    const bgImage = this._assets?.has(bgKey) ? this._assets.get(bgKey) : null;
+    const bgImage = this._assets?.has(bgKey) ? (this._assets.get(bgKey) as HTMLImageElement) : null;
 
     if (bgImage && typeof renderer.screenImage === 'function' && bgImage.width && bgImage.height) {
       try {
@@ -65,7 +111,7 @@ export class SpriteRenderer {
     renderer.clear(this._level?.background ?? COLORS.sky);
   }
 
-  drawTerrain(renderer) {
+  drawTerrain(renderer: CanvasRenderer): void {
     const level = this._level;
     if (!level) return;
 
@@ -88,13 +134,13 @@ export class SpriteRenderer {
   }
 
   /** Draws checkpoint flags and the finish portal. */
-  drawObjects(renderer, level = this._level, checkpoints = null) {
+  drawObjects(renderer: CanvasRenderer, level: RenderLevel | null = this._level, checkpoints: Point[] | null = null): void {
     if (!level) return;
     const now = this._now();
 
     // 1. Checkpoint flags
     const cpImg = this._assets?.has('object:checkpoint')
-      ? this._assets.get('object:checkpoint')
+      ? (this._assets.get('object:checkpoint') as CanvasImageSource)
       : null;
 
     const pointsToDraw = checkpoints && Array.isArray(checkpoints)
@@ -121,7 +167,7 @@ export class SpriteRenderer {
 
     // 2. Finish Portal
     const portalImg = this._assets?.has('object:finish-portal')
-      ? this._assets.get('object:finish-portal')
+      ? (this._assets.get('object:finish-portal') as CanvasImageSource)
       : null;
 
     if (portalImg && typeof renderer.worldImage === 'function') {
@@ -154,7 +200,7 @@ export class SpriteRenderer {
     }
   }
 
-  drawHazards(renderer, hazards) {
+  drawHazards(renderer: CanvasRenderer, hazards: RenderHazard[]): void {
     for (const hazard of hazards) {
       renderer.worldFillRect(hazard.x, hazard.y + hazard.h / 2, hazard.w, hazard.h / 2, COLORS.hazard);
       const spikes = Math.max(1, Math.round(hazard.w / 16));
@@ -172,10 +218,9 @@ export class SpriteRenderer {
     }
   }
 
-  /** @param {Set<string>} collectedIds */
-  drawItems(renderer, items, collectedIds = new Set()) {
+  drawItems(renderer: CanvasRenderer, items: RenderItem[], collectedIds: Set<string> = new Set()): void {
     const carrierImg = this._assets?.has('item:letter-carrier')
-      ? this._assets.get('item:letter-carrier')
+      ? (this._assets.get('item:letter-carrier') as CanvasImageSource)
       : null;
     const now = this._now();
 
@@ -222,8 +267,8 @@ export class SpriteRenderer {
     }
   }
 
-  drawPlayer(renderer, player, character = null) {
-    const pose = POSE_BY_STATE[player.state] ?? 'idle';
+  drawPlayer(renderer: CanvasRenderer, player: PlayerController, character: CharacterLike | null = null): void {
+    const pose = POSE_BY_STATE[player.state as keyof typeof POSE_BY_STATE] ?? 'idle';
     const image = this._poseImage(character, pose);
     if (image) {
       const frame = this._currentFrame(pose, image);
@@ -239,25 +284,25 @@ export class SpriteRenderer {
     this._drawPlaceholderPlayer(renderer, player);
   }
 
-  _poseImage(character, pose) {
+  private _poseImage(character: CharacterLike | null, pose: string): HTMLImageElement | null {
     if (!this._assets || !character?.sprites) return null;
     const key = `${character.id}:${character.sprites[pose] ? pose : 'idle'}`;
-    return this._assets.has(key) ? this._assets.get(key) : null;
+    return this._assets.has(key) ? (this._assets.get(key) as HTMLImageElement) : null;
   }
 
   /** Picks the frame for the current pose, restarting the cycle on pose change. */
-  _currentFrame(pose, image) {
+  private _currentFrame(pose: string, image: HTMLImageElement) {
     const now = this._now();
     if (pose !== this._animPose) {
       this._animPose = pose;
       this._animStart = now;
     }
-    const grid = POSE_FRAMES[pose] ?? POSE_FRAMES.idle;
+    const grid = POSE_FRAMES[pose as keyof typeof POSE_FRAMES] ?? POSE_FRAMES.idle;
     const frameIndex = Math.floor((now - this._animStart) / FRAME_DURATION_MS);
     return frameRect(image, grid, frameIndex);
   }
 
-  _drawPlaceholderPlayer(renderer, player) {
+  private _drawPlaceholderPlayer(renderer: CanvasRenderer, player: PlayerController): void {
     const { x, y, w, h } = player.body;
     const airborne = player.state === PlayerStateId.JUMP || player.state === PlayerStateId.FALL;
     renderer.worldFillRect(x, y, w, h, airborne ? '#f2645f' : COLORS.player);
@@ -270,7 +315,10 @@ export class SpriteRenderer {
   }
 
   /** Debug overlay: hitboxes and atlas grid (toggled with F2). */
-  drawDebug(renderer, { player, level, items, hazards }) {
+  drawDebug(
+    renderer: CanvasRenderer,
+    { player, level, items, hazards }: { player: PlayerController; level: RenderLevel; items: RenderItem[]; hazards: RenderHazard[] },
+  ): void {
     for (const solid of level.solids) {
       renderer.worldStrokeRect(solid.x, solid.y, solid.w, solid.h, 'rgba(255,0,0,0.5)', 1);
     }
@@ -291,7 +339,7 @@ export class SpriteRenderer {
  * A solid rectangle is a visible "surface" when no larger rectangle sits
  * directly on top of it — that is where the grass strip belongs.
  */
-function computeSurfaces(solids = []) {
+function computeSurfaces(solids: Box[] = []): Box[] {
   if (!solids || !Array.isArray(solids)) return [];
   return solids.filter(
     (solid) =>

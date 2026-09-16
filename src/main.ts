@@ -20,6 +20,7 @@ import { ProfileStore } from './persistence/profile-store.js';
 import { ProgressStore } from './persistence/progress-store.js';
 import { AudioSettingsStore } from './persistence/audio-settings-store.js';
 import * as curriculum from './content/curriculum.js';
+import type { Unit, Lesson } from './content/curriculum-model.js';
 import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
 import { BootScene } from './scenes/boot-scene.js';
 import { MenuScene } from './scenes/menu-scene.js';
@@ -30,15 +31,55 @@ import { VictoryScene } from './scenes/victory-scene.js';
  * Composition root — the single place where concrete implementations are wired
  * together. Every other module receives its collaborators, which is what keeps
  * the rest of the codebase unit-testable without a browser.
- *
- * @typedef {ReturnType<typeof createGame>} GameContext
  */
+export interface GameContext {
+  bus: EventBus;
+  input: InputManager;
+  renderer: CanvasRenderer;
+  assets: AssetManager;
+  menu: MenuOverlay;
+  hudControls: HudControls;
+  touchControls: TouchControls;
+  audio: AudioManager;
+  sprites: SpriteRenderer;
+  effects: Effects;
+  hud: Hud;
+  profiles: ProfileStore;
+  progress: ProgressStore;
+  device: { isTouch: boolean };
+  curriculum: {
+    units: Unit[];
+    lessons: Lesson[];
+    lessonOrder: string[];
+    getLesson: (lessonId: string | null | undefined) => Lesson | null;
+  };
+  debug: { enabled: boolean; toggle(): void };
+  startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
+  startSpeedrun(): void;
+  // `scenes` and `loop` can only be constructed once `game` itself exists
+  // (SceneManager needs a `game` reference to hand to every Scene), so both
+  // are attached right after this object is built, mutating it in place —
+  // every consumer (SceneManager, Scene instances) holds this exact
+  // reference. See the `as GameContext` cast below.
+  scenes: SceneManager;
+  loop: GameLoop;
+}
+
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
-function isTouchDevice() {
+function isTouchDevice(): boolean {
   return (
     typeof globalThis.matchMedia === 'function' &&
     globalThis.matchMedia('(pointer: coarse)').matches
   );
+}
+
+interface CreateGameOptions {
+  canvas: HTMLCanvasElement;
+  overlayRoot: HTMLElement;
+  hudControlsRoot?: HTMLElement | null;
+  touchControlsRoot?: HTMLElement | null;
+  storage?: Storage;
+  assets?: AssetManager;
 }
 
 export function createGame({
@@ -48,7 +89,7 @@ export function createGame({
   touchControlsRoot = null,
   storage = globalThis.localStorage,
   assets = new AssetManager(),
-}) {
+}: CreateGameOptions): GameContext {
   const bus = new EventBus();
   const renderer = new CanvasRenderer(canvas);
   const sprites = new SpriteRenderer({ assets });
@@ -93,12 +134,12 @@ export function createGame({
     },
     debug: {
       enabled: false,
-      toggle() {
+      toggle(this: { enabled: boolean }) {
         this.enabled = !this.enabled;
       },
     },
     /** Jump to a lesson by id (used by menus and the victory screen). */
-    startLesson(lessonId, options = {}) {
+    startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
     },
     /** Start a continuous speedrun through the alphabet lessons (A to Z). */
@@ -109,15 +150,17 @@ export function createGame({
         speedrunCourse: course,
       });
     },
-  };
+    // `scenes` and `loop` are attached right after construction below (see the
+    // `GameContext` doc comment) — cast now so those later assignments type-check.
+  } as GameContext;
 
-  const scenes = new SceneManager(game, bus);
+  const scenes = new SceneManager(game as never, bus);
   game.scenes = scenes;
 
-  scenes.register('boot', BootScene);
-  scenes.register('menu', MenuScene);
-  scenes.register('game', GameScene);
-  scenes.register('victory', VictoryScene);
+  scenes.register('boot', BootScene as never);
+  scenes.register('menu', MenuScene as never);
+  scenes.register('game', GameScene as never);
+  scenes.register('victory', VictoryScene as never);
 
   const loop = new GameLoop({
     update: (dt) => {
@@ -169,10 +212,10 @@ const bootTouchControls =
 
 if (bootCanvas && bootOverlay) {
   const game = createGame({
-    canvas: bootCanvas,
-    overlayRoot: bootOverlay,
-    hudControlsRoot: bootHudControls,
-    touchControlsRoot: bootTouchControls,
+    canvas: bootCanvas as HTMLCanvasElement,
+    overlayRoot: bootOverlay as HTMLElement,
+    hudControlsRoot: bootHudControls as HTMLElement | null,
+    touchControlsRoot: bootTouchControls as HTMLElement | null,
   });
   game.loop.start();
 }

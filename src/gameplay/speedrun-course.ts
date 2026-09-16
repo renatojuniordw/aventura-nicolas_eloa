@@ -1,5 +1,6 @@
 import { getLevelData } from '../content/level-registry.js';
 import { loadLevel, deepFreeze } from '../content/level-loader.js';
+import type { Box } from '../physics/aabb.js';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const SEGMENT_WIDTH = 1920; // 60 tiles * 32px
@@ -17,16 +18,23 @@ const TEMPLATE_IDS = [
  */
 export const MIN_HAZARD_DISTANCE = 160;
 
+interface HazardLike {
+  x: number;
+  w: number;
+}
+
 /**
  * Checks whether an item at (x, w) has safe clearance from all hazards.
  *
- * @param {number} x item horizontal position
- * @param {number} w item width
- * @param {Array<{x: number, w: number}>} hazards
- * @param {number} [minDistance=MIN_HAZARD_DISTANCE]
- * @returns {boolean}
+ * @param x item horizontal position
+ * @param w item width
  */
-export function isSafeFromHazards(x, w, hazards, minDistance = MIN_HAZARD_DISTANCE) {
+export function isSafeFromHazards(
+  x: number,
+  w: number,
+  hazards: HazardLike[] | undefined,
+  minDistance = MIN_HAZARD_DISTANCE,
+): boolean {
   if (!hazards || hazards.length === 0) return true;
   const itemLeft = x;
   const itemRight = x + w;
@@ -42,12 +50,17 @@ export function isSafeFromHazards(x, w, hazards, minDistance = MIN_HAZARD_DISTAN
   return true;
 }
 
+interface Spot {
+  x: number;
+  y: number;
+}
+
 /**
  * Candidate item spots for each template (relative to segment start X).
  * Heights (y) vary from ground jumps (~310..320) to elevated platforms (~200..250).
  * All spots are positioned away from hazards (such as spikes) and pit gaps.
  */
-const CANDIDATE_SPOTS = [
+const CANDIDATE_SPOTS: Spot[][] = [
   // 0: Planície (ground jumps at y: 310..320; platform jumps at y: 220..250)
   [
     { x: 340, y: 320 },
@@ -91,7 +104,7 @@ const CANDIDATE_SPOTS = [
   ],
 ];
 
-function shuffle(array, random) {
+function shuffle<T>(array: T[], random: () => number): T[] {
   const copy = [...array];
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
@@ -102,6 +115,22 @@ function shuffle(array, random) {
   return copy;
 }
 
+interface BuildSpeedrunCourseOptions {
+  random?: () => number;
+}
+
+/**
+ * Minimal shape read from a loaded template level. `loadLevel`'s JSDoc return
+ * type is still the generic `Readonly<object>` (level-loader.js hasn't been
+ * converted to TS yet) — narrow it locally until that conversion happens.
+ */
+interface RawTemplateLevel {
+  worldHeight: number;
+  solids: Box[];
+  oneWayPlatforms: Box[];
+  hazards: (Box & { id: string })[];
+}
+
 /**
  * Builds a continuous 26-segment course for the Alphabet Speed Run.
  *
@@ -109,26 +138,31 @@ function shuffle(array, random) {
  * from the 4 stage templates. Items are placed at randomized candidate spots
  * in every segment so no two runs feel identical.
  *
- * @param {{ random?: () => number }} [options]
- * @returns {object} validated Level object for the physics engine and renderer
+ * @returns validated Level object for the physics engine and renderer
  */
-export function buildSpeedrunCourse({ random = Math.random } = {}) {
+export function buildSpeedrunCourse({ random = Math.random }: BuildSpeedrunCourseOptions = {}) {
   // Pre-load the 4 base templates
   const templates = TEMPLATE_IDS.map((id) => {
     const raw = getLevelData(id);
     if (!raw) throw new Error(`Missing template level data: ${id}`);
-    return loadLevel(raw);
+    return loadLevel(raw) as unknown as RawTemplateLevel;
   });
 
   const totalSegments = ALPHABET.length;
   const worldWidth = totalSegments * SEGMENT_WIDTH;
   const worldHeight = templates[0].worldHeight;
 
-  const solids = [];
-  const oneWayPlatforms = [];
-  const hazards = [];
-  const items = [];
-  const checkpoints = [];
+  const solids: Box[] = [];
+  const oneWayPlatforms: Box[] = [];
+  const hazards: (Box & { id: string })[] = [];
+  const items: (Box & {
+    id: string;
+    segmentIndex: number;
+    type: string;
+    kind: string;
+    label: string;
+  })[] = [];
+  const checkpoints: Spot[] = [];
 
   for (let i = 0; i < totalSegments; i += 1) {
     const letter = ALPHABET[i];

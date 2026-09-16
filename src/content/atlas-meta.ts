@@ -24,8 +24,18 @@ export const POSE_BY_STATE = Object.freeze({
   fall: 'jump',
 });
 
+interface Grid {
+  columns: number;
+  rows: number;
+}
+
+interface ImageLike {
+  width: number;
+  height: number;
+}
+
 /** Source rect of one frame in a pose sheet, given its measured grid. */
-export function frameRect(image, { columns, rows }, frameIndex) {
+export function frameRect(image: ImageLike, { columns, rows }: Grid, frameIndex: number) {
   const sw = image.width / columns;
   const sh = image.height / rows;
   const frame = frameIndex % (columns * rows);

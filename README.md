@@ -3,9 +3,12 @@
 Jogo de plataforma 2D educativo, em português, para crianças em alfabetização.
 O jogador corre e pula para coletar **a letra, sílaba ou palavra pedida**.
 
-Feito em **JavaScript puro com Canvas 2D** — sem framework de jogo, sem dependências de
-execução. Toda a arquitetura é visível e a **entrada é abstraída desde o início**, de modo
-que um **ESP32** possa ser plugado no futuro sem alterar a lógica do jogo.
+O motor do jogo (laço de jogo, física, cenas, gameplay) é **TypeScript puro com Canvas
+2D** — sem framework de jogo. A camada de UI em DOM (menus, overlays, HUD de toque) é
+**React + TSX**; uma regra de arquitetura executável garante que o React nunca importe do
+motor, e que o motor nunca importe React. Toda a arquitetura é visível e a **entrada é
+abstraída desde o início**, de modo que um **ESP32** possa ser plugado no futuro sem
+alterar a lógica do jogo.
 
 ---
 
@@ -25,8 +28,9 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:5173`).
 | Comando                   | O que faz                                          |
 | ------------------------- | -------------------------------------------------- |
 | `npm run dev`             | Servidor de desenvolvimento com recarga automática |
-| `npm test`                | Roda os 283 testes                                 |
+| `npm test`                | Roda os 298 testes                                 |
 | `npm run test:watch`      | Testes em modo observador                          |
+| `npm run typecheck`       | Checa os tipos TypeScript (`tsc --noEmit`)         |
 | `npm run build`           | Gera a versão de produção em `dist/`               |
 | `npm run preview`         | Serve a versão de produção localmente              |
 | `npm run generate:levels` | Regenera as fases a partir do currículo            |
@@ -93,17 +97,18 @@ Toda a documentação está em [`docs/`](docs/README.md), em português:
 2. **SOLID**, com ênfase em Aberto/Fechado: conteúdo, balanceamento e fases são **dados**.
 3. **Input abstraído desde o primeiro commit:** o listener de teclado só traduz teclas em
    ações semânticas. A regra do pulo vive **exclusivamente** em
-   `src/gameplay/player/player-controller.js` — nunca dentro de um evento de tecla. Isso é
+   `src/gameplay/player/player-controller.ts` — nunca dentro de um evento de tecla. Isso é
    garantido por testes automáticos que falham se alguém violar a regra.
-4. **Sem frameworks de jogo:** apenas Canvas 2D e ES Modules, para manter a arquitetura
-   clara e didática.
+4. **Sem frameworks de jogo no motor:** apenas Canvas 2D, TypeScript e ES Modules, para
+   manter a arquitetura clara e didática. React entra só na camada de UI em DOM
+   (`src/ui/`) — outra regra automática garante que o motor nunca importe React.
 
-```js
-// src/scenes/game-scene.js — a única ponte entre entrada e gameplay
+```ts
+// src/scenes/game-scene.ts — a única ponte entre entrada e gameplay
 if (this.game.input.consumePressed(Actions.JUMP)) this.player.jump();
 
-// src/gameplay/player/player-controller.js — onde a decisão realmente acontece
-_tryBufferedJump() {
+// src/gameplay/player/player-controller.ts — onde a decisão realmente acontece
+private _tryBufferedJump(): void {
   const canJump = this.body.grounded || this._coyoteTimer > 0;
   if (this._jumpBufferTimer > 0 && canJump) this._performJump();
 }
@@ -123,7 +128,7 @@ src/
 ├── content/      currículo, fases, validação de resposta
 ├── persistence/  perfis, progresso e preferências no localStorage
 ├── audio/        gerenciador de música e efeitos
-├── ui/           overlays de menu em DOM (ui/screens/ tem uma tela por overlay)
+├── ui/           overlays de menu em React/TSX (ui/screens/ tem uma tela por overlay)
 ├── styles/       CSS do tema e das sobreposições
 └── scenes/       boot, menu, game, victory
 

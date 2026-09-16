@@ -1,6 +1,6 @@
 # 06 — Estratégia de testes
 
-**283 testes** em **37 arquivos**, rodando em cerca de 1 segundo.
+**298 testes** em **40 arquivos**, rodando em cerca de 1 segundo.
 
 A estratégia é simples e deliberada: **testar lógica pura sem DOM** e ter **um** teste de
 integração que prova que as peças se conectam. O DOM aparece só onde o DOM *é* o

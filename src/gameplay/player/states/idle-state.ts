@@ -2,11 +2,11 @@ import { PlayerState, PlayerStateId } from '../player-state.js';
 
 /** Standing still on the ground. */
 export class IdleState extends PlayerState {
-  get id() {
+  override get id() {
     return PlayerStateId.IDLE;
   }
 
-  update(_dt) {
+  override update(_dt: number): void {
     const player = this.player;
     player.applyGroundMovement();
 

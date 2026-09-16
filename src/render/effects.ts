@@ -1,3 +1,5 @@
+import type { CanvasRenderer } from './canvas-renderer.js';
+
 /**
  * Lightweight particle effects (confetti on a correct answer / level clear).
  *
@@ -8,27 +10,42 @@
 
 const CONFETTI_COLORS = ['#ffcc4d', '#ff5d73', '#3f8efc', '#5ec26a', '#b06bd6', '#ffffff'];
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+  color: string;
+}
+
+interface EffectsOptions {
+  random?: () => number;
+  gravity?: number;
+}
+
 export class Effects {
-  /**
-   * @param {{ random?: () => number, gravity?: number }} [options]
-   */
-  constructor({ random = Math.random, gravity = 900 } = {}) {
+  particles: Particle[] = [];
+  private _random: () => number;
+  private _gravity: number;
+
+  constructor({ random = Math.random, gravity = 900 }: EffectsOptions = {}) {
     this._random = random;
     this._gravity = gravity;
-    /** @type {Array<object>} */
-    this.particles = [];
   }
 
-  get count() {
+  get count(): number {
     return this.particles.length;
   }
 
-  clear() {
+  clear(): void {
     this.particles = [];
   }
 
   /** Celebration burst centered on a world position. */
-  spawnConfetti(x, y, count = 48) {
+  spawnConfetti(x: number, y: number, count = 48): void {
     for (let i = 0; i < count; i += 1) {
       const angle = this._random() * Math.PI * 2;
       const speed = 120 + this._random() * 260;
@@ -46,7 +63,7 @@ export class Effects {
   }
 
   /** Small puff used when an item is collected. */
-  spawnPuff(x, y, count = 12, color = '#ffcc4d') {
+  spawnPuff(x: number, y: number, count = 12, color = '#ffcc4d'): void {
     for (let i = 0; i < count; i += 1) {
       const angle = this._random() * Math.PI * 2;
       const speed = 40 + this._random() * 120;
@@ -63,7 +80,7 @@ export class Effects {
     }
   }
 
-  update(dt) {
+  update(dt: number): void {
     for (const particle of this.particles) {
       particle.vy += this._gravity * dt;
       particle.x += particle.vx * dt;
@@ -73,8 +90,7 @@ export class Effects {
     this.particles = this.particles.filter((particle) => particle.life > 0);
   }
 
-  /** @param {import('./canvas-renderer.js').CanvasRenderer} renderer */
-  draw(renderer) {
+  draw(renderer: CanvasRenderer): void {
     for (const particle of this.particles) {
       // Fade out as life runs out, by shrinking the drawn square.
       const ratio = Math.max(0, Math.min(1, particle.life / particle.maxLife));

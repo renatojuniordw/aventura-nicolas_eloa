@@ -1,4 +1,5 @@
 import { Actions } from './actions.js';
+import type { InputAdapter } from './input-adapter.js';
 
 /**
  * Facade the gameplay layer talks to. It hides *which* adapter is active and
@@ -11,19 +12,19 @@ import { Actions } from './actions.js';
  * `setAdapter(new Esp32Adapter(...))` — no gameplay change (Open/Closed).
  */
 export class InputManager {
+  /** actions currently held down */
+  private _held = new Set<string>();
+  /** one-shot actions awaiting a read */
+  private _pressed = new Set<string>();
+  private _adapter: InputAdapter | null = null;
+
   constructor() {
-    /** @type {Set<string>} actions currently held down */
-    this._held = new Set();
-    /** @type {Set<string>} one-shot actions awaiting a read */
-    this._pressed = new Set();
-    /** @type {import('./input-adapter.js').InputAdapter | null} */
-    this._adapter = null;
     // Bound so it can be passed straight to an adapter's constructor.
     this.handleAction = this.handleAction.bind(this);
   }
 
   /** Install (and attach) an input adapter, disposing the previous one. */
-  setAdapter(adapter) {
+  setAdapter(adapter: InputAdapter): void {
     if (this._adapter) {
       this._adapter.dispose();
     }
@@ -32,12 +33,8 @@ export class InputManager {
     adapter.attach();
   }
 
-  /**
-   * Entry point used by adapters. Records the semantic action.
-   * @param {string} action
-   * @param {{ pressed: boolean, repeated?: boolean }} meta
-   */
-  handleAction(action, { pressed, repeated = false } = {}) {
+  /** Entry point used by adapters. Records the semantic action. */
+  handleAction(action: string, { pressed, repeated = false }: { pressed: boolean; repeated?: boolean } = { pressed: false }): void {
     if (pressed) {
       // Held state covers every action, so callers can ask e.g. "is jump still
       // held?" to shorten a jump when the key is released early.
@@ -51,31 +48,26 @@ export class InputManager {
     }
   }
 
-  /** @param {string} action */
-  isActionHeld(action) {
+  isActionHeld(action: string): boolean {
     return this._held.has(action);
   }
 
   /** Horizontal intent: -1 left, 1 right, 0 none. Convenience for controllers. */
-  getMoveAxis() {
+  getMoveAxis(): number {
     const left = this.isActionHeld(Actions.MOVE_LEFT) ? 1 : 0;
     const right = this.isActionHeld(Actions.MOVE_RIGHT) ? 1 : 0;
     return right - left;
   }
 
-  /**
-   * Reads and clears a one-shot action.
-   * @param {string} action
-   * @returns {boolean} true only on the frame it was pressed
-   */
-  consumePressed(action) {
+  /** Reads and clears a one-shot action. @returns true only on the frame it was pressed */
+  consumePressed(action: string): boolean {
     if (!this._pressed.has(action)) return false;
     this._pressed.delete(action);
     return true;
   }
 
   /** Clears all recorded state (on adapter swap, pause, or blur). */
-  reset() {
+  reset(): void {
     this._held.clear();
     this._pressed.clear();
   }
@@ -84,11 +76,11 @@ export class InputManager {
    * Clears one-shot presses that were never read, so a stale press cannot leak
    * into a later frame. Call once at the end of each simulated step.
    */
-  endFrame() {
+  endFrame(): void {
     this._pressed.clear();
   }
 
-  dispose() {
+  dispose(): void {
     if (this._adapter) {
       this._adapter.dispose();
       this._adapter = null;

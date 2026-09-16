@@ -21,12 +21,19 @@ function walk(dir) {
   });
 }
 
+const SOURCE_EXTENSION = /\.(js|jsx|ts|tsx)$/;
+const TEST_EXTENSION = /\.test\.(js|jsx|ts|tsx)$/;
+
 const sourceFiles = walk(SRC_DIR).filter(
-  (file) => file.endsWith('.js') && !file.endsWith('.test.js'),
+  (file) => SOURCE_EXTENSION.test(file) && !TEST_EXTENSION.test(file),
 );
 
 function read(file) {
   return readFileSync(file, 'utf8');
+}
+
+function hasBasename(file, name) {
+  return SOURCE_EXTENSION.test(file) && file.replace(SOURCE_EXTENSION, '').endsWith(`/${name}`);
 }
 
 describe('architecture: input abstraction', () => {
@@ -57,18 +64,42 @@ describe('architecture: input abstraction', () => {
   });
 
   it('the jump impulse is applied only by the player controller', () => {
-    const allowed = ['config.js', 'player-controller.js'];
+    const allowed = ['config', 'player-controller'];
     const offenders = sourceFiles.filter(
       (file) =>
-        read(file).includes('jumpVelocity') && !allowed.some((name) => file.endsWith(name)),
+        read(file).includes('jumpVelocity') && !allowed.some((name) => hasBasename(file, name)),
     );
     expect(offenders).toEqual([]);
   });
 
   it('semantic actions are never redefined outside actions.js', () => {
     const offenders = sourceFiles.filter(
-      (file) => !file.endsWith('actions.js') && /moveLeft'\s*:/.test(read(file)),
+      (file) => !hasBasename(file, 'actions') && /moveLeft'\s*:/.test(read(file)),
     );
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('architecture: React stays out of the engine', () => {
+  it('React components never import from the engine layers', () => {
+    const reactFiles = sourceFiles.filter((file) => /\.(jsx|tsx)$/.test(file));
+    const engineLayer = /from\s+['"][^'"]*\/(core|physics|gameplay|render|scenes)\//;
+    const nonUiReactFiles = reactFiles.filter((file) => !file.includes('/ui/'));
+    expect(nonUiReactFiles, 'React files must live under src/ui/').toEqual([]);
+
+    for (const file of reactFiles) {
+      expect(read(file), `${file} must not import engine layers`).not.toMatch(engineLayer);
+    }
+  });
+
+  it('engine layers never import React', () => {
+    const engineFiles = sourceFiles.filter(
+      (file) =>
+        /\/(core|physics|gameplay|render|scenes)\//.test(file) && !file.includes('/ui/'),
+    );
+    const reactImport = /from\s+['"]react(-dom)?(\/[^'"]*)?['"]/;
+    for (const file of engineFiles) {
+      expect(read(file), `${file} must not import react`).not.toMatch(reactImport);
+    }
   });
 });

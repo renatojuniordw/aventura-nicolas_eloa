@@ -25,26 +25,50 @@ export const Events = Object.freeze({
   PROGRESS_SAVED: 'progress.saved',
 });
 
+export type EventName = (typeof Events)[keyof typeof Events];
+
+/**
+ * Payload shape per event. Some payloads are still `unknown` because the
+ * modules that emit them (lesson/item/hazard shapes) haven't been typed yet
+ * — tighten these as their producing layers convert to TS.
+ */
+export interface EventPayloadMap {
+  [Events.SCENE_CHANGED]: { name: string };
+  [Events.APP_BLURRED]: undefined;
+  [Events.APP_FOCUSED]: undefined;
+  [Events.LESSON_STARTED]: { lesson: unknown };
+  [Events.ITEM_COLLECTED]: { item: unknown };
+  [Events.ANSWER_CORRECT]: unknown;
+  [Events.ANSWER_WRONG]: unknown;
+  [Events.LIVES_CHANGED]: { lives: number; maxLives: number };
+  [Events.LIVES_DEPLETED]: Record<string, never>;
+  [Events.PLAYER_FELL]: Record<string, never>;
+  [Events.HAZARD_HIT]: { hazard: unknown };
+  [Events.LEVEL_COMPLETE]: unknown;
+  [Events.CELEBRATION]: unknown;
+  [Events.HUD_REFRESH]: unknown;
+  [Events.PROGRESS_SAVED]: { profileId: unknown; lessonId: unknown; entry: unknown };
+}
+
+type Handler<E extends EventName> = (payload: EventPayloadMap[E]) => void;
+
 export class EventBus {
-  constructor() {
-    /** @type {Map<string, Set<Function>>} */
-    this._handlers = new Map();
-  }
+  private _handlers = new Map<EventName, Set<Handler<any>>>();
 
   /**
    * Subscribe to an event.
-   * @returns {() => void} unsubscribe function
+   * @returns unsubscribe function
    */
-  on(event, handler) {
+  on<E extends EventName>(event: E, handler: Handler<E>): () => void {
     if (!this._handlers.has(event)) {
       this._handlers.set(event, new Set());
     }
-    this._handlers.get(event).add(handler);
+    this._handlers.get(event)!.add(handler);
     return () => this.off(event, handler);
   }
 
   /** Subscribe for a single emission. */
-  once(event, handler) {
+  once<E extends EventName>(event: E, handler: Handler<E>): () => void {
     const unsubscribe = this.on(event, (payload) => {
       unsubscribe();
       handler(payload);
@@ -52,7 +76,7 @@ export class EventBus {
     return unsubscribe;
   }
 
-  off(event, handler) {
+  off<E extends EventName>(event: E, handler: Handler<E>): void {
     const handlers = this._handlers.get(event);
     if (handlers) {
       handlers.delete(handler);
@@ -60,17 +84,17 @@ export class EventBus {
   }
 
   /** Emit an event to all current subscribers. */
-  emit(event, payload) {
+  emit<E extends EventName>(event: E, payload?: EventPayloadMap[E]): void {
     const handlers = this._handlers.get(event);
     if (!handlers) return;
     // Copy so handlers may unsubscribe during dispatch without skipping others.
     for (const handler of [...handlers]) {
-      handler(payload);
+      handler(payload as EventPayloadMap[E]);
     }
   }
 
   /** Remove every handler (used when tearing a scene down). */
-  clear() {
+  clear(): void {
     this._handlers.clear();
   }
 }

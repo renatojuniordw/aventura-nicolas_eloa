@@ -6,7 +6,12 @@
  * y grows downward. Gravity is therefore positive and jump velocity negative.
  */
 
-export const VIEWPORT = Object.freeze({ width: 960, height: 540 });
+export interface Viewport {
+  width: number;
+  height: number;
+}
+
+export const VIEWPORT: Viewport = Object.freeze({ width: 960, height: 540 });
 
 /** Simulation runs at a fixed 60 Hz regardless of display refresh rate. */
 export const FIXED_STEP = 1 / 60;

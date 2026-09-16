@@ -7,8 +7,12 @@ describe('buildPrivacyNoticeScreen', () => {
     const onConfirm = vi.fn();
     const { node, primary, back } = buildPrivacyNoticeScreen({ onConfirm });
 
-    expect(node.classList.contains('overlay')).toBe(true);
-    expect(node.classList.contains('privacy-notice')).toBe(true);
+    // `node` is the React root's mount container (needed so click handlers
+    // keep working once MenuOverlay moves it elsewhere — see mount-screen.ts);
+    // the actual `.overlay` screen is its rendered child.
+    const overlay = node.querySelector('.overlay');
+    expect(overlay).not.toBeNull();
+    expect(overlay.classList.contains('privacy-notice')).toBe(true);
     // The title mentions responsible adults
     expect(node.querySelector('h2').textContent).toContain('responsáveis');
     // The article text explains local-only storage

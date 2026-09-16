@@ -1,5 +1,38 @@
-import { overlap } from '../physics/aabb.js';
-import { Events } from '../core/event-bus.js';
+import { overlap, type Box } from '../physics/aabb.js';
+import { Events, type EventBus } from '../core/event-bus.js';
+import type { Body } from '../physics/physics-engine.js';
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface LevelItem extends Box {
+  id: string;
+  type: string;
+  label: string;
+}
+
+export interface LevelHazard extends Box {
+  id: string;
+}
+
+/** Shape produced by `content/level-loader.js`'s `loadLevel`. */
+export interface Level {
+  id: string;
+  items: LevelItem[];
+  hazards: LevelHazard[];
+  solids: Box[];
+  oneWayPlatforms: Box[];
+  worldHeight: number;
+  checkpoint: Point;
+  [key: string]: unknown;
+}
+
+interface LevelManagerOptions {
+  level: Level;
+  bus?: EventBus | null;
+}
 
 /**
  * Tracks what is happening *inside* a level: which items were collected, when
@@ -11,50 +44,54 @@ import { Events } from '../core/event-bus.js';
  * exactly one place.
  */
 export class LevelManager {
-  constructor({ level, bus = null }) {
+  level: Level;
+  /** ids of items already collected */
+  collected = new Set<string>();
+  currentCheckpoint: Point;
+
+  private _bus: EventBus | null;
+  private _touchingHazards = new Set<string>();
+  private _fellReported = false;
+
+  constructor({ level, bus = null }: LevelManagerOptions) {
     this.level = level;
     this._bus = bus;
-    /** @type {Set<string>} ids of items already collected */
-    this.collected = new Set();
-    this._touchingHazards = new Set();
-    this._fellReported = false;
     /** Respawn point, tracked here so levels can stay frozen even as checkpoints advance. */
     this.currentCheckpoint = level.checkpoint;
   }
 
-  get targetCollected() {
+  get targetCollected(): boolean {
     return this.level.items.some(
       (item) => item.type === 'target' && this.collected.has(item.id),
     );
   }
 
-  get remainingItems() {
+  get remainingItems(): number {
     return this.level.items.length - this.collected.size;
   }
 
-  getRespawnPoint() {
+  getRespawnPoint(): Point {
     return this.currentCheckpoint;
   }
 
   /** Advances the respawn point (e.g. speedrun segment progress) without mutating the level. */
-  setCheckpoint(point) {
+  setCheckpoint(point: Point): void {
     this.currentCheckpoint = point;
   }
 
-  /** @param {{ body: {x:number,y:number,w:number,h:number} }} player */
-  update(player) {
+  update(player: { body: Body }): void {
     this._checkItems(player.body);
     this._checkHazards(player.body);
     this._checkFall(player.body);
   }
 
   /** Clears transient state after a respawn (collection stays!). */
-  resetTransientState() {
+  resetTransientState(): void {
     this._touchingHazards.clear();
     this._fellReported = false;
   }
 
-  _checkItems(body) {
+  private _checkItems(body: Body): void {
     for (const item of this.level.items) {
       if (this.collected.has(item.id)) continue;
       if (overlap(body, item)) {
@@ -64,7 +101,7 @@ export class LevelManager {
     }
   }
 
-  _checkHazards(body) {
+  private _checkHazards(body: Body): void {
     for (const hazard of this.level.hazards) {
       const touching = overlap(body, hazard);
       if (touching && !this._touchingHazards.has(hazard.id)) {
@@ -76,7 +113,7 @@ export class LevelManager {
     }
   }
 
-  _checkFall(body) {
+  private _checkFall(body: Body): void {
     const fell = body.y > this.level.worldHeight;
     if (fell && !this._fellReported) {
       this._fellReported = true;

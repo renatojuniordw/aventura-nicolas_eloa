@@ -1,6 +1,13 @@
 import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
+import type { CanvasRenderer } from '../render/canvas-renderer.js';
+
+interface LessonLike {
+  type?: string;
+  target?: string;
+  unitTitle?: string;
+}
 
 /**
  * Short label for the "next discovery" card.
@@ -10,7 +17,7 @@ import { COLORS } from '../core/config.js';
  * prefix read as "Família A" and "Família SOL". Syllable families, digraphs and
  * blends are already named by their unit ("Família do B", "Dígrafos").
  */
-export function describeLesson(lesson) {
+export function describeLesson(lesson: LessonLike | null | undefined): string {
   if (!lesson) return 'Alfabeto';
   const { type, target, unitTitle } = lesson;
   if (type === 'word') return `Palavra ${target}`;
@@ -24,15 +31,15 @@ export function describeLesson(lesson) {
  * shortcuts are the abstracted CONFIRM/BACK actions.
  */
 export class MenuScene extends Scene {
-  enter() {
+  override enter(): void {
     this.render();
   }
 
-  exit() {
+  override exit(): void {
     this.game.menu.hide();
   }
 
-  render() {
+  render(): void {
     const { profiles, progress, menu } = this.game;
     let activeProfile = profiles.getActiveProfile();
     if (!activeProfile) {
@@ -76,16 +83,16 @@ export class MenuScene extends Scene {
       speedrunBestTime: activeProfile ? progress.getSpeedrunBestTime(activeProfile.id) : null,
       onPlay: () => this.playNext(),
       onSpeedrun: () => this.startSpeedrun(),
-      onSelectProfile: (profileId) => {
+      onSelectProfile: (profileId: string) => {
         profiles.setActiveProfile(profileId);
         this.render();
       },
-      onSelectCharacter: (characterId) => {
+      onSelectCharacter: (characterId: string) => {
         const profile = profiles.getActiveProfile();
         if (profile) profiles.setCharacter(profile.id, characterId);
         this.render();
       },
-      onOpenCharacterPicker: (characterId) => this.openCharacterPicker(characterId),
+      onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenLessonPicker: () => this.openLessonPicker(),
       onResetProgress: () => {
         const profile = profiles.getActiveProfile();
@@ -95,12 +102,12 @@ export class MenuScene extends Scene {
     });
   }
 
-  startSpeedrun() {
+  startSpeedrun(): void {
     this.game.startSpeedrun();
   }
 
   /** Start the first unfinished lesson, creating a profile if needed. */
-  playNext() {
+  playNext(): void {
     const profile =
       this.game.profiles.getActiveProfile() ??
       this.game.profiles.createProfile('Nicolas', 'char-nicolas');
@@ -110,13 +117,13 @@ export class MenuScene extends Scene {
     this.game.startLesson(nextLessonId);
   }
 
-  openCharacterPicker(initialCharacterId) {
+  openCharacterPicker(initialCharacterId: string): void {
     let selectedId = initialCharacterId;
 
-    const open = () => {
+    const open = (): void => {
       this.game.menu.showCharacterPicker({
         selectedId,
-        onSelect: (characterId) => {
+        onSelect: (characterId: string) => {
           selectedId = characterId;
           open();
         },
@@ -132,7 +139,7 @@ export class MenuScene extends Scene {
     open();
   }
 
-  openLessonPicker() {
+  openLessonPicker(): void {
     const profile = this.game.profiles.getActiveProfile();
     const unlocked = new Set(
       profile
@@ -142,13 +149,13 @@ export class MenuScene extends Scene {
 
     this.game.menu.showLessonPicker({
       units: this.game.curriculum.units,
-      isUnlocked: (lessonId) => unlocked.has(lessonId),
-      onPick: (lessonId) => this.game.startLesson(lessonId),
+      isUnlocked: (lessonId: string) => unlocked.has(lessonId),
+      onPick: (lessonId: string) => this.game.startLesson(lessonId),
       onBack: () => this.render(),
     });
   }
 
-  update() {
+  override update(): void {
     if (!this.game.menu.isVisible) {
       this.render();
       return;
@@ -161,7 +168,7 @@ export class MenuScene extends Scene {
     }
   }
 
-  draw(renderer) {
+  override draw(renderer: CanvasRenderer): void {
     renderer.clear(COLORS.sky);
   }
 }

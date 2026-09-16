@@ -1,5 +1,6 @@
-import { Events } from '../core/event-bus.js';
-import { clampStars } from './migration.js';
+import { Events, type EventBus } from '../core/event-bus.js';
+import { clampStars, type ProgressEntry } from './migration.js';
+import type { SaveStore } from './save-store.js';
 
 /**
  * Per-profile progress: which lessons are done, their best result and the
@@ -10,36 +11,46 @@ import { clampStars } from './migration.js';
  */
 
 /** Fewer mistakes means more stars (0 -> 3, 1 -> 2, 2+ -> 1). */
-export function starsForMistakes(mistakes) {
+export function starsForMistakes(mistakes: number): number {
   if (mistakes <= 0) return 3;
   if (mistakes === 1) return 2;
   return 1;
 }
 
+interface ProgressStoreOptions {
+  saves: SaveStore;
+  bus?: EventBus | null;
+  now?: () => number;
+}
+
 export class ProgressStore {
-  constructor({ saves, bus = null, now = () => Date.now() }) {
+  private _saves: SaveStore;
+  private _bus: EventBus | null;
+  private _now: () => number;
+
+  constructor({ saves, bus = null, now = () => Date.now() }: ProgressStoreOptions) {
     this._saves = saves;
     this._bus = bus;
     this._now = now;
   }
 
-  getLessonProgress(profileId, lessonId) {
+  getLessonProgress(profileId: string, lessonId: string): ProgressEntry | null {
     const profile = this._saves.read().profiles[profileId];
     return profile?.progress?.[lessonId] ?? null;
   }
 
-  isLessonComplete(profileId, lessonId) {
+  isLessonComplete(profileId: string, lessonId: string): boolean {
     return Boolean(this.getLessonProgress(profileId, lessonId)?.completed);
   }
 
-  completedCount(profileId) {
+  completedCount(profileId: string): number {
     const profile = this._saves.read().profiles[profileId];
     if (!profile) return 0;
     return Object.values(profile.progress).filter((entry) => entry.completed).length;
   }
 
   /** Records a correct/wrong answer for the profile statistics. */
-  recordAnswer(profileId, isCorrect) {
+  recordAnswer(profileId: string, isCorrect: boolean): void {
     this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return;
@@ -50,16 +61,16 @@ export class ProgressStore {
 
   /**
    * Marks a lesson as finished, keeping the best result achieved so far.
-   * @returns {object|null} the stored entry
+   * @returns the stored entry
    */
-  completeLesson(profileId, lessonId, { mistakes = 0 } = {}) {
+  completeLesson(profileId: string, lessonId: string, { mistakes = 0 }: { mistakes?: number } = {}): ProgressEntry | null {
     const entry = this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
 
       const stars = starsForMistakes(mistakes);
       const previous = profile.progress[lessonId];
-      const stored = {
+      const stored: ProgressEntry = {
         completed: true,
         stars: previous ? Math.max(clampStars(previous.stars), stars) : stars,
         mistakes: previous ? Math.min(previous.mistakes ?? mistakes, mistakes) : mistakes,
@@ -75,7 +86,7 @@ export class ProgressStore {
     return entry;
   }
 
-  resetProgress(profileId) {
+  resetProgress(profileId: string) {
     return this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
@@ -86,12 +97,12 @@ export class ProgressStore {
     });
   }
 
-  getSpeedrunBestTime(profileId) {
+  getSpeedrunBestTime(profileId: string): number | null {
     const profile = this._saves.read().profiles[profileId];
     return profile?.speedrunBestTime ?? null;
   }
 
-  recordSpeedrunTime(profileId, timeSeconds) {
+  recordSpeedrunTime(profileId: string, timeSeconds: number): { bestTime: number | null | undefined; isNewBest: boolean } | null {
     return this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
@@ -108,8 +119,8 @@ export class ProgressStore {
    * Lessons the profile may play: everything completed, plus the first one
    * still pending (so progress continues where it stopped).
    */
-  getUnlockedLessonIds(profileId, orderedLessonIds) {
-    const unlocked = [];
+  getUnlockedLessonIds(profileId: string, orderedLessonIds: string[]): string[] {
+    const unlocked: string[] = [];
     for (const lessonId of orderedLessonIds) {
       unlocked.push(lessonId);
       if (!this.isLessonComplete(profileId, lessonId)) break;
@@ -118,7 +129,7 @@ export class ProgressStore {
   }
 
   /** The next lesson to play, or null when everything is complete. */
-  getNextLesson(profileId, orderedLessonIds) {
+  getNextLesson(profileId: string, orderedLessonIds: string[]): string | null {
     return orderedLessonIds.find((lessonId) => !this.isLessonComplete(profileId, lessonId)) ?? null;
   }
 }

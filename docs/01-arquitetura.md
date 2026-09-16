@@ -6,7 +6,16 @@ de jogo e as cenas funcionam.
 
 > **Princípio geral:** cada módulo tem uma responsabilidade e recebe suas dependências
 > de fora (injeção de dependência). O único lugar que monta as peças concretas é
-> `src/main.js`, o *composition root*.
+> `src/main.ts`, o *composition root*.
+
+> **Migração para TypeScript (em andamento):** o engine inteiro — `core/`, `physics/`,
+> `gameplay/`, `render/`, `input/`, `audio/`, `scenes/`, `persistence/`, `content/` e
+> `main.ts` — já está em TypeScript com `strict: true`. Só `src/ui/` (menus, overlays,
+> botão de pausa, D-pad de toque) continua em JavaScript por enquanto; a camada de UI
+> vai migrar para React + TSX numa etapa separada, mantendo o engine sem nenhuma
+> dependência de framework. Essa fronteira — **React nunca importa do engine, e o
+> engine nunca importa React** — já é verificada automaticamente por
+> `src/architecture.test.js`, igual à regra de abstração de input.
 
 ---
 

@@ -8,7 +8,7 @@ import { Actions } from './actions.js';
  * `KeyA` and `ArrowLeft` the same way. It also avoids breaking on Shift/AltGr
  * and on dead keys used for accents.
  */
-export const DEFAULT_KEYMAP = Object.freeze({
+export const DEFAULT_KEYMAP: Record<string, string> = Object.freeze({
   ArrowLeft: Actions.MOVE_LEFT,
   KeyA: Actions.MOVE_LEFT,
   ArrowRight: Actions.MOVE_RIGHT,
@@ -34,17 +34,15 @@ export const DEFAULT_KEYMAP = Object.freeze({
  * Kept free of DOM types and side effects so it can be unit-tested directly and
  * reused by any adapter. Returns `null` for unmapped keys.
  *
- * @param {string} code KeyboardEvent.code
- * @param {Record<string, string>} [keymap]
- * @returns {string | null}
+ * @param code KeyboardEvent.code
  */
-export function translateKey(code, keymap = DEFAULT_KEYMAP) {
+export function translateKey(code: string, keymap: Record<string, string> = DEFAULT_KEYMAP): string | null {
   return keymap[code] ?? null;
 }
 
 /** Reverse lookup used to render the controls help panel. */
-export function keyLabelFor(action, keymap = DEFAULT_KEYMAP) {
-  const labels = {
+export function keyLabelFor(action: string, keymap: Record<string, string> = DEFAULT_KEYMAP): string {
+  const labels: Record<string, string> = {
     ArrowLeft: '←',
     ArrowRight: '→',
     ArrowUp: '↑',

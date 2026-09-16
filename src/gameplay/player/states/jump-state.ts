@@ -6,11 +6,11 @@ import { PlayerState, PlayerStateId } from '../player-state.js';
  * hook in (a new state, not a change to the controller's API).
  */
 export class JumpState extends PlayerState {
-  get id() {
+  override get id() {
     return PlayerStateId.JUMP;
   }
 
-  update(_dt) {
+  override update(_dt: number): void {
     const player = this.player;
     player.applyAirMovement();
 

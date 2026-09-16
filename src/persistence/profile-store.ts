@@ -1,25 +1,37 @@
 import { DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
+import type { Profile } from './migration.js';
+import type { SaveStore } from './save-store.js';
+
+interface ProfileStoreOptions {
+  saves: SaveStore;
+  now?: () => number;
+  idFactory?: () => string;
+}
 
 /**
  * Player profiles (one per child). Each profile keeps its own progress, so
  * siblings sharing a device never overwrite each other's unlocks.
  */
 export class ProfileStore {
-  constructor({ saves, now = () => Date.now(), idFactory = defaultIdFactory }) {
+  private _saves: SaveStore;
+  private _now: () => number;
+  private _idFactory: () => string;
+
+  constructor({ saves, now = () => Date.now(), idFactory = defaultIdFactory }: ProfileStoreOptions) {
     this._saves = saves;
     this._now = now;
     this._idFactory = idFactory;
   }
 
-  listProfiles() {
+  listProfiles(): Profile[] {
     return Object.values(this._saves.read().profiles);
   }
 
-  getProfile(profileId) {
+  getProfile(profileId: string): Profile | null {
     return this._saves.read().profiles[profileId] ?? null;
   }
 
-  getActiveProfile() {
+  getActiveProfile(): Profile | null {
     const doc = this._saves.read();
     return doc.activeProfileId ? (doc.profiles[doc.activeProfileId] ?? null) : null;
   }
@@ -29,20 +41,20 @@ export class ProfileStore {
    * Stored at the document level (not per profile) so it survives profile
    * deletion and is asked only once per device.
    */
-  hasParentalConsent() {
+  hasParentalConsent(): boolean {
     return this._saves.read().parentalConsent === true;
   }
 
-  recordParentalConsent() {
+  recordParentalConsent(): boolean {
     return this._saves.update((doc) => {
       doc.parentalConsent = true;
       return true;
     });
   }
 
-  createProfile(name, characterId = DEFAULT_CHARACTER_ID) {
+  createProfile(name: string, characterId: string = DEFAULT_CHARACTER_ID): Profile {
     const id = this._idFactory();
-    const profile = {
+    const profile: Profile = {
       id,
       name: normalizeName(name),
       characterId: getCharacter(characterId).id,
@@ -57,7 +69,7 @@ export class ProfileStore {
     return profile;
   }
 
-  setActiveProfile(profileId) {
+  setActiveProfile(profileId: string): Profile | null {
     return this._saves.update((doc) => {
       if (!doc.profiles[profileId]) return null;
       doc.activeProfileId = profileId;
@@ -65,7 +77,7 @@ export class ProfileStore {
     });
   }
 
-  setCharacter(profileId, characterId) {
+  setCharacter(profileId: string, characterId: string): Profile | null {
     return this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
@@ -74,7 +86,7 @@ export class ProfileStore {
     });
   }
 
-  renameProfile(profileId, name) {
+  renameProfile(profileId: string, name: string): Profile | null {
     return this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
@@ -83,7 +95,7 @@ export class ProfileStore {
     });
   }
 
-  deleteProfile(profileId) {
+  deleteProfile(profileId: string): void {
     return this._saves.update((doc) => {
       delete doc.profiles[profileId];
       if (doc.activeProfileId === profileId) {
@@ -93,12 +105,12 @@ export class ProfileStore {
   }
 }
 
-function normalizeName(name) {
+function normalizeName(name: unknown): string {
   const trimmed = String(name ?? '').trim();
   return trimmed === '' ? 'Jogador' : trimmed.slice(0, 24);
 }
 
-function defaultIdFactory() {
+function defaultIdFactory(): string {
   if (globalThis.crypto?.randomUUID) {
     return `p-${globalThis.crypto.randomUUID().slice(0, 8)}`;
   }

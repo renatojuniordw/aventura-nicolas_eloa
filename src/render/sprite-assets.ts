@@ -13,9 +13,8 @@ export const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 175, sy: 58, sw: 902, sh
 /**
  * Resolves the panoramic background asset key for a level, from an explicit
  * `bg:` key, a filename hint, or the level category.
- * @param {{ id?: string, background?: string }} level
  */
-export function resolveBackgroundKey(level) {
+export function resolveBackgroundKey(level: { id?: string; background?: string } | null): string {
   if (!level) return 'bg:primavera-lago';
   if (level.background && typeof level.background === 'string') {
     if (level.background.startsWith('bg:')) return level.background;

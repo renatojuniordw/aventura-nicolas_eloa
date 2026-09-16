@@ -1,10 +1,20 @@
 import { AUDIO_SETTINGS_KEY } from './storage-keys.js';
+import type { StorageAdapter } from './storage-adapter.js';
 
-function clamp01(value) {
+function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-const DEFAULTS = Object.freeze({ muted: false, volume: 0.8 });
+interface AudioSettingsValue {
+  muted: boolean;
+  volume: number;
+}
+
+const DEFAULTS: AudioSettingsValue = Object.freeze({ muted: false, volume: 0.8 });
+
+interface AudioSettingsStoreOptions {
+  adapter: StorageAdapter;
+}
 
 /**
  * Persists mute/volume as a device-level preference, separate from the
@@ -12,12 +22,13 @@ const DEFAULTS = Object.freeze({ muted: false, volume: 0.8 });
  * different concern).
  */
 export class AudioSettingsStore {
-  /** @param {{ adapter: import('./storage-adapter.js').StorageAdapter }} options */
-  constructor({ adapter }) {
+  private _adapter: StorageAdapter;
+
+  constructor({ adapter }: AudioSettingsStoreOptions) {
     this._adapter = adapter;
   }
 
-  read() {
+  read(): AudioSettingsValue {
     const raw = this._adapter.read(AUDIO_SETTINGS_KEY);
     if (!raw) return { ...DEFAULTS };
     try {
@@ -31,7 +42,7 @@ export class AudioSettingsStore {
     }
   }
 
-  write(settings) {
+  write(settings: AudioSettingsValue): void {
     this._adapter.write(AUDIO_SETTINGS_KEY, JSON.stringify(settings));
   }
 }

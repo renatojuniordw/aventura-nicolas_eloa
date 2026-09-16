@@ -18,7 +18,10 @@ describe('buildPauseScreen', () => {
       goTo,
     );
 
-    expect(node.classList.contains('overlay')).toBe(true);
+    // `node` is the React root's mount container (needed so click handlers
+    // keep working once MenuOverlay moves it elsewhere — see mount-screen.ts);
+    // the actual `.overlay` screen is its rendered child.
+    expect(node.querySelector('.overlay')).not.toBeNull();
     expect(node.querySelector('h2').textContent).toBe('Pausa');
     const buttons = node.querySelectorAll('button');
     expect(buttons.length).toBe(4);

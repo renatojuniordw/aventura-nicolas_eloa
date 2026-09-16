@@ -28,6 +28,8 @@ export const Actions = Object.freeze({
   POWER_2: 'power2',
 });
 
+export type ActionId = (typeof Actions)[keyof typeof Actions];
+
 /**
  * Every action is tracked both as "held" (while the key is down) and as a
  * one-shot "pressed" edge. Consumers choose which view they need:

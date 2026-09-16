@@ -2,10 +2,21 @@ import { clear } from './dom.js';
 import { buildMainMenuScreen } from './screens/main-menu.js';
 import { buildCharacterPickerScreen } from './screens/character-picker.js';
 import { buildLessonPickerScreen } from './screens/lesson-picker.js';
-import { buildPauseScreen } from './screens/pause.js';
+import { buildPauseScreen, type PauseStep } from './screens/pause.js';
 import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
 import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
+
+interface ScreenResult {
+  node: HTMLElement;
+  primary?: (() => void) | null;
+  back?: (() => void) | null;
+  cleanup?: (() => void) | null;
+}
+
+interface MenuOverlayOptions {
+  root: HTMLElement;
+}
 
 /**
  * DOM overlay screens: main menu, character picker, phase picker, pause, game
@@ -17,23 +28,29 @@ import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
  *
  * This class only mounts/unmounts screens and wires their primary/back
  * actions; each screen's DOM and copy live in its own module under
- * `ui/screens/`, so growing or reskinning one screen never touches the rest.
+ * `ui/screens/` (React components today), so growing or reskinning one
+ * screen never touches the rest. `cleanup` (always `root.unmount()` for a
+ * React screen) is what tears down the previous screen's React root when a
+ * new one mounts — every `showX` here must forward it, or the mounted
+ * React root leaks and any of its effects (timers, rAF loops) keep running
+ * detached from the DOM.
  */
 export class MenuOverlay {
-  /** @param {{ root: HTMLElement }} options */
-  constructor({ root }) {
+  private _root: HTMLElement;
+  private _visible = false;
+  private _primary: (() => void) | null = null;
+  private _back: (() => void) | null = null;
+  private _cleanup: (() => void) | null = null;
+
+  constructor({ root }: MenuOverlayOptions) {
     this._root = root;
-    this._visible = false;
-    this._primary = null;
-    this._back = null;
-    this._cleanup = null;
   }
 
-  get isVisible() {
+  get isVisible(): boolean {
     return this._visible;
   }
 
-  hide() {
+  hide(): void {
     this._cleanup?.();
     this._cleanup = null;
     clear(this._root);
@@ -42,71 +59,68 @@ export class MenuOverlay {
     this._back = null;
   }
 
-  triggerPrimary() {
+  triggerPrimary(): void {
     this._primary?.();
   }
 
-  triggerBack() {
+  triggerBack(): void {
     this._back?.();
   }
 
-  _mount(node, { primary = null, back = null, cleanup = null } = {}) {
+  private _mount(node: HTMLElement, { primary = null, back = null, cleanup = null }: Omit<ScreenResult, 'node'> = {}): void {
     this._cleanup?.();
-    this._cleanup = cleanup;
+    this._cleanup = cleanup ?? null;
     clear(this._root);
     this._root.append(node);
-    this._primary = primary;
-    this._back = back;
+    this._primary = primary ?? null;
+    this._back = back ?? null;
     this._visible = true;
   }
 
   // --- Screens -------------------------------------------------------------
 
-  showMainMenu(options) {
+  showMainMenu(options: Parameters<typeof buildMainMenuScreen>[0]): void {
     const { node, primary, back, cleanup } = buildMainMenuScreen(options);
     this._mount(node, { primary, back, cleanup });
   }
 
-  showCharacterPicker(options) {
-    const { node, primary, back } = buildCharacterPickerScreen(options);
-    this._mount(node, { primary, back });
+  showCharacterPicker(options: Parameters<typeof buildCharacterPickerScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildCharacterPickerScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  /**
-   * @param {{ units: Array, isUnlocked: (lessonId: string) => boolean, onPick, onBack }} options
-   */
-  showLessonPicker(options) {
-    const { node, primary, back } = buildLessonPickerScreen(options);
-    this._mount(node, { primary, back });
+  showLessonPicker(options: Parameters<typeof buildLessonPickerScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildLessonPickerScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  showPause(options) {
+  showPause(options: Parameters<typeof buildPauseScreen>[1]): void {
     this._renderPauseScreen('menu', options);
   }
 
-  _renderPauseScreen(step, options) {
-    const goTo = (nextStep) => this._renderPauseScreen(nextStep, options);
-    const { node, primary, back } = buildPauseScreen(step, options, goTo);
-    this._mount(node, { primary, back });
+  private _renderPauseScreen(step: PauseStep, options: Parameters<typeof buildPauseScreen>[1]): void {
+    const goTo = (nextStep: PauseStep) => this._renderPauseScreen(nextStep, options);
+    const { node, primary, back, cleanup } = buildPauseScreen(step, options, goTo);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  showGameOver(options) {
-    const { node, primary, back } = buildGameOverScreen(options);
-    this._mount(node, { primary, back });
+  showGameOver(options: Parameters<typeof buildGameOverScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildGameOverScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  showVictory(options) {
-    const { node, primary, back } = buildVictoryScreen(options);
-    this._mount(node, { primary, back });
+  showVictory(options: Parameters<typeof buildVictoryScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildVictoryScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  showSpeedrunVictory(options) {
-    const { node, primary, back } = buildSpeedrunVictoryScreen(options);
-    this._mount(node, { primary, back });
+  showSpeedrunVictory(options: Parameters<typeof buildSpeedrunVictoryScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildSpeedrunVictoryScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 
-  showPrivacyNotice(options) {
-    const { node, primary, back } = buildPrivacyNoticeScreen(options);
-    this._mount(node, { primary, back });
+  showPrivacyNotice(options: Parameters<typeof buildPrivacyNoticeScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildPrivacyNoticeScreen(options);
+    this._mount(node, { primary, back, cleanup });
   }
 }

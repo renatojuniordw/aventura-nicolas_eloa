@@ -1,6 +1,7 @@
 import { Scene } from '../core/scene.js';
 import { COLORS } from '../core/config.js';
 import { CHARACTERS } from '../content/characters.js';
+import type { CanvasRenderer } from '../render/canvas-renderer.js';
 
 export const GAME_ASSETS = Object.freeze({
   // Backgrounds
@@ -31,16 +32,18 @@ export const GAME_ASSETS = Object.freeze({
  * placeholder shapes until an image has actually finished loading.
  */
 export class BootScene extends Scene {
-  enter() {
+  private _done = false;
+
+  override enter(): void {
     this._done = false;
     this._preload();
   }
 
-  async _preload() {
-    const manifest = { ...GAME_ASSETS };
+  private async _preload(): Promise<void> {
+    const manifest: Record<string, string> = { ...GAME_ASSETS };
     for (const character of CHARACTERS) {
       for (const [pose, src] of Object.entries(character.sprites ?? {})) {
-        manifest[`${character.id}:${pose}`] = src;
+        manifest[`${character.id}:${pose}`] = src as string;
       }
       if (character.portrait) manifest[`${character.id}:portrait`] = character.portrait;
     }
@@ -51,13 +54,13 @@ export class BootScene extends Scene {
     }
   }
 
-  update() {
+  override update(): void {
     if (this._done) return;
     this._done = true;
     this.game.scenes.switchTo('menu');
   }
 
-  draw(renderer) {
+  override draw(renderer: CanvasRenderer): void {
     renderer.clear(COLORS.sky);
   }
 }

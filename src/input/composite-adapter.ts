@@ -1,4 +1,4 @@
-import { InputAdapter } from './input-adapter.js';
+import { InputAdapter, type OnAction } from './input-adapter.js';
 
 /**
  * Combines several adapters behind the single InputAdapter contract, so
@@ -10,24 +10,22 @@ import { InputAdapter } from './input-adapter.js';
  * class does no translation of its own: it only fans attach/detach out.
  */
 export class CompositeAdapter extends InputAdapter {
-  /**
-   * @param {(action: string, meta: { pressed: boolean, repeated: boolean }) => void} onAction
-   * @param {InputAdapter[]} adapters
-   */
-  constructor(onAction, adapters) {
+  private _adapters: InputAdapter[];
+
+  constructor(onAction: OnAction, adapters: InputAdapter[]) {
     super(onAction);
     this._adapters = adapters;
   }
 
-  attach() {
+  override attach(): void {
     for (const adapter of this._adapters) adapter.attach();
   }
 
-  detach() {
+  override detach(): void {
     for (const adapter of this._adapters) adapter.detach();
   }
 
-  dispose() {
+  override dispose(): void {
     for (const adapter of this._adapters) adapter.dispose();
   }
 }

@@ -1,3 +1,17 @@
+interface TextOptions {
+  color?: string;
+  font?: string;
+  align?: CanvasTextAlign;
+}
+
+interface ScreenTextOptions extends TextOptions {
+  baseline?: CanvasTextBaseline;
+}
+
+interface WorldImageOptions {
+  flipX?: boolean;
+}
+
 /**
  * The single place that talks to the Canvas 2D context.
  *
@@ -9,23 +23,30 @@
  *   renderer.screenRect(...)   // HUD, ignores the camera
  */
 export class CanvasRenderer {
-  /** @param {HTMLCanvasElement} canvas */
-  constructor(canvas) {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  camera: { x: number; y: number };
+
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('2D canvas context unavailable');
+    this.ctx = ctx;
     this.width = canvas.width;
     this.height = canvas.height;
     this.camera = { x: 0, y: 0 };
     this.ctx.imageSmoothingEnabled = false;
   }
 
-  setCamera(x, y = 0) {
+  setCamera(x: number, y = 0): void {
     this.camera.x = x;
     this.camera.y = y;
   }
 
   /** Wipe the canvas with a solid colour (screen space). */
-  clear(color) {
+  clear(color: string): void {
     this.ctx.save();
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.fillStyle = color;
@@ -35,12 +56,12 @@ export class CanvasRenderer {
 
   // --- World space (affected by the camera) --------------------------------
 
-  worldFillRect(x, y, w, h, color) {
+  worldFillRect(x: number, y: number, w: number, h: number, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(Math.round(x - this.camera.x), Math.round(y - this.camera.y), w, h);
   }
 
-  worldStrokeRect(x, y, w, h, color, lineWidth = 2) {
+  worldStrokeRect(x: number, y: number, w: number, h: number, color: string, lineWidth = 2): void {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = lineWidth;
     this.ctx.strokeRect(
@@ -51,7 +72,12 @@ export class CanvasRenderer {
     );
   }
 
-  worldText(text, x, y, { color = '#000', font = '20px sans-serif', align = 'center' } = {}) {
+  worldText(
+    text: string,
+    x: number,
+    y: number,
+    { color = '#000', font = '20px sans-serif', align = 'center' }: TextOptions = {},
+  ): void {
     this.ctx.fillStyle = color;
     this.ctx.font = font;
     this.ctx.textAlign = align;
@@ -63,7 +89,18 @@ export class CanvasRenderer {
    * Draw a sprite frame from an atlas. Pass `flipX: true` to mirror the frame
    * horizontally around its own destination rect (used for facing direction).
    */
-  worldImage(image, sx, sy, sw, sh, dx, dy, dw, dh, { flipX = false } = {}) {
+  worldImage(
+    image: CanvasImageSource,
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+    { flipX = false }: WorldImageOptions = {},
+  ): void {
     const screenX = dx - this.camera.x;
     const screenY = dy - this.camera.y;
     if (!flipX) {
@@ -79,19 +116,29 @@ export class CanvasRenderer {
 
   // --- Screen space (HUD, overlays drawn on canvas) -------------------------
 
-  screenFillRect(x, y, w, h, color) {
+  screenFillRect(x: number, y: number, w: number, h: number, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(x, y, w, h);
   }
 
-  screenCircle(x, y, radius, color) {
+  screenCircle(x: number, y: number, radius: number, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.beginPath();
     this.ctx.arc(x, y, radius, 0, Math.PI * 2);
     this.ctx.fill();
   }
 
-  screenText(text, x, y, { color = '#fff', font = '20px sans-serif', align = 'center', baseline = 'middle' } = {}) {
+  screenText(
+    text: string,
+    x: number,
+    y: number,
+    {
+      color = '#fff',
+      font = '20px sans-serif',
+      align = 'center',
+      baseline = 'middle',
+    }: ScreenTextOptions = {},
+  ): void {
     this.ctx.fillStyle = color;
     this.ctx.font = font;
     this.ctx.textAlign = align;
@@ -99,14 +146,14 @@ export class CanvasRenderer {
     this.ctx.fillText(text, x, y);
   }
 
-  screenRoundRect(x, y, w, h, radius, color) {
+  screenRoundRect(x: number, y: number, w: number, h: number, radius: number, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.beginPath();
     this.ctx.roundRect(x, y, w, h, radius);
     this.ctx.fill();
   }
 
-  screenImage(image, dx, dy, dw, dh) {
+  screenImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void {
     this.ctx.drawImage(image, dx, dy, dw, dh);
   }
 }

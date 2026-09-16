@@ -1,42 +1,59 @@
-import { button, el } from '../dom.js';
-import { CHARACTERS } from '../../content/characters.js';
+import { mountScreen, blurOnClick } from './mount-screen.js';
+import { CHARACTERS, type Character } from '../../content/characters.js';
 
-/** @returns {{ node: HTMLElement, primary: () => void, back: () => void }} */
-export function buildCharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }) {
-  const cards = CHARACTERS.map((character) =>
-    el(
-      'button',
-      {
-        class: 'companion-card',
-        type: 'button',
-        tabindex: '-1',
-        'aria-pressed': String(character.id === selectedId),
-        onClick: () => onSelect(character.id),
-      },
-      [
-        character.portrait
-          ? el('img', {
-              class: 'companion-avatar',
-              src: character.portrait,
-              alt: character.name,
-            })
-          : el('span', {
-              class: 'companion-swatch',
-              style: `background:${character.color}`,
-            }),
-        el('span', { class: 'companion-name', text: character.name }),
-      ],
-    ),
+interface CharacterPickerOptions {
+  selectedId: string | null;
+  onSelect: (characterId: string) => void;
+  onConfirm: () => void;
+  onBack: () => void;
+}
+
+function CharacterCard({ character, selected, onSelect }: { character: Character; selected: boolean; onSelect: (id: string) => void }) {
+  return (
+    <button
+      className="companion-card"
+      type="button"
+      tabIndex={-1}
+      aria-pressed={selected}
+      onClick={blurOnClick(() => onSelect(character.id))}
+    >
+      {character.portrait ? (
+        <img className="companion-avatar" src={character.portrait} alt={character.name} />
+      ) : (
+        <span className="companion-swatch" style={{ background: character.color }} />
+      )}
+      <span className="companion-name">{character.name}</span>
+    </button>
   );
+}
 
-  const node = el('div', { class: 'overlay' }, [
-    el('h2', { text: 'Escolha seu personagem' }),
-    el('div', { class: 'character-grid' }, cards),
-    el('div', { class: 'overlay-actions' }, [
-      button('Pronto', { primary: true, onClick: onConfirm }),
-      button('Voltar', { onClick: onBack }),
-    ]),
-  ]);
+function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: CharacterPickerOptions) {
+  return (
+    <div className="overlay">
+      <h2>Escolha seu personagem</h2>
+      <div className="character-grid">
+        {CHARACTERS.map((character) => (
+          <CharacterCard
+            key={character.id}
+            character={character}
+            selected={character.id === selectedId}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+      <div className="overlay-actions">
+        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onConfirm)}>
+          Pronto
+        </button>
+        <button type="button" tabIndex={-1} onClick={blurOnClick(onBack)}>
+          Voltar
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  return { node, primary: onConfirm, back: onBack };
+export function buildCharacterPickerScreen(options: CharacterPickerOptions) {
+  const { node, cleanup } = mountScreen(<CharacterPickerScreen {...options} />);
+  return { node, primary: options.onConfirm, back: options.onBack, cleanup };
 }

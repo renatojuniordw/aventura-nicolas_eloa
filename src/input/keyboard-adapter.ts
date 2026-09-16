@@ -1,5 +1,10 @@
-import { InputAdapter } from './input-adapter.js';
+import { InputAdapter, type OnAction } from './input-adapter.js';
 import { DEFAULT_KEYMAP, translateKey } from './keyboard-keymap.js';
+
+interface KeyboardAdapterOptions {
+  target?: EventTarget;
+  keymap?: Record<string, string>;
+}
 
 /**
  * Keyboard implementation of InputAdapter.
@@ -10,34 +15,33 @@ import { DEFAULT_KEYMAP, translateKey } from './keyboard-keymap.js';
  * makes the input layer swappable.
  */
 export class KeyboardAdapter extends InputAdapter {
-  /**
-   * @param {(action: string, meta: { pressed: boolean, repeated: boolean }) => void} onAction
-   * @param {{ target?: EventTarget, keymap?: Record<string, string> }} [options]
-   */
-  constructor(onAction, { target = globalThis, keymap = DEFAULT_KEYMAP } = {}) {
+  private _target: EventTarget;
+  private _keymap: Record<string, string>;
+  private _attached = false;
+
+  constructor(onAction: OnAction, { target = globalThis, keymap = DEFAULT_KEYMAP }: KeyboardAdapterOptions = {}) {
     super(onAction);
     this._target = target;
     this._keymap = keymap;
     this._handleKeyDown = this._handleKeyDown.bind(this);
     this._handleKeyUp = this._handleKeyUp.bind(this);
-    this._attached = false;
   }
 
-  attach() {
+  override attach(): void {
     if (this._attached) return;
-    this._target.addEventListener('keydown', this._handleKeyDown);
-    this._target.addEventListener('keyup', this._handleKeyUp);
+    this._target.addEventListener('keydown', this._handleKeyDown as EventListener);
+    this._target.addEventListener('keyup', this._handleKeyUp as EventListener);
     this._attached = true;
   }
 
-  detach() {
+  override detach(): void {
     if (!this._attached) return;
-    this._target.removeEventListener('keydown', this._handleKeyDown);
-    this._target.removeEventListener('keyup', this._handleKeyUp);
+    this._target.removeEventListener('keydown', this._handleKeyDown as EventListener);
+    this._target.removeEventListener('keyup', this._handleKeyUp as EventListener);
     this._attached = false;
   }
 
-  _handleKeyDown(event) {
+  private _handleKeyDown(event: KeyboardEvent): void {
     const action = translateKey(event.code, this._keymap);
     if (!action) return;
     // Stop the browser from scrolling the page on Space/Arrows.
@@ -45,7 +49,7 @@ export class KeyboardAdapter extends InputAdapter {
     this.onAction(action, { pressed: true, repeated: event.repeat === true });
   }
 
-  _handleKeyUp(event) {
+  private _handleKeyUp(event: KeyboardEvent): void {
     const action = translateKey(event.code, this._keymap);
     if (!action) return;
     event.preventDefault();

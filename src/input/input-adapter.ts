@@ -1,3 +1,10 @@
+export interface ActionMeta {
+  pressed: boolean;
+  repeated: boolean;
+}
+
+export type OnAction = (action: string, meta: ActionMeta) => void;
+
 /**
  * Strategy contract for input sources.
  *
@@ -13,10 +20,9 @@
  *     · repeated: true only for OS key-repeat (edge actions ignore it)
  */
 export class InputAdapter {
-  /**
-   * @param {(action: string, meta: { pressed: boolean, repeated: boolean }) => void} onAction
-   */
-  constructor(onAction) {
+  onAction: OnAction;
+
+  constructor(onAction: OnAction) {
     if (typeof onAction !== 'function') {
       throw new TypeError('InputAdapter requires an onAction callback');
     }
@@ -24,13 +30,13 @@ export class InputAdapter {
   }
 
   /** Register hardware listeners. */
-  attach() {}
+  attach(): void {}
 
   /** Unregister hardware listeners. */
-  detach() {}
+  detach(): void {}
 
   /** Release all resources. */
-  dispose() {
+  dispose(): void {
     this.detach();
   }
 }

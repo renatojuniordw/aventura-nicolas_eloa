@@ -1,5 +1,14 @@
-function clamp01(value) {
+function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
+}
+
+export interface AudioSettings {
+  read(): { muted: boolean; volume: number };
+  write(value: { muted: boolean; volume: number }): void;
+}
+
+interface AudioManagerOptions {
+  settings?: AudioSettings | null;
 }
 
 /**
@@ -9,19 +18,22 @@ function clamp01(value) {
  * hearing sound the moment assets are registered later.
  */
 export class AudioManager {
-  /** @param {{ settings?: { read(): {muted: boolean, volume: number}, write(value: object): void } }} options */
-  constructor({ settings = null } = {}) {
+  private _settings: AudioSettings | null;
+  private _registry = new Map<string, string>();
+  private _currentMusic: HTMLAudioElement | null = null;
+  private _unlocked = false;
+  private _muted: boolean;
+  private _volume: number;
+
+  constructor({ settings = null }: AudioManagerOptions = {}) {
     this._settings = settings;
-    this._registry = new Map();
-    this._currentMusic = null;
-    this._unlocked = false;
 
     const stored = settings?.read() ?? { muted: false, volume: 0.8 };
     this._muted = Boolean(stored.muted);
     this._volume = clamp01(stored.volume ?? 0.8);
   }
 
-  get isUnlocked() {
+  get isUnlocked(): boolean {
     return this._unlocked;
   }
 
@@ -32,7 +44,7 @@ export class AudioManager {
    * is what tells the browser this origin is allowed to play audio, so every
    * `playMusic`/`playSfx` call afterwards works instead of silently failing.
    */
-  unlock() {
+  unlock(): void {
     if (this._unlocked || typeof Audio === 'undefined') return;
     this._unlocked = true;
     const probe = new Audio();
@@ -40,36 +52,36 @@ export class AudioManager {
     probe.play?.().catch(() => {});
   }
 
-  get isMuted() {
+  get isMuted(): boolean {
     return this._muted;
   }
 
-  get volume() {
+  get volume(): number {
     return this._volume;
   }
 
-  setMuted(muted) {
+  setMuted(muted: boolean): void {
     this._muted = Boolean(muted);
     this._applyToCurrent();
     this._persist();
   }
 
-  toggleMuted() {
+  toggleMuted(): void {
     this.setMuted(!this._muted);
   }
 
-  setVolume(value) {
+  setVolume(value: number): void {
     this._volume = clamp01(value);
     this._applyToCurrent();
     this._persist();
   }
 
   /** Associate a key (e.g. "music-menu") with a playable URL, for later use. */
-  register(key, url) {
+  register(key: string, url: string): void {
     this._registry.set(key, url);
   }
 
-  playMusic(key) {
+  playMusic(key: string): void {
     const url = this._registry.get(key);
     if (!url) return;
     this.stopMusic();
@@ -81,13 +93,13 @@ export class AudioManager {
     this._currentMusic = audio;
   }
 
-  stopMusic() {
+  stopMusic(): void {
     if (!this._currentMusic) return;
     this._currentMusic.pause();
     this._currentMusic = null;
   }
 
-  playSfx(key) {
+  playSfx(key: string): void {
     const url = this._registry.get(key);
     if (!url) return;
     const audio = new Audio(url);
@@ -96,13 +108,13 @@ export class AudioManager {
     audio.play?.().catch(() => {});
   }
 
-  _applyToCurrent() {
+  private _applyToCurrent(): void {
     if (!this._currentMusic) return;
     this._currentMusic.muted = this._muted;
     this._currentMusic.volume = this._volume;
   }
 
-  _persist() {
+  private _persist(): void {
     this._settings?.write({ muted: this._muted, volume: this._volume });
   }
 }
