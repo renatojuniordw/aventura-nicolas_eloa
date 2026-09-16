@@ -16,44 +16,44 @@ const TEMPLATE_IDS = [
  * Heights (y) vary from ground level (~384) to platforms (~288, ~320) and high jumps (~192, ~224, ~256).
  */
 const CANDIDATE_SPOTS = [
-  // 0: Planície (ground + center platform at y: 384)
+  // 0: Planície (ground items at y: 310..320; platform items at y: 220..250)
   [
-    { x: 340, y: 384 },
-    { x: 580, y: 384 },
-    { x: 880, y: 320 },
-    { x: 960, y: 256 },
-    { x: 1040, y: 320 },
-    { x: 1320, y: 384 },
-    { x: 1620, y: 384 },
+    { x: 340, y: 320 },
+    { x: 580, y: 310 },
+    { x: 880, y: 250 },
+    { x: 960, y: 220 },
+    { x: 1040, y: 250 },
+    { x: 1320, y: 320 },
+    { x: 1620, y: 310 },
   ],
-  // 1: Degraus (ascending / descending steps)
+  // 1: Degraus (all items positioned above walking height)
   [
-    { x: 320, y: 384 },
-    { x: 680, y: 320 },
-    { x: 880, y: 320 },
-    { x: 1280, y: 256 },
-    { x: 1440, y: 256 },
-    { x: 1580, y: 192 },
-    { x: 1740, y: 384 },
+    { x: 320, y: 320 },
+    { x: 680, y: 260 },
+    { x: 880, y: 250 },
+    { x: 1280, y: 200 },
+    { x: 1440, y: 190 },
+    { x: 1580, y: 240 },
+    { x: 1740, y: 320 },
   ],
-  // 2: Plataformas (floating wooden platforms over ground)
+  // 2: Plataformas (floating platforms and elevated ground jumps)
   [
-    { x: 260, y: 384 },
-    { x: 480, y: 288 },
-    { x: 740, y: 384 },
-    { x: 960, y: 288 },
-    { x: 1180, y: 384 },
-    { x: 1440, y: 288 },
-    { x: 1700, y: 384 },
+    { x: 260, y: 320 },
+    { x: 480, y: 230 },
+    { x: 740, y: 320 },
+    { x: 960, y: 220 },
+    { x: 1180, y: 310 },
+    { x: 1440, y: 230 },
+    { x: 1700, y: 320 },
   ],
-  // 3: Rio (water gap with jump)
+  // 3: Rio (elevated jumps, including over the water gap)
   [
-    { x: 320, y: 384 },
-    { x: 600, y: 384 },
-    { x: 896, y: 300 },
-    { x: 1120, y: 384 },
-    { x: 1400, y: 384 },
-    { x: 1680, y: 384 },
+    { x: 320, y: 320 },
+    { x: 600, y: 310 },
+    { x: 896, y: 260 },
+    { x: 1120, y: 320 },
+    { x: 1400, y: 310 },
+    { x: 1680, y: 320 },
   ],
 ];
 

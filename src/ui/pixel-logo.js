@@ -18,7 +18,7 @@ const GLYPHS = {
  */
 export function createPixelLogoSvg() {
   const pixel = 4; // base pixel grid size
-  const rows = ['AVENTURA', 'DAS LETRAS'];
+  const rows = ['AVENTURA DO', 'NICOLAS E ELOA'];
   const rowHeight = 9 * pixel;
   const totalHeight = 2 * rowHeight + pixel * 2;
   const maxChars = Math.max(...rows.map((r) => r.length));
