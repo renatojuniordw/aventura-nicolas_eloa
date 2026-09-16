@@ -8,6 +8,60 @@ import { formatTime } from '../content/text-utils.js';
 const VICTORY_FRAME_INDEX = 2;
 
 /**
+ * Animates a 2x2 sprite sheet (like celebrate pose) on an HTML5 canvas.
+ * @param {string} imageSrc
+ * @param {number} width
+ * @param {number} height
+ * @returns {{ canvas: HTMLCanvasElement|null, stop: () => void }}
+ */
+function createCelebrationCanvas(imageSrc, width = 120, height = 120) {
+  if (typeof document === 'undefined') return { canvas: null, stop: () => {} };
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.className = 'hero-celebrate-canvas';
+
+  const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+  if (!ctx) return { canvas, stop: () => {} };
+
+  const img = new Image();
+  img.src = imageSrc;
+
+  let frame = 0;
+  let animId = null;
+  let lastTime = 0;
+  const frameDuration = 180; // ms per frame
+
+  function step(time) {
+    if (img.complete && img.naturalWidth > 0) {
+      if (!lastTime || time - lastTime >= frameDuration) {
+        lastTime = time;
+        frame = (frame + 1) % 4; // 2x2 celebrate frame grid
+      }
+      const col = frame % 2;
+      const row = Math.floor(frame / 2);
+      const fw = img.naturalWidth / 2;
+      const fh = img.naturalHeight / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, canvas.width, canvas.height);
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  animId = requestAnimationFrame(step);
+
+  return {
+    canvas,
+    stop: () => {
+      if (animId) cancelAnimationFrame(animId);
+    },
+  };
+}
+
+/**
  * DOM overlay screens: main menu, character picker, phase picker, pause, game
  * over and victory. All copy is in Brazilian Portuguese.
  *
@@ -22,6 +76,7 @@ export class MenuOverlay {
     this._visible = false;
     this._primary = null;
     this._back = null;
+    this._cleanup = null;
   }
 
   get isVisible() {
@@ -29,6 +84,8 @@ export class MenuOverlay {
   }
 
   hide() {
+    this._cleanup?.();
+    this._cleanup = null;
     clear(this._root);
     this._visible = false;
     this._primary = null;
@@ -43,7 +100,9 @@ export class MenuOverlay {
     this._back?.();
   }
 
-  _mount(node, { primary = null, back = null } = {}) {
+  _mount(node, { primary = null, back = null, cleanup = null } = {}) {
+    this._cleanup?.();
+    this._cleanup = cleanup;
     clear(this._root);
     this._root.append(node);
     this._primary = primary;
@@ -75,45 +134,49 @@ export class MenuOverlay {
 
     const active = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? null;
     const currentCharacterId = selectedCharacterId || active?.characterId || CHARACTERS[0].id;
+    const selectedChar = CHARACTERS.find((c) => c.id === currentCharacterId) ?? CHARACTERS[0];
 
-    // --- Left Column ---
-    // 1. Pixel art Logo + semantic accessible h1
+    // --- 1. Header (Centered Logo + Tagline) ---
     const logoNode = el('div', { class: 'pixel-logo-wrapper' }, [
       el('h1', { class: 'sr-only', text: 'Aventura do Nicolas&Eloá' }),
       createPixelLogoSvg(),
     ]);
 
-    // 2. Tagline
     const tagline = el('div', { class: 'home-tagline', text: 'PULE. DESCUBRA. BRINQUE.' });
+    const header = el('div', { class: 'home-header' }, [logoNode, tagline]);
 
-    // 3. Characters section: "ESCOLHA SEU PERSONAGEM"
-    const companionTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU PERSONAGEM' });
-
-    const companionCards = [];
+    // --- 2. Character Selector Strip (KoF Small Thumbnails) ---
+    const selectorTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU PERSONAGEM' });
+    const selectorCards = [];
     const TOTAL_SLOTS = 4;
 
     for (let i = 0; i < TOTAL_SLOTS; i += 1) {
       const char = CHARACTERS[i];
       if (char) {
         const isSelected = char.id === currentCharacterId;
-        const avatar = char.portrait
+        const thumb = char.portrait
           ? el('img', {
-              class: 'companion-avatar',
+              class: 'selector-thumb',
               src: char.portrait,
               alt: char.name,
             })
           : el('div', {
-              class: 'companion-swatch',
-              style: `background: ${char.color}`,
+              class: 'selector-thumb',
+              style: `background: ${char.color}; border-radius: 3px;`,
             });
 
-        const nameLabel = el('div', { class: 'companion-name', text: char.name });
+        const nameLabel = el('div', { class: 'selector-name', text: char.name.split(' ')[0] });
+        const cardChildren = [];
+        if (isSelected) {
+          cardChildren.push(el('div', { class: 'selector-cursor-tag', text: '1P' }));
+        }
+        cardChildren.push(thumb, nameLabel);
 
-        companionCards.push(
+        selectorCards.push(
           el(
             'button',
             {
-              class: `companion-card ${isSelected ? 'selected' : ''}`,
+              class: `selector-card companion-card ${isSelected ? 'selected' : ''}`,
               type: 'button',
               tabindex: '-1',
               'aria-pressed': String(isSelected),
@@ -121,40 +184,75 @@ export class MenuOverlay {
                 if (onSelectCharacter) onSelectCharacter(char.id);
               },
             },
-            [avatar, nameLabel],
+            cardChildren,
           ),
         );
       } else {
-        companionCards.push(
+        selectorCards.push(
           el(
             'div',
             {
-              class: 'companion-card placeholder',
+              class: 'selector-card companion-card placeholder',
               'aria-disabled': 'true',
             },
             [
-              el('div', { class: 'companion-placeholder-avatar' }, [
-                el('span', { class: 'companion-placeholder-icon', text: '?' }),
-              ]),
-              el('div', { class: 'companion-name placeholder', text: 'Em breve' }),
+              el('div', { class: 'selector-placeholder-thumb', text: '?' }),
+              el('div', { class: 'selector-name placeholder', text: 'Em breve' }),
             ],
           ),
         );
       }
     }
 
-    const companionGrid = el('div', { class: 'companion-grid' }, companionCards);
+    const selectorGrid = el('div', { class: 'selector-grid companion-grid' }, selectorCards);
+    const selectorStrip = el('div', { class: 'home-selector-strip' }, [selectorTitle, selectorGrid]);
 
-    const leftColumn = el('div', { class: 'home-col-left' }, [
-      logoNode,
-      tagline,
-      companionTitle,
-      companionGrid,
+    // --- 3. Main Stage ---
+    // Left Wing: Hero Showcase Panel (Giant Portrait + Animated Victory/Happy Sprite!)
+    let animHandle = null;
+    const visualChildren = [];
+
+    if (selectedChar?.portrait) {
+      visualChildren.push(
+        el('div', { class: 'hero-portrait-frame' }, [
+          el('img', {
+            class: 'hero-large-portrait companion-avatar',
+            src: selectedChar.portrait,
+            alt: selectedChar.name,
+          }),
+        ]),
+      );
+    }
+
+    if (selectedChar?.sprites?.celebrate) {
+      const { canvas, stop } = createCelebrationCanvas(selectedChar.sprites.celebrate, 120, 120);
+      animHandle = stop;
+      if (canvas) {
+        visualChildren.push(
+          el('div', { class: 'hero-animation-stage' }, [
+            canvas,
+            el('div', { class: 'hero-podium-pedestal' }),
+          ]),
+        );
+      }
+    }
+
+    const heroBadge = el('div', { class: 'hero-showcase-badge', text: 'JOGADOR PRONTO' });
+    const heroVisualStage = el('div', { class: 'hero-visual-stage' }, visualChildren);
+    const heroNamePlate = el('div', { class: 'hero-name-plate', text: `⭐ ${selectedChar?.name ?? 'Nicolas Gomes'}` });
+    const heroFlavor = el('div', { class: 'hero-flavor-text', text: 'Pronto para pular, descobrir e brincar!' });
+    const heroFooter = el('div', { class: 'hero-showcase-footer' }, [heroNamePlate, heroFlavor]);
+
+    const heroShowcasePanel = el('div', { class: 'hero-showcase-panel' }, [
+      heroBadge,
+      heroVisualStage,
+      heroFooter,
     ]);
 
-    // --- Right Column ---
+    // Right Wing: Action Menu Panel (High Usability)
     const discoveryTitle = el('div', { class: 'discovery-title', text: 'SUA PRÓXIMA DESCOBERTA' });
     const discoveryTarget = el('div', { class: 'discovery-target', text: currentLessonTitle });
+    const discoveryPlaque = el('div', { class: 'discovery-plaque' }, [discoveryTitle, discoveryTarget]);
 
     const btnStart = el('button', {
       class: 'btn-retro btn-primary-gold',
@@ -193,32 +291,51 @@ export class MenuOverlay {
       onClick: onResetProgress,
     });
 
-    const utilRow = el('div', { class: 'home-util-row' }, [btnReset]);
     const subStatus = el('div', {
       class: 'home-substatus',
       text: `Aventura contínua · ${completedCount} de ${totalLessons} fases`,
     });
 
-    const rightColumn = el('div', { class: 'home-col-right' }, [
-      discoveryTitle,
-      discoveryTarget,
+    const menuMetaRow = el('div', { class: 'menu-meta-row home-meta-row' }, [btnReset, subStatus]);
+
+    const menuButtonsGroup = el('div', { class: 'menu-buttons-group home-btn-group' }, [
       btnStart,
       btnSpeedrun,
       btnStages,
-      utilRow,
-      subStatus,
+      menuMetaRow,
     ]);
 
-    // --- Footer Tips ---
+    const menuPanel = el('div', { class: 'home-menu-panel' }, [
+      discoveryPlaque,
+      menuButtonsGroup,
+    ]);
+
+    const mainStage = el('div', { class: 'home-main-stage' }, [
+      heroShowcasePanel,
+      menuPanel,
+    ]);
+
+    // --- 4. Footer Tips ---
     const footerTips = el('div', {
       class: 'home-footer-tips',
       text: 'Setas ou controle para escolher · Enter para brincar',
     });
 
-    const board = el('div', { class: 'home-board' }, [leftColumn, rightColumn]);
+    const board = el('div', { class: 'home-board' }, [
+      header,
+      selectorStrip,
+      mainStage,
+    ]);
+
     const screen = el('div', { class: 'overlay home-screen' }, [board, footerTips]);
 
-    this._mount(screen, { primary: onPlay, back: null });
+    this._mount(screen, {
+      primary: onPlay,
+      back: null,
+      cleanup: () => {
+        if (animHandle) animHandle();
+      },
+    });
   }
 
   showCharacterPicker({ selectedId, onSelect, onConfirm, onBack }) {
@@ -289,17 +406,53 @@ export class MenuOverlay {
     this._mount(screen, { primary: onBack, back: onBack });
   }
 
-  showPause({ onResume, onRestart, onMenu }) {
+  /**
+   * The pause screen is a tiny state machine rendered into the same overlay
+   * node: 'menu' (default) or a 'confirm-restart'/'confirm-menu' step that
+   * guards the two destructive actions. There is no overlay-stacking
+   * mechanism in this class, so re-rendering in place is simpler than
+   * mounting a second screen on top.
+   */
+  showPause({ onResume, onRestart, onMenu, isSpeedrun = false, isMuted = false, onToggleMute }) {
+    this._renderPauseScreen('menu', { onResume, onRestart, onMenu, isSpeedrun, isMuted, onToggleMute });
+  }
+
+  _renderPauseScreen(step, { onResume, onRestart, onMenu, isSpeedrun, isMuted, onToggleMute }) {
+    const goTo = (nextStep) =>
+      this._renderPauseScreen(nextStep, { onResume, onRestart, onMenu, isSpeedrun, isMuted, onToggleMute });
+
+    if (step === 'menu') {
+      const screen = el('div', { class: 'overlay' }, [
+        el('h2', { text: 'Pausa' }),
+        el('p', { text: 'Respire fundo e continue quando quiser.' }),
+        el('div', { class: 'overlay-actions' }, [
+          button('Continuar', { primary: true, onClick: onResume }),
+          button('Recomeçar fase', { onClick: () => goTo('confirm-restart') }),
+          button('Menu', { onClick: () => goTo('confirm-menu') }),
+          button(isMuted ? '🔇 Som: Mudo' : '🔈 Som: Ligado', { onClick: onToggleMute }),
+        ]),
+      ]);
+      this._mount(screen, { primary: onResume, back: onResume });
+      return;
+    }
+
+    const isRestart = step === 'confirm-restart';
+    const confirmAction = isRestart ? onRestart : onMenu;
+    const message = isRestart
+      ? isSpeedrun
+        ? 'Você vai perder o tempo desta corrida e recomeçar do zero.'
+        : 'Você vai perder o progresso desta fase.'
+      : 'Você vai voltar para o menu e perder o progresso desta fase.';
+
     const screen = el('div', { class: 'overlay' }, [
-      el('h2', { text: 'Pausa' }),
-      el('p', { text: 'Respire fundo e continue quando quiser.' }),
+      el('h2', { text: 'Tem certeza?' }),
+      el('p', { text: message }),
       el('div', { class: 'overlay-actions' }, [
-        button('Continuar', { primary: true, onClick: onResume }),
-        button('Recomeçar fase', { onClick: onRestart }),
-        button('Menu', { onClick: onMenu }),
+        button('Sim, confirmar', { primary: true, onClick: confirmAction }),
+        button('Cancelar', { onClick: () => goTo('menu') }),
       ]),
     ]);
-    this._mount(screen, { primary: onResume, back: onResume });
+    this._mount(screen, { primary: confirmAction, back: () => goTo('menu') });
   }
 
   showGameOver({ lesson, onRetry, onMenu }) {
