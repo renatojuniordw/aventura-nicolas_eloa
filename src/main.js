@@ -14,6 +14,7 @@ import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
 import { ProgressStore } from './persistence/progress-store.js';
 import * as curriculum from './content/curriculum.js';
+import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
 import { BootScene } from './scenes/boot-scene.js';
 import { MenuScene } from './scenes/menu-scene.js';
 import { GameScene } from './scenes/game-scene.js';
@@ -70,18 +71,10 @@ export function createGame({ canvas, overlayRoot, storage = globalThis.localStor
     },
     /** Start a continuous speedrun through the alphabet lessons (A to Z). */
     startSpeedrun() {
-      const alphabetLessons = curriculum.lessonsOfUnit('alfabeto');
-      const lessonIds = alphabetLessons.map((lesson) => lesson.id);
-      if (lessonIds.length === 0) return;
+      const course = buildSpeedrunCourse();
       scenes.switchTo('game', {
-        lessonId: lessonIds[0],
         mode: 'speedrun',
-        speedrunState: {
-          lessonIds,
-          currentIndex: 0,
-          elapsed: 0,
-          mistakes: 0,
-        },
+        speedrunCourse: course,
       });
     },
   };

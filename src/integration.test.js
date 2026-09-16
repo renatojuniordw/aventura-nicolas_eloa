@@ -254,7 +254,7 @@ describe('game integration', () => {
     expect(Actions.JUMP).toBe('jump');
   });
 
-  it('runs speedrun mode continuously through letters', () => {
+  it('runs speedrun mode continuously through letters without resetting player position', () => {
     const game = mountGame();
     tick(game, 2);
     game.profiles.createProfile('Veloz');
@@ -264,21 +264,22 @@ describe('game integration', () => {
     expect(game.scenes.currentName).toBe('game');
     const scene = game.scenes.current;
     expect(scene.mode).toBe('speedrun');
-    expect(scene.lesson.id).toBe('alfabeto-a');
+    expect(scene.lesson.target).toBe('A');
     expect(scene.hudModel.isSpeedrun).toBe(true);
     expect(scene.hudModel.speedrunProgress).toBe('1/26');
 
-    // Collect target 'A'
-    const target = scene.level.items.find((item) => item.type === 'target');
-    scene.player.body.x = target.x;
-    scene.player.body.y = target.y;
-    // Tick through the fast celebration (~0.6s -> 40 frames)
-    tick(game, 50);
+    // Find target 'A' in segment 0
+    const targetA = scene.level.items.find((item) => item.segmentIndex === 0 && item.type === 'target');
+    const collectedX = targetA.x;
+    scene.player.body.x = targetA.x;
+    scene.player.body.y = targetA.y;
+    tick(game, 5);
 
-    // Should transition directly to next lesson ('alfabeto-b') in speedrun mode
-    expect(game.scenes.currentName).toBe('game');
-    expect(game.scenes.current.mode).toBe('speedrun');
-    expect(game.scenes.current.lesson.id).toBe('alfabeto-b');
-    expect(game.scenes.current.hudModel.speedrunProgress).toBe('2/26');
+    // Goal advances to B instantly while player remains on course
+    expect(scene.currentIndex).toBe(1);
+    expect(scene.lesson.target).toBe('B');
+    expect(scene.hudModel.speedrunProgress).toBe('2/26');
+    // Player position did NOT reset to starting 96!
+    expect(scene.player.body.x).toBeCloseTo(collectedX, 0);
   });
 });

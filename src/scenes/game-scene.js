@@ -12,6 +12,7 @@ import { loadLevel } from '../content/level-loader.js';
 import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
+import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -36,18 +37,38 @@ export class GameScene extends Scene {
     this._unsubscribers = [];
   }
 
-  enter({ lessonId, mode = 'normal', speedrunState = null } = {}) {
-    const lesson = this.game.curriculum.getLesson(lessonId);
-    if (!lesson) throw new Error(`Unknown lesson: ${lessonId}`);
-    const levelData = getLevelData(lesson.levelId);
-    if (!levelData) throw new Error(`Missing level file for lesson ${lessonId}`);
-
+  enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null } = {}) {
     this.mode = mode;
-    this.speedrunState = speedrunState ? { ...speedrunState } : null;
+    this.mistakes = 0;
+    this.status = Status.RUNNING;
+    this._winTimer = 0;
 
-    this.lesson = lesson;
-    this.level = loadLevel(levelData);
-    this.validator = new AnswerValidator(lesson);
+    if (this.mode === 'speedrun') {
+      const course = speedrunCourse ?? buildSpeedrunCourse();
+      this.level = course;
+      this.speedrunCheckpoints = course.checkpoints;
+      this.alphabet = course.alphabet;
+      this.currentIndex = 0;
+      this.speedrunElapsed = speedrunState?.elapsed ?? 0;
+
+      const firstLetter = this.alphabet[0];
+      this.lesson = this.game.curriculum?.getLesson?.(`alfabeto-${firstLetter.toLowerCase()}`) ?? {
+        id: `alfabeto-${firstLetter.toLowerCase()}`,
+        target: firstLetter,
+        objective: `Colete a letra ${firstLetter}`,
+      };
+      this.validator = new AnswerValidator(this.lesson);
+    } else {
+      const lesson = this.game.curriculum.getLesson(lessonId);
+      if (!lesson) throw new Error(`Unknown lesson: ${lessonId}`);
+      const levelData = getLevelData(lesson.levelId);
+      if (!levelData) throw new Error(`Missing level file for lesson ${lessonId}`);
+
+      this.lesson = lesson;
+      this.level = loadLevel(levelData);
+      this.validator = new AnswerValidator(lesson);
+    }
+
     this.levelManager = new LevelManager({ level: this.level, bus: this.game.bus });
     this.lives = new LivesManager({ lives: GAMEPLAY.startingLives, bus: this.game.bus });
 
@@ -65,27 +86,24 @@ export class GameScene extends Scene {
     this.camera.snapTo(this.player.body);
 
     const isSpeedrun = this.mode === 'speedrun';
-    const progressText = isSpeedrun && this.speedrunState
-      ? `${this.speedrunState.currentIndex + 1}/${this.speedrunState.lessonIds.length}`
+    const progressText = isSpeedrun && this.alphabet
+      ? `1/${this.alphabet.length}`
       : '';
 
     this.hudModel = new HudModel({
-      objective: lesson.objective,
+      objective: this.lesson.objective,
       levelName: this.level.name,
       lives: this.lives.lives,
       maxLives: this.lives.maxLives,
       isSpeedrun,
-      timer: this.speedrunState?.elapsed ?? 0,
+      timer: this.speedrunElapsed ?? 0,
       speedrunProgress: progressText,
     });
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
-    this.mistakes = 0;
-    this.status = Status.RUNNING;
-    this._winTimer = 0;
 
     this.game.sprites.setLevel(this.level);
     this._subscribe();
-    this.game.bus.emit(Events.LESSON_STARTED, { lesson });
+    this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
   }
 
   exit() {
@@ -105,9 +123,9 @@ export class GameScene extends Scene {
 
     if (this.status === Status.PAUSED || this.status === Status.GAME_OVER) return;
 
-    if (this.mode === 'speedrun' && this.speedrunState) {
-      this.speedrunState.elapsed += dt;
-      this.hudModel.setTimer(this.speedrunState.elapsed);
+    if (this.mode === 'speedrun') {
+      this.speedrunElapsed = (this.speedrunElapsed ?? 0) + dt;
+      this.hudModel.setTimer(this.speedrunElapsed);
     }
 
     if (this.status === Status.WON) {
@@ -180,6 +198,16 @@ export class GameScene extends Scene {
   }
 
   onItemCollected(item) {
+    if (this.mode === 'speedrun' && item.segmentIndex != null && item.segmentIndex > this.currentIndex) {
+      this.levelManager.collected.delete(item.id);
+      this.hudModel.showFeedback(
+        FeedbackKind.WRONG,
+        `Ops! Colete a letra "${this.lesson.target}" primeiro!`,
+        1.2,
+      );
+      return;
+    }
+
     const { ok } = this.validator.validate(item);
     const centerX = item.x + item.w / 2;
     const centerY = item.y + item.h / 2;
@@ -188,6 +216,39 @@ export class GameScene extends Scene {
     if (ok) {
       if (profile) this.game.progress.recordAnswer(profile.id, true);
       this.game.effects.spawnConfetti(centerX, centerY, 56);
+
+      if (this.mode === 'speedrun' && this.alphabet) {
+        if (this.currentIndex < this.alphabet.length - 1) {
+          this.currentIndex += 1;
+          const nextLetter = this.alphabet[this.currentIndex];
+          const nextLesson = this.game.curriculum?.getLesson?.(`alfabeto-${nextLetter.toLowerCase()}`) ?? {
+            id: `alfabeto-${nextLetter.toLowerCase()}`,
+            target: nextLetter,
+            objective: `Colete a letra ${nextLetter}`,
+          };
+          this.lesson = nextLesson;
+          this.validator = new AnswerValidator(this.lesson);
+          if (this.speedrunCheckpoints?.[this.currentIndex]) {
+            this.level.checkpoint = { ...this.speedrunCheckpoints[this.currentIndex] };
+          }
+
+          this.hudModel.setObjective(this.lesson.objective);
+          this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet.length}`);
+          this.hudModel.showFeedback(
+            FeedbackKind.CORRECT,
+            `Boa! Agora letra ${nextLetter}!`,
+            0.8,
+          );
+          // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
+          return;
+        }
+
+        // Collected Z! Venceu a maratona!
+        this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Parabéns! Maratona concluída!', 1.5);
+        this.winLevel();
+        return;
+      }
+
       this.hudModel.showFeedback(
         FeedbackKind.CORRECT,
         'Muito bem! Você encontrou!',
@@ -228,40 +289,19 @@ export class GameScene extends Scene {
 
   winLevel() {
     this.status = Status.WON;
-    this._winTimer = this.mode === 'speedrun' ? 0.6 : GAMEPLAY.celebrationDuration;
+    this._winTimer = this.mode === 'speedrun' ? 1.2 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
       this.player.body.x + this.player.body.w / 2,
       this.player.body.y,
-      72,
+      96,
     );
   }
 
   finishLevel() {
     const profile = this.game.profiles.getActiveProfile();
-    const entry = profile
-      ? this.game.progress.completeLesson(profile.id, this.lesson.id, { mistakes: this.mistakes })
-      : null;
 
-    if (this.mode === 'speedrun' && this.speedrunState) {
-      const { lessonIds, currentIndex, elapsed, mistakes } = this.speedrunState;
-      const totalMistakes = mistakes + this.mistakes;
-      const nextIndex = currentIndex + 1;
-
-      if (nextIndex < lessonIds.length) {
-        const nextLessonId = lessonIds[nextIndex];
-        this.game.scenes.switchTo('game', {
-          lessonId: nextLessonId,
-          mode: 'speedrun',
-          speedrunState: {
-            lessonIds,
-            currentIndex: nextIndex,
-            elapsed,
-            mistakes: totalMistakes,
-          },
-        });
-        return;
-      }
-
+    if (this.mode === 'speedrun') {
+      const elapsed = this.speedrunElapsed ?? 0;
       const result = profile
         ? this.game.progress.recordSpeedrunTime(profile.id, elapsed)
         : { bestTime: elapsed, isNewBest: true };
@@ -269,13 +309,17 @@ export class GameScene extends Scene {
       this.game.scenes.switchTo('victory', {
         mode: 'speedrun',
         elapsed,
-        mistakes: totalMistakes,
+        mistakes: this.mistakes,
         isNewBest: result?.isNewBest ?? false,
         bestTime: result?.bestTime ?? elapsed,
-        totalLetters: lessonIds.length,
+        totalLetters: this.alphabet?.length ?? 26,
       });
       return;
     }
+
+    const entry = profile
+      ? this.game.progress.completeLesson(profile.id, this.lesson.id, { mistakes: this.mistakes })
+      : null;
 
     this.game.scenes.switchTo('victory', {
       lessonId: this.lesson.id,
