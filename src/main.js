@@ -9,10 +9,13 @@ import { AssetManager } from './core/asset-manager.js';
 import { Hud } from './render/hud.js';
 import { Effects } from './render/effects.js';
 import { MenuOverlay } from './ui/menu.js';
+import { HudControls } from './ui/hud-controls.js';
+import { AudioManager } from './audio/audio-manager.js';
 import { createStorageAdapter } from './persistence/local-storage-adapter.js';
 import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
 import { ProgressStore } from './persistence/progress-store.js';
+import { AudioSettingsStore } from './persistence/audio-settings-store.js';
 import * as curriculum from './content/curriculum.js';
 import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
 import { BootScene } from './scenes/boot-scene.js';
@@ -27,7 +30,13 @@ import { VictoryScene } from './scenes/victory-scene.js';
  *
  * @typedef {ReturnType<typeof createGame>} GameContext
  */
-export function createGame({ canvas, overlayRoot, storage = globalThis.localStorage, assets = new AssetManager() }) {
+export function createGame({
+  canvas,
+  overlayRoot,
+  hudControlsRoot = null,
+  storage = globalThis.localStorage,
+  assets = new AssetManager(),
+}) {
   const bus = new EventBus();
   const renderer = new CanvasRenderer(canvas);
   const sprites = new SpriteRenderer({ assets });
@@ -37,10 +46,14 @@ export function createGame({ canvas, overlayRoot, storage = globalThis.localStor
   });
   const input = new InputManager();
   const menu = new MenuOverlay({ root: overlayRoot });
+  const hudControls = new HudControls({ root: hudControlsRoot ?? overlayRoot });
 
-  const saves = new SaveStore({ adapter: createStorageAdapter(storage) });
+  const storageAdapter = createStorageAdapter(storage);
+  const saves = new SaveStore({ adapter: storageAdapter });
   const profiles = new ProfileStore({ saves });
   const progress = new ProgressStore({ saves, bus });
+  const audioSettings = new AudioSettingsStore({ adapter: storageAdapter });
+  const audio = new AudioManager({ settings: audioSettings });
 
   const game = {
     bus,
@@ -48,6 +61,8 @@ export function createGame({ canvas, overlayRoot, storage = globalThis.localStor
     renderer,
     assets,
     menu,
+    hudControls,
+    audio,
     sprites,
     effects,
     hud,
@@ -120,8 +135,9 @@ export function createGame({ canvas, overlayRoot, storage = globalThis.localStor
 // importing this module (tests, tooling) never requires a real page.
 const bootCanvas = typeof document !== 'undefined' ? document.getElementById('game-canvas') : null;
 const bootOverlay = typeof document !== 'undefined' ? document.getElementById('overlay-root') : null;
+const bootHudControls = typeof document !== 'undefined' ? document.getElementById('hud-controls-root') : null;
 
 if (bootCanvas && bootOverlay) {
-  const game = createGame({ canvas: bootCanvas, overlayRoot: bootOverlay });
+  const game = createGame({ canvas: bootCanvas, overlayRoot: bootOverlay, hudControlsRoot: bootHudControls });
   game.loop.start();
 }

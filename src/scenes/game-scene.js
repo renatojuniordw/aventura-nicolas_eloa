@@ -103,6 +103,7 @@ export class GameScene extends Scene {
 
     this.game.sprites.setLevel(this.level);
     this._subscribe();
+    this.game.hudControls.showPauseButton({ onPause: () => this.togglePause() });
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
   }
 
@@ -110,6 +111,7 @@ export class GameScene extends Scene {
     for (const unsubscribe of this._unsubscribers) unsubscribe();
     this._unsubscribers = [];
     this.game.menu.hide();
+    this.game.hudControls.hidePauseButton();
     this.game.effects.clear();
   }
 
@@ -356,7 +358,13 @@ export class GameScene extends Scene {
     if (this.status !== Status.RUNNING) return;
     this.status = Status.PAUSED;
     this.game.input.reset();
+    this._showPauseMenu();
+  }
+
+  _showPauseMenu() {
     this.game.menu.showPause({
+      isSpeedrun: this.mode === 'speedrun',
+      isMuted: this.game.audio.isMuted,
       onResume: () => this.resume(),
       onRestart: () => {
         if (this.mode === 'speedrun') {
@@ -366,6 +374,10 @@ export class GameScene extends Scene {
         }
       },
       onMenu: () => this.game.scenes.switchTo('menu'),
+      onToggleMute: () => {
+        this.game.audio.toggleMuted();
+        this._showPauseMenu();
+      },
     });
   }
 
