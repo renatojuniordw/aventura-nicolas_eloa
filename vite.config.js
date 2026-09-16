@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 // Kept explicit so the build's public path and server port are documented.
 export default defineConfig({
   server: {
-    port: 5173,
+    port: 65000,
     open: true,
   },
   build: {
