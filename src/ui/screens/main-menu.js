@@ -185,7 +185,7 @@ export function buildMainMenuScreen(options) {
 
   const subStatus = el('div', {
     class: 'home-substatus',
-    text: `Aventura contínua · ${completedCount} de ${totalLessons} fases`,
+    text: `A aventura continua · ${completedCount} de ${totalLessons} fases`,
   });
 
   const menuMetaRow = el('div', { class: 'menu-meta-row home-meta-row' }, [btnReset, subStatus]);

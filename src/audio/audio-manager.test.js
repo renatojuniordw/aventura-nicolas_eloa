@@ -12,15 +12,19 @@ function fakeSettings(initial = { muted: false, volume: 0.8 }) {
 }
 
 describe('AudioManager', () => {
+  /** @type {Array<import('vitest').Mock>} */
   const originalAudio = globalThis.Audio;
+  let createdAudios;
 
   beforeEach(() => {
+    createdAudios = [];
     globalThis.Audio = class {
       constructor(url) {
         this.url = url;
         this.muted = false;
         this.volume = 1;
         this.loop = false;
+        createdAudios.push(this);
       }
       play() {
         return Promise.resolve();
@@ -68,11 +72,30 @@ describe('AudioManager', () => {
     expect(() => audio.playSfx('missing')).not.toThrow();
   });
 
-  it('plays a registered key and applies mute/volume to it', () => {
+  it('plays a registered key and applies mute/volume to the created Audio element', () => {
     const audio = new AudioManager({ settings: fakeSettings({ muted: true, volume: 0.4 }) });
     audio.register('theme', '/theme.mp3');
     audio.playMusic('theme');
-    expect(audio._currentMusic.muted).toBe(true);
-    expect(audio._currentMusic.volume).toBe(0.4);
+
+    expect(createdAudios).toHaveLength(1);
+    expect(createdAudios[0].url).toBe('/theme.mp3');
+    expect(createdAudios[0].loop).toBe(true);
+    expect(createdAudios[0].muted).toBe(true);
+    expect(createdAudios[0].volume).toBe(0.4);
+  });
+
+  it('stops previous music before playing a new track', () => {
+    const audio = new AudioManager();
+    audio.register('a', '/a.mp3');
+    audio.register('b', '/b.mp3');
+    audio.playMusic('a');
+    const first = createdAudios[0];
+    const pauseSpy = vi.spyOn(first, 'pause');
+
+    audio.playMusic('b');
+
+    expect(pauseSpy).toHaveBeenCalledTimes(1);
+    expect(createdAudios).toHaveLength(2);
+    expect(createdAudios[1].url).toBe('/b.mp3');
   });
 });

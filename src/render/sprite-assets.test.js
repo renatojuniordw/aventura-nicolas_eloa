@@ -45,15 +45,40 @@ describe('resolveBackgroundKey', () => {
 });
 
 describe('asset bounds', () => {
-  it('are frozen constants with the expected crop shape', () => {
+  it('are frozen constants with exactly known crop rectangles for each trimmed asset', () => {
+    // LETTER_CARRIER_BOUNDS
+    expect(Object.isFrozen(LETTER_CARRIER_BOUNDS)).toBe(true);
+    expect(LETTER_CARRIER_BOUNDS.sx).toBe(257);
+    expect(LETTER_CARRIER_BOUNDS.sy).toBe(279);
+    expect(LETTER_CARRIER_BOUNDS.sw).toBe(740);
+    expect(LETTER_CARRIER_BOUNDS.sh).toBe(718);
+
+    // CHECKPOINT_BOUNDS
+    expect(Object.isFrozen(CHECKPOINT_BOUNDS)).toBe(true);
+    expect(CHECKPOINT_BOUNDS.sx).toBe(334);
+    expect(CHECKPOINT_BOUNDS.sy).toBe(116);
+    expect(CHECKPOINT_BOUNDS.sw).toBe(636);
+    expect(CHECKPOINT_BOUNDS.sh).toBe(1056);
+
+    // FINISH_PORTAL_BOUNDS
+    expect(Object.isFrozen(FINISH_PORTAL_BOUNDS)).toBe(true);
+    expect(FINISH_PORTAL_BOUNDS.sx).toBe(175);
+    expect(FINISH_PORTAL_BOUNDS.sy).toBe(58);
+    expect(FINISH_PORTAL_BOUNDS.sw).toBe(902);
+    expect(FINISH_PORTAL_BOUNDS.sh).toBe(1135);
+
+    // All dimensions must be positive (every crop rectangle has non-zero area)
     for (const bounds of [LETTER_CARRIER_BOUNDS, CHECKPOINT_BOUNDS, FINISH_PORTAL_BOUNDS]) {
-      expect(Object.isFrozen(bounds)).toBe(true);
-      expect(bounds).toEqual({
-        sx: expect.any(Number),
-        sy: expect.any(Number),
-        sw: expect.any(Number),
-        sh: expect.any(Number),
-      });
+      expect(bounds.sw).toBeGreaterThan(0);
+      expect(bounds.sh).toBeGreaterThan(0);
+      expect(bounds.sx).toBeGreaterThanOrEqual(0);
+      expect(bounds.sy).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it('exposes separate frozen constants per asset (not interchangeable)', () => {
+    // Each constant has a distinct origin point, so swapping them would fail
+    expect(LETTER_CARRIER_BOUNDS.sx).not.toBe(CHECKPOINT_BOUNDS.sx);
+    expect(FINISH_PORTAL_BOUNDS.sx).not.toBe(LETTER_CARRIER_BOUNDS.sx);
   });
 });

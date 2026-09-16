@@ -24,6 +24,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 07  | [Plano de desenvolvimento por fases](07-plano-de-desenvolvimento-fases.md) | Roadmap com entregáveis e critérios de aceite                                         |
 | 08  | [Evolução futura](08-evolucao-futura.md)                                   | Duplo pulo, poderes, som, toque e **adaptador ESP32**: onde cada um encaixa           |
 | 09  | [Glossário e convenções](09-glossario-e-convencoes.md)                     | Termos pedagógicos, convenções de nomes e de código                                   |
+| 10  | [Privacidade e LGPD](10-privacidade-e-lgpd.md)                               | Quais dados o jogo guarda, onde ficam, consentimento parental e direitos              |
 
 ## Mapa rápido: onde está cada coisa
 

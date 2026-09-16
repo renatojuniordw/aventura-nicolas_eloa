@@ -54,9 +54,9 @@ export function buildSpeedrunVictoryScreen({
   const celebrateImage = character?.sprites?.celebrate;
 
   const node = el('div', { class: 'overlay' }, [
-    el('h1', { text: isNewBest ? '🏆 NOVO RECORDE!' : '🏁 Maratona Concluída!' }),
+    el('h1', { text: isNewBest ? '🏆 NOVO RECORDE!' : '🏁 Maratona concluída!' }),
     celebrateImage ? celebrateBadge(celebrateImage, character.name) : null,
-    el('h2', { text: `Tempo da Corrida: ⏱️ ${timeStr}` }),
+    el('h2', { text: `Tempo da corrida: ⏱️ ${timeStr}` }),
     el('p', {
       text: isNewBest
         ? '⭐ Esse foi o seu melhor tempo pessoal!'

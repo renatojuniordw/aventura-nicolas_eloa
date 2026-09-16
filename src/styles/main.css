@@ -3,6 +3,26 @@
    Aesthetics: 16-bit retro pixel art, forest green, warm gold & cream tones
    ========================================================================== */
 
+/* Self-hosted pixel font (OFL 1.1, via Fontsource). Local files keep the app
+   offline-capable, satisfy the nginx CSP (`default-src 'self'`) and avoid
+   sending the player's IP to a third-party font CDN. The license text ships
+   alongside the files, as the OFL requires: /fonts/OFL.txt. */
+@font-face {
+  font-family: "Silkscreen";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/silkscreen-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Silkscreen";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/silkscreen-latin-700-normal.woff2") format("woff2");
+}
+
 :root {
   --color-bg: #141c24;
   --color-ink: #233d38;

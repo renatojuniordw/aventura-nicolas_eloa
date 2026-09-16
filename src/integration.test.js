@@ -91,6 +91,13 @@ describe('game integration', () => {
     const game = mountGame();
     tick(game, 2);
     expect(game.scenes.currentName).toBe('menu');
+    // First run shows the parental privacy notice before any profile exists.
+    expect(overlayText('.privacy-notice h2')).toContain('responsáveis');
+    expect(game.profiles.hasParentalConsent()).toBe(false);
+    // After the responsible adult confirms, the main menu appears.
+    game.menu.triggerPrimary();
+    tick(game, 1);
+    expect(game.profiles.hasParentalConsent()).toBe(true);
     expect(overlayText('.overlay h1')).toContain('Aventura do Nicolas&Eloá');
   });
 

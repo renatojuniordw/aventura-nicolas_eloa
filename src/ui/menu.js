@@ -5,6 +5,7 @@ import { buildLessonPickerScreen } from './screens/lesson-picker.js';
 import { buildPauseScreen } from './screens/pause.js';
 import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
+import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
 
 /**
  * DOM overlay screens: main menu, character picker, phase picker, pause, game
@@ -101,6 +102,11 @@ export class MenuOverlay {
 
   showSpeedrunVictory(options) {
     const { node, primary, back } = buildSpeedrunVictoryScreen(options);
+    this._mount(node, { primary, back });
+  }
+
+  showPrivacyNotice(options) {
+    const { node, primary, back } = buildPrivacyNoticeScreen(options);
     this._mount(node, { primary, back });
   }
 }

@@ -84,7 +84,7 @@ describe('app lifecycle', () => {
     expect(focused).toHaveLength(1);
   });
 
-  it('exposes the wired collaborators and a single registered boot entry', () => {
+  it('wires the collaborator graph and registers the boot scene', () => {
     const game = mountGame();
 
     expect(game.input).toBeTruthy();

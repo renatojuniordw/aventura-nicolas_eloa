@@ -24,6 +24,22 @@ export class ProfileStore {
     return doc.activeProfileId ? (doc.profiles[doc.activeProfileId] ?? null) : null;
   }
 
+  /**
+   * Whether the responsible adult has confirmed the privacy notice.
+   * Stored at the document level (not per profile) so it survives profile
+   * deletion and is asked only once per device.
+   */
+  hasParentalConsent() {
+    return this._saves.read().parentalConsent === true;
+  }
+
+  recordParentalConsent() {
+    return this._saves.update((doc) => {
+      doc.parentalConsent = true;
+      return true;
+    });
+  }
+
   createProfile(name, characterId = DEFAULT_CHARACTER_ID) {
     const id = this._idFactory();
     const profile = {

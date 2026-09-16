@@ -10,6 +10,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     outDir: 'dist',
-    sourcemap: true,
+    // No sourcemaps in production: `true` shipped the full original sources
+    // (plus absolute local paths) alongside the bundle. Keep debugging local.
+    sourcemap: false,
   },
 });

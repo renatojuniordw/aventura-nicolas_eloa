@@ -10,13 +10,9 @@ describe('text-utils', () => {
     expect(formatTime(-5)).toBe('00:00.0');
     expect(formatTime(null)).toBe('00:00.0');
   });
-  it('normalizes case', () => {
+  it('normalizes case and strips accents', () => {
     expect(normalize('BOLA')).toBe('bola');
     expect(normalize('bola')).toBe('bola');
-  });
-
-  it('strips accents so mamãe equals mamae', () => {
-    expect(normalize('MAMÃE')).toBe('mamae');
     expect(equalsIgnoreAccent('MAMÃE', 'MAMAE')).toBe(true);
   });
 

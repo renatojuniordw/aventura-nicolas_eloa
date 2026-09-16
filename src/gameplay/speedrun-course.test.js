@@ -35,7 +35,7 @@ describe('SpeedrunCourse', () => {
     }).toThrow();
   });
 
-  it('randomizes item positions between runs', () => {
+  it('produces distinct positions when running with different random seeds', () => {
     const run1 = buildSpeedrunCourse({ random: () => 0.1 });
     const run2 = buildSpeedrunCourse({ random: () => 0.8 });
 
@@ -43,7 +43,8 @@ describe('SpeedrunCourse', () => {
     const target2 = run2.items.find((item) => item.segmentIndex === 0 && item.type === 'target');
 
     // Positions should differ based on random generator
-    expect(target1.x !== target2.x || target1.y !== target2.y).toBe(true);
+    expect(target1.x).not.toBe(target2.x);
+    expect(target1.y).not.toBe(target2.y);
   });
 
   it('places all items high enough so that a walking player cannot reach them without jumping', () => {
@@ -55,7 +56,7 @@ describe('SpeedrunCourse', () => {
     }
   });
 
-  it('correctly evaluates isSafeFromHazards', () => {
+  it('reports safe and unsafe positions relative to hazards', () => {
     const hazards = [{ x: 1000, w: 64, y: 400, h: 32 }];
 
     // Directly over hazard

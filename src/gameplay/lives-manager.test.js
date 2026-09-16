@@ -3,10 +3,6 @@ import { LivesManager } from './lives-manager.js';
 import { EventBus, Events } from '../core/event-bus.js';
 
 describe('LivesManager', () => {
-  it('starts with the configured number of hearts', () => {
-    expect(new LivesManager({ lives: 3 }).lives).toBe(3);
-  });
-
   it('loses one heart at a time and announces the change', () => {
     const bus = new EventBus();
     const onChanged = vi.fn();

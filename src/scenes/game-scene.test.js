@@ -4,6 +4,8 @@ import { EventBus, Events } from '../core/event-bus.js';
 import { GAMEPLAY } from '../core/config.js';
 import * as curriculum from '../content/curriculum.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
+import { AnswerValidator } from '../content/answer-validator.js';
+import { FeedbackKind } from '../render/hud-model.js';
 
 /**
  * Unit tests for the central orchestrator. `src/integration.test.js` already
@@ -173,14 +175,37 @@ describe('GameScene (unit)', () => {
     });
   });
 
-  it('uses a shorter celebration timer for speedrun wins than regular lessons', () => {
-    const normal = enterNormalLesson(makeFakeGame());
-    normal.winLevel();
-    expect(normal._winTimer).toBe(GAMEPLAY.celebrationDuration);
-
-    const speedrun = enterSpeedrun(makeFakeGame());
+  it('uses a shorter celebration timer for speedrun wins, transitioning after the correct delay', () => {
+    // Speedrun: winLevel → status 'won' → finishLevel after short timer (1.2s)
+    const speedrunGame = makeFakeGame();
+    const speedrun = enterSpeedrun(speedrunGame);
     speedrun.winLevel();
-    expect(speedrun._winTimer).toBe(1.2);
+    expect(speedrun.status).toBe('won');
+
+    // Advance past the speedrun timer
+    speedrun.update(1.3);
+    expect(speedrunGame.scenes.switchTo).toHaveBeenCalledWith(
+      'victory',
+      expect.objectContaining({ mode: 'speedrun' }),
+    );
+
+    // Normal lesson: timer should be longer (celebrationDuration from config = 2.2s)
+    const normalGame = makeFakeGame();
+    normalGame.scenes.switchTo = vi.fn();
+    const normal = enterNormalLesson(normalGame);
+    normal.winLevel();
+    expect(normal.status).toBe('won');
+
+    // Before the timer expires the transition should NOT have happened yet
+    normal.update(GAMEPLAY.celebrationDuration - 0.1);
+    expect(normalGame.scenes.switchTo).not.toHaveBeenCalled();
+
+    // Once the timer does expire it transitions
+    normal.update(0.2);
+    expect(normalGame.scenes.switchTo).toHaveBeenCalledWith(
+      'victory',
+      expect.objectContaining({ lessonId: expect.any(String) }),
+    );
   });
 
   it('re-renders the pause menu when muting from inside it', () => {
@@ -205,5 +230,83 @@ describe('GameScene (unit)', () => {
 
     expect(scene.status).toBe('gameOver');
     expect(game.menu.showGameOver).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays marathon victory when the final Z letter is collected in speedrun mode', () => {
+    const game = makeFakeGame({ profiles: { getActiveProfile: vi.fn(() => ({ id: 'p1' })) } });
+    const scene = enterSpeedrun(game);
+
+    // Simulate being at the last letter (Z, index 25 of 0-based 26-letter alphabet)
+    scene.currentIndex = 25;
+    scene.lesson = { id: 'alfabeto-z', target: 'Z', objective: 'Colete a letra Z' };
+    scene.validator = new AnswerValidator(scene.lesson);
+
+    const zTarget = scene.level.items.find(
+      (item) => item.type === 'target' && item.segmentIndex === 25,
+    );
+    expect(zTarget).toBeDefined();
+    expect(zTarget.label).toBe('Z');
+
+    scene.onItemCollected(zTarget);
+
+    // Triggers the marathon-concluded feedback and winLevel
+    expect(scene.status).toBe('won');
+    expect(scene.hudModel.feedback.message).toBe('Parabéns! Maratona concluída!');
+    expect(game.effects.spawnConfetti).toHaveBeenCalled();
+
+    // Advance past the short speedrun celebration timer (1.2s)
+    scene.update(1.3);
+    expect(game.progress.recordSpeedrunTime).toHaveBeenCalledWith('p1', expect.any(Number));
+    expect(game.scenes.switchTo).toHaveBeenCalledWith(
+      'victory',
+      expect.objectContaining({ mode: 'speedrun' }),
+    );
+  });
+
+  it('rejects an item from a future speedrun segment', () => {
+    const game = makeFakeGame();
+    const scene = enterSpeedrun(game);
+
+    const futureItem = scene.level.items.find(
+      (item) => item.type === 'target' && item.segmentIndex === 3,
+    );
+    expect(futureItem).toBeDefined();
+
+    scene.onItemCollected(futureItem);
+
+    // Should stay in current segment and show WRONG feedback
+    expect(scene.currentIndex).toBe(0);
+    expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.WRONG);
+    expect(scene.hudModel.feedback.message).toContain('primeiro');
+  });
+
+  it('wires pause menu restart for normal mode and speedrun mode', () => {
+    // Normal mode: restart → switchTo('game', { lessonId })
+    const normalGame = makeFakeGame();
+    const normal = enterNormalLesson(normalGame);
+    normal.pause();
+
+    const { onRestart: normalRestart } = normalGame.menu.showPause.mock.calls[0][0];
+    normalRestart();
+    expect(normalGame.scenes.switchTo).toHaveBeenCalledWith('game', { lessonId: normal.lesson.id });
+
+    // Speedrun mode: restart → game.startSpeedrun()
+    const speedrunGame = makeFakeGame();
+    const speedrun = enterSpeedrun(speedrunGame);
+    speedrun.pause();
+
+    const { onRestart: speedrunRestart } = speedrunGame.menu.showPause.mock.calls[0][0];
+    speedrunRestart();
+    expect(speedrunGame.startSpeedrun).toHaveBeenCalledTimes(1);
+  });
+
+  it('wires pause menu "go to menu" for both modes', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    scene.pause();
+
+    const { onMenu } = game.menu.showPause.mock.calls[0][0];
+    onMenu();
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
   });
 });

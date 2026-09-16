@@ -15,6 +15,7 @@ export function createEmptyDocument() {
     schemaVersion: SCHEMA_VERSION,
     activeProfileId: null,
     profiles: {},
+    parentalConsent: false,
     updatedAt: null,
   };
 }
@@ -119,6 +120,7 @@ export function normalizeDocument(doc) {
     schemaVersion: SCHEMA_VERSION,
     activeProfileId,
     profiles,
+    parentalConsent: doc.parentalConsent === true,
     updatedAt: Number.isFinite(doc.updatedAt) ? doc.updatedAt : null,
   };
 }

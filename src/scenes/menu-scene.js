@@ -3,6 +3,22 @@ import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
 
 /**
+ * Short label for the "next discovery" card.
+ *
+ * The noun has to follow the lesson kind: on the alphabet unit the target is a
+ * single letter, and on the word units it is a whole word, so a fixed "Família"
+ * prefix read as "Família A" and "Família SOL". Syllable families, digraphs and
+ * blends are already named by their unit ("Família do B", "Dígrafos").
+ */
+export function describeLesson(lesson) {
+  if (!lesson) return 'Alfabeto';
+  const { type, target, unitTitle } = lesson;
+  if (type === 'word') return `Palavra ${target}`;
+  if (type === 'letter') return `Letra ${target}`;
+  return unitTitle ?? `Sílabas ${target}`;
+}
+
+/**
  * Main menu: pick a player, pick a character, start the next lesson or choose
  * a specific phase. All interaction goes through the overlay, and the keyboard
  * shortcuts are the abstracted CONFIRM/BACK actions.
@@ -24,6 +40,16 @@ export class MenuScene extends Scene {
       if (existing) {
         profiles.setActiveProfile(existing.id);
         activeProfile = existing;
+      } else if (!profiles.hasParentalConsent()) {
+        // First run: the responsible adult must confirm the privacy notice
+        // before any child profile is created.
+        menu.showPrivacyNotice({
+          onConfirm: () => {
+            profiles.recordParentalConsent();
+            this.render();
+          },
+        });
+        return;
       } else {
         activeProfile = profiles.createProfile('Nicolas', 'char-nicolas');
       }
@@ -38,9 +64,7 @@ export class MenuScene extends Scene {
       ? (progress.getNextLesson(activeProfile.id, lessonOrder) ?? lessonOrder[0])
       : lessonOrder[0];
     const nextLesson = getLesson(nextLessonId);
-    const discoveryTitle = nextLesson
-      ? (nextLesson.target ? `Família ${nextLesson.target}` : (nextLesson.title ?? 'Família B'))
-      : 'Família B';
+    const discoveryTitle = describeLesson(nextLesson);
 
     menu.showMainMenu({
       profiles: profiles.listProfiles(),
