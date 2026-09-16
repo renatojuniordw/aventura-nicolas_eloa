@@ -147,9 +147,14 @@ export class GameScene extends Scene {
   }
 
   draw(renderer) {
-    this.game.sprites.drawBackground(renderer);
+    this.game.sprites.drawBackground(renderer, this.camera?.x ?? 0);
     renderer.setCamera(this.camera.x, this.camera.y);
     this.game.sprites.drawTerrain(renderer);
+    this.game.sprites.drawObjects(
+      renderer,
+      this.level,
+      this.mode === 'speedrun' ? this.speedrunCheckpoints : null,
+    );
     this.game.sprites.drawItems(renderer, this.level.items, this.levelManager.collected);
     this.game.sprites.drawHazards(renderer, this.level.hazards);
     this.game.sprites.drawPlayer(renderer, this.player, this.character);

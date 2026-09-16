@@ -1,4 +1,4 @@
-import { COLORS } from '../core/config.js';
+import { COLORS, VIEWPORT } from '../core/config.js';
 import { PlayerStateId } from '../gameplay/player/player-state.js';
 import { POSE_BY_STATE, POSE_FRAMES, frameRect } from './atlas-meta.js';
 
@@ -12,12 +12,32 @@ const FRAME_DURATION_MS = 110;
  */
 const SPRITE_SCALE = 1.8;
 
+// Alpha bounding boxes for trimmed pixel art assets
+const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 113, sy: 150, sw: 889, sh: 849 });
+const CHECKPOINT_BOUNDS = Object.freeze({ sx: 73, sy: 113, sw: 1126, sh: 1067 });
+const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 49, sy: 55, sw: 1178, sh: 1142 });
+
+function resolveBackgroundKey(level) {
+  if (!level) return 'bg:primavera-lago';
+  if (level.background && typeof level.background === 'string') {
+    if (level.background.startsWith('bg:')) return level.background;
+    if (level.background.includes('pomar')) return 'bg:primavera-pomar';
+    if (level.background.includes('bosque')) return 'bg:outono-bosque';
+    if (level.background.includes('vale')) return 'bg:outono-vale';
+    if (level.background.includes('garden')) return 'bg:garden-pixel';
+  }
+
+  // Pick themed background by level category
+  const id = level.id ?? '';
+  if (id.includes('palavras') || id.includes('dificil')) return 'bg:outono-bosque';
+  if (id.includes('silabas')) return 'bg:primavera-pomar';
+  if (id.includes('encontros')) return 'bg:outono-vale';
+  return 'bg:primavera-lago';
+}
+
 /**
- * Draws the world. Terrain/items/hazards are still placeholder shapes; the
- * player is drawn from the active character's pose art (preloaded by the
- * `AssetManager` in `BootScene`), animating through that pose's frame grid,
- * and falling back to a coloured rectangle when an image has not finished
- * loading (or none was provided, e.g. in tests).
+ * Draws the world: panoramic parallax backgrounds, terrain, checkpoints,
+ * finish portals, letter tokens, hazards and animated player.
  */
 export class SpriteRenderer {
   constructor({ atlas = null, assets = null, now = () => Date.now() } = {}) {
@@ -36,7 +56,29 @@ export class SpriteRenderer {
     this._surfaces = computeSurfaces(level.solids);
   }
 
-  drawBackground(renderer) {
+  /** Draw panoramic background with smooth camera parallax. */
+  drawBackground(renderer, cameraX = 0) {
+    const bgKey = resolveBackgroundKey(this._level);
+    const bgImage = this._assets?.has(bgKey) ? this._assets.get(bgKey) : null;
+
+    if (bgImage && typeof renderer.screenImage === 'function' && bgImage.width && bgImage.height) {
+      try {
+        const viewportW = renderer.width || VIEWPORT.width;
+        const viewportH = renderer.height || VIEWPORT.height;
+        const bgW = Math.round((bgImage.width / bgImage.height) * viewportH);
+        const parallaxSpeed = 0.28;
+        let offsetX = -Math.round((cameraX * parallaxSpeed) % bgW);
+        if (offsetX > 0) offsetX -= bgW;
+        while (offsetX < viewportW) {
+          renderer.screenImage(bgImage, offsetX, 0, bgW, viewportH);
+          offsetX += bgW;
+        }
+        return;
+      } catch {
+        // Fallback to solid color on draw error
+      }
+    }
+
     renderer.clear(this._level?.background ?? COLORS.sky);
   }
 
@@ -46,14 +88,86 @@ export class SpriteRenderer {
 
     for (const solid of level.solids) {
       renderer.worldFillRect(solid.x, solid.y, solid.w, solid.h, COLORS.ground);
+      // Subdued bottom rim for depth
+      renderer.worldFillRect(solid.x, solid.y + solid.h - 4, solid.w, 4, '#482a13');
     }
-    // Grass strip on every exposed top surface.
+    // Grass strip on every exposed top surface with 16-bit highlights
     for (const surface of this._surfaces) {
       renderer.worldFillRect(surface.x, surface.y, surface.w, 8, COLORS.groundTop);
+      renderer.worldFillRect(surface.x, surface.y, surface.w, 2, '#a5df57');
+      renderer.worldFillRect(surface.x, surface.y + 7, surface.w, 2, '#503518');
     }
     for (const platform of level.oneWayPlatforms) {
       renderer.worldFillRect(platform.x, platform.y, platform.w, platform.h, COLORS.platform);
-      renderer.worldFillRect(platform.x, platform.y, platform.w, 6, '#e8b366');
+      renderer.worldFillRect(platform.x, platform.y, platform.w, 4, '#f2ce80');
+      renderer.worldFillRect(platform.x, platform.y + platform.h - 3, platform.w, 3, '#8e561d');
+    }
+  }
+
+  /** Draws checkpoint flags and the finish portal. */
+  drawObjects(renderer, level = this._level, checkpoints = null) {
+    if (!level) return;
+    const now = this._now();
+
+    // 1. Checkpoint flags
+    const cpImg = this._assets?.has('object:checkpoint')
+      ? this._assets.get('object:checkpoint')
+      : null;
+
+    const pointsToDraw = checkpoints && Array.isArray(checkpoints)
+      ? checkpoints
+      : (level.checkpoint ? [level.checkpoint] : []);
+
+    if (cpImg && typeof renderer.worldImage === 'function') {
+      const flagW = 44;
+      const flagH = 44;
+      for (const pt of pointsToDraw) {
+        renderer.worldImage(
+          cpImg,
+          CHECKPOINT_BOUNDS.sx,
+          CHECKPOINT_BOUNDS.sy,
+          CHECKPOINT_BOUNDS.sw,
+          CHECKPOINT_BOUNDS.sh,
+          pt.x - 10,
+          pt.y - 2,
+          flagW,
+          flagH,
+        );
+      }
+    }
+
+    // 2. Finish Portal
+    const portalImg = this._assets?.has('object:finish-portal')
+      ? this._assets.get('object:finish-portal')
+      : null;
+
+    if (portalImg && typeof renderer.worldImage === 'function') {
+      const portalW = 86;
+      const portalH = 84;
+      const portalX = (level.worldWidth ?? 1920) - 130;
+      const portalY = (level.worldHeight ?? 540) - 92 - portalH;
+
+      // Soft magical portal pulse
+      const shimmer = Math.sin(now / 320) * 0.15 + 0.85;
+      renderer.worldFillRect(
+        portalX + 22,
+        portalY + 20,
+        portalW - 44,
+        portalH - 24,
+        `rgba(110, 225, 255, ${shimmer * 0.4})`,
+      );
+
+      renderer.worldImage(
+        portalImg,
+        FINISH_PORTAL_BOUNDS.sx,
+        FINISH_PORTAL_BOUNDS.sy,
+        FINISH_PORTAL_BOUNDS.sw,
+        FINISH_PORTAL_BOUNDS.sh,
+        portalX,
+        portalY,
+        portalW,
+        portalH,
+      );
     }
   }
 
@@ -77,14 +191,60 @@ export class SpriteRenderer {
 
   /** @param {Set<string>} collectedIds */
   drawItems(renderer, items, collectedIds = new Set()) {
+    const carrierImg = this._assets?.has('item:letter-carrier')
+      ? this._assets.get('item:letter-carrier')
+      : null;
+    const now = this._now();
+
     for (const item of items) {
       if (collectedIds.has(item.id)) continue;
       const isTarget = item.type === 'target';
-      renderer.worldFillRect(item.x, item.y, item.w, item.h, isTarget ? COLORS.target : COLORS.distractor);
-      renderer.worldText(item.label, item.x + item.w / 2, item.y + item.h / 2 + 1, {
-        color: '#ffffff',
-        font: 'bold 18px "Trebuchet MS", sans-serif',
-      });
+
+      // Gentle floating bob
+      const bob = Math.sin((now / 220) + (item.x * 0.05)) * 3.5;
+      const drawY = item.y + bob;
+
+      if (carrierImg && typeof renderer.worldImage === 'function') {
+        const pad = 6;
+        const tokenX = item.x - pad;
+        const tokenY = drawY - pad;
+        const tokenW = item.w + pad * 2;
+        const tokenH = item.h + pad * 2;
+
+        if (isTarget) {
+          // Golden halo around target letter
+          renderer.worldFillRect(
+            tokenX - 2,
+            tokenY - 2,
+            tokenW + 4,
+            tokenH + 4,
+            'rgba(255, 215, 0, 0.35)',
+          );
+        }
+
+        renderer.worldImage(
+          carrierImg,
+          LETTER_CARRIER_BOUNDS.sx,
+          LETTER_CARRIER_BOUNDS.sy,
+          LETTER_CARRIER_BOUNDS.sw,
+          LETTER_CARRIER_BOUNDS.sh,
+          tokenX,
+          tokenY,
+          tokenW,
+          tokenH,
+        );
+
+        renderer.worldText(item.label, item.x + item.w / 2, drawY + item.h / 2, {
+          color: isTarget ? '#142420' : '#483522',
+          font: 'bold 20px "Trebuchet MS", "Courier New", monospace',
+        });
+      } else {
+        renderer.worldFillRect(item.x, item.y, item.w, item.h, isTarget ? COLORS.target : COLORS.distractor);
+        renderer.worldText(item.label, item.x + item.w / 2, item.y + item.h / 2 + 1, {
+          color: '#ffffff',
+          font: 'bold 18px "Trebuchet MS", sans-serif',
+        });
+      }
     }
   }
 
@@ -157,7 +317,8 @@ export class SpriteRenderer {
  * A solid rectangle is a visible "surface" when no larger rectangle sits
  * directly on top of it — that is where the grass strip belongs.
  */
-function computeSurfaces(solids) {
+function computeSurfaces(solids = []) {
+  if (!solids || !Array.isArray(solids)) return [];
   return solids.filter(
     (solid) =>
       !solids.some(

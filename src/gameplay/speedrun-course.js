@@ -221,7 +221,7 @@ export function buildSpeedrunCourse({ random = Math.random } = {}) {
     tileset: 'placeholder',
     viewport: { width: 960, height: 540 },
     tileSize: 32,
-    background: '#9bd3f5',
+    background: 'bg:primavera-lago',
     music: null,
     playerStart: { x: 96, y: 406 },
     checkpoint: { ...checkpoints[0] },

@@ -105,4 +105,8 @@ export class CanvasRenderer {
     this.ctx.roundRect(x, y, w, h, radius);
     this.ctx.fill();
   }
+
+  screenImage(image, dx, dy, dw, dh) {
+    this.ctx.drawImage(image, dx, dy, dw, dh);
+  }
 }

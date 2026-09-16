@@ -1,0 +1,46 @@
+services:
+  jogo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: joguinho-sobrinhos:latest
+    container_name: joguinho-sobrinhos
+    restart: unless-stopped
+    ports:
+      - "65000:8080"
+
+    # --- Resource limits ---
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+        reservations:
+          cpus: "0.10"
+          memory: 32M
+    mem_swappiness: 0
+    pids_limit: 100
+
+    # --- Security hardening ---
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
