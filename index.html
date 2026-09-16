@@ -8,8 +8,13 @@
       name="description"
       content="Jogo de plataforma 2D educativo em português: pule, descubra e brinque com letras, sílabas e palavras."
     />
+    <meta name="theme-color" content="#141c24" />
+    <!-- iOS ignores the manifest for home-screen install; these two cover it. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <!-- Pixel font is self-hosted in /fonts (see @font-face in main.css). -->
     <link rel="stylesheet" href="/src/styles/main.css" />
+    <link rel="stylesheet" href="/src/styles/touch-controls.css" />
   </head>
   <body>
     <!-- Game world is rendered on the canvas; menus are accessible DOM overlays. -->
@@ -22,8 +27,15 @@
           aria-label="Área do jogo"
         ></canvas>
         <div id="hud-controls-root" class="hud-controls-root"></div>
+        <div id="touch-controls-root" class="touch-controls-root"></div>
         <div id="overlay-root" class="overlay-root"></div>
       </div>
+    </div>
+
+    <!-- Touch devices in portrait: gameplay is landscape-only (see main.css). -->
+    <div class="orientation-warning" role="alert">
+      <span class="orientation-warning-icon" aria-hidden="true">📱</span>
+      <p>Gire o celular para jogar. O jogo funciona apenas na horizontal.</p>
     </div>
 
     <script type="module" src="/src/main.js"></script>

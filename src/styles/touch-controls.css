@@ -1,0 +1,112 @@
+/* ==========================================================================
+   Touch controls — on-screen D-pad + jump button
+   Only shown on coarse-pointer (touch) devices; see main.js device detection.
+   ========================================================================== */
+
+.touch-controls-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.touch-controls-root > * {
+  pointer-events: auto;
+}
+
+.touch-btn {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 56px comfortably clears the 44x44 accessibility minimum touch target. */
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 1.4rem;
+  line-height: 1;
+  border-radius: 50%;
+  border: 2px solid var(--color-ink);
+  background: rgba(20, 36, 32, 0.78);
+  color: var(--color-cream);
+  box-shadow: 0 3px 0 var(--color-ink);
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.1s ease;
+}
+
+.touch-btn:active {
+  transform: translateY(2px) scale(0.95);
+  background: rgba(20, 36, 32, 0.95);
+  box-shadow: 0 1px 0 var(--color-ink);
+}
+
+.touch-controls-dpad {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 12px;
+}
+
+.touch-btn-jump {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: 68px;
+  height: 68px;
+  font-size: 1.7rem;
+  background: rgba(255, 212, 121, 0.85);
+  color: var(--color-ink);
+  border-color: var(--color-gold-border);
+}
+
+.touch-btn-jump:active {
+  background: rgba(255, 212, 121, 1);
+}
+
+/* ==========================================================================
+   Orientation guard — landscape-only gameplay on touch devices
+   ========================================================================== */
+
+.orientation-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--color-bg);
+  color: var(--color-cream);
+  text-align: center;
+  padding: 24px;
+}
+
+.orientation-warning-icon {
+  font-size: 3rem;
+  animation: rotate-hint 1.6s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+
+.orientation-warning p {
+  font-family: var(--font-pixel);
+  font-size: 0.95rem;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  .orientation-warning {
+    display: flex;
+  }
+}

@@ -3,6 +3,8 @@ import { GameLoop } from './core/game-loop.js';
 import { SceneManager } from './core/scene-manager.js';
 import { InputManager } from './input/input-manager.js';
 import { KeyboardAdapter } from './input/keyboard-adapter.js';
+import { TouchAdapter } from './input/touch-adapter.js';
+import { CompositeAdapter } from './input/composite-adapter.js';
 import { CanvasRenderer } from './render/canvas-renderer.js';
 import { SpriteRenderer } from './render/sprites.js';
 import { AssetManager } from './core/asset-manager.js';
@@ -10,6 +12,7 @@ import { Hud } from './render/hud.js';
 import { Effects } from './render/effects.js';
 import { MenuOverlay } from './ui/menu.js';
 import { HudControls } from './ui/hud-controls.js';
+import { TouchControls } from './ui/touch-controls.js';
 import { AudioManager } from './audio/audio-manager.js';
 import { createStorageAdapter } from './persistence/local-storage-adapter.js';
 import { SaveStore } from './persistence/save-store.js';
@@ -30,10 +33,19 @@ import { VictoryScene } from './scenes/victory-scene.js';
  *
  * @typedef {ReturnType<typeof createGame>} GameContext
  */
+/** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
+function isTouchDevice() {
+  return (
+    typeof globalThis.matchMedia === 'function' &&
+    globalThis.matchMedia('(pointer: coarse)').matches
+  );
+}
+
 export function createGame({
   canvas,
   overlayRoot,
   hudControlsRoot = null,
+  touchControlsRoot = null,
   storage = globalThis.localStorage,
   assets = new AssetManager(),
 }) {
@@ -47,6 +59,7 @@ export function createGame({
   const input = new InputManager();
   const menu = new MenuOverlay({ root: overlayRoot });
   const hudControls = new HudControls({ root: hudControlsRoot ?? overlayRoot });
+  const touchControls = new TouchControls({ root: touchControlsRoot ?? overlayRoot });
 
   const storageAdapter = createStorageAdapter(storage);
   const saves = new SaveStore({ adapter: storageAdapter });
@@ -62,12 +75,16 @@ export function createGame({
     assets,
     menu,
     hudControls,
+    touchControls,
     audio,
     sprites,
     effects,
     hud,
     profiles,
     progress,
+    device: {
+      isTouch: isTouchDevice(),
+    },
     curriculum: {
       units: curriculum.UNITS,
       lessons: curriculum.LESSONS,
@@ -113,8 +130,14 @@ export function createGame({
   });
   game.loop = loop;
 
-  // The only line where a physical keyboard meets the game's actions.
-  input.setAdapter(new KeyboardAdapter(input.handleAction));
+  // The only lines where physical input meets the game's actions. Both stay
+  // attached at once (Composite) so a touch-screen laptop can use either.
+  input.setAdapter(
+    new CompositeAdapter(input.handleAction, [
+      new KeyboardAdapter(input.handleAction),
+      new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
+    ]),
+  );
 
   const handleBlur = () => {
     input.reset();
@@ -126,6 +149,11 @@ export function createGame({
     else bus.emit(Events.APP_FOCUSED);
   });
 
+  // Mobile browsers block Audio.play() outside a user gesture. This unlocks
+  // it on the very first tap/click of the session, whichever element it
+  // lands on, so every playMusic/playSfx call afterwards just works.
+  window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
+
   scenes.switchTo('boot');
 
   return game;
@@ -136,8 +164,15 @@ export function createGame({
 const bootCanvas = typeof document !== 'undefined' ? document.getElementById('game-canvas') : null;
 const bootOverlay = typeof document !== 'undefined' ? document.getElementById('overlay-root') : null;
 const bootHudControls = typeof document !== 'undefined' ? document.getElementById('hud-controls-root') : null;
+const bootTouchControls =
+  typeof document !== 'undefined' ? document.getElementById('touch-controls-root') : null;
 
 if (bootCanvas && bootOverlay) {
-  const game = createGame({ canvas: bootCanvas, overlayRoot: bootOverlay, hudControlsRoot: bootHudControls });
+  const game = createGame({
+    canvas: bootCanvas,
+    overlayRoot: bootOverlay,
+    hudControlsRoot: bootHudControls,
+    touchControlsRoot: bootTouchControls,
+  });
   game.loop.start();
 }

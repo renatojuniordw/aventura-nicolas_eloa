@@ -14,10 +14,30 @@ export class AudioManager {
     this._settings = settings;
     this._registry = new Map();
     this._currentMusic = null;
+    this._unlocked = false;
 
     const stored = settings?.read() ?? { muted: false, volume: 0.8 };
     this._muted = Boolean(stored.muted);
     this._volume = clamp01(stored.volume ?? 0.8);
+  }
+
+  get isUnlocked() {
+    return this._unlocked;
+  }
+
+  /**
+   * Mobile browsers block `Audio.play()` outside a real user gesture. Call
+   * this once, synchronously, from the first pointerdown/click handler of
+   * the session (see main.js) — playing a muted element inside that gesture
+   * is what tells the browser this origin is allowed to play audio, so every
+   * `playMusic`/`playSfx` call afterwards works instead of silently failing.
+   */
+  unlock() {
+    if (this._unlocked || typeof Audio === 'undefined') return;
+    this._unlocked = true;
+    const probe = new Audio();
+    probe.muted = true;
+    probe.play?.().catch(() => {});
   }
 
   get isMuted() {

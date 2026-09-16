@@ -104,6 +104,7 @@ export class GameScene extends Scene {
     this.game.sprites.setLevel(this.level);
     this._subscribe();
     this.game.hudControls.showPauseButton({ onPause: () => this.togglePause() });
+    if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
   }
 
@@ -112,6 +113,7 @@ export class GameScene extends Scene {
     this._unsubscribers = [];
     this.game.menu.hide();
     this.game.hudControls.hidePauseButton();
+    this.game.touchControls.hide();
     this.game.effects.clear();
   }
 

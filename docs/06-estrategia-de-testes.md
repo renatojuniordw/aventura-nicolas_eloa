@@ -1,9 +1,10 @@
 # 06 — Estratégia de testes
 
-**171 testes** em **21 arquivos**, rodando em menos de 1 segundo.
+**283 testes** em **37 arquivos**, rodando em cerca de 1 segundo.
 
 A estratégia é simples e deliberada: **testar lógica pura sem DOM** e ter **um** teste de
-integração que prova que as peças se conectam.
+integração que prova que as peças se conectam. O DOM aparece só onde o DOM *é* o
+comportamento sob teste (ver seção 4).
 
 ```bash
 npm test            # roda tudo uma vez
@@ -14,45 +15,104 @@ npm run test:watch  # modo observador durante o desenvolvimento
 
 ## 1. Filosofia
 
-| Princípio                                    | Como aparece no projeto                                       |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| Teste o que decide, não o que desenha        | Física, validação, input e migração são testados; desenho não |
-| Injeção de dependência em vez de mock de DOM | `FakeAdapter`, `MemoryStorageAdapter`, `NullRenderer`         |
-| Regras de arquitetura como testes            | `src/architecture.test.js`                                    |
-| Um teste de integração, não vinte            | `src/integration.test.js` (jsdom), cobre o caminho completo   |
-| Testes são documentação                      | Os nomes dos testes descrevem o comportamento esperado        |
+| Princípio                                     | Como aparece no projeto                                        |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| Teste o que decide, não o que desenha         | Física, validação, input e migração são testados; desenho não  |
+| Injeção de dependência em vez de mock de DOM  | `FakeAdapter`, `MemoryStorageAdapter`, `NullRenderer`          |
+| Regras de arquitetura como testes             | `src/architecture.test.js`                                     |
+| Um teste de integração, não vinte             | `src/integration.test.js` (jsdom) cobre o caminho completo     |
+| Testes são documentação                       | Os nomes dos testes descrevem o comportamento esperado         |
+| Teste afirma **valor**, não existência        | Recorte de sprite é comparado por número, não por `expect.any` |
 
-Por que não testar renderização: um teste que só verifica "a função de desenhar foi
+Por que não testar o desenho fino: um teste que só verifica "a função de desenhar foi
 chamada" trava mudanças visuais sem pegar bug real. Preferimos concentrar a lógica em
-módulos puros — que são a maioria — e deixar o desenho fino e burro.
+módulos puros — que são a maioria — e deixar o desenho simples.
+
+**Onde o desenho é testado, o valor é pinado.** `canvas-renderer.test.js` confere o
+offset exato da câmera e o inset de meio pixel; `sprite-assets.test.js` confere os
+retângulos de recorte por número. Esses testes pegam erro de transcrição — os que só
+contam chamadas, não pegariam.
 
 ---
 
 ## 2. Mapa de testes
 
-| Arquivo                                     | Testes | O que garante                                                                |
-| ------------------------------------------- | -----: | ---------------------------------------------------------------------------- |
-| `core/event-bus.test.js`                    |      5 | Assinatura, cancelamento, `once`, remoção durante o despacho                 |
-| `core/game-loop.test.js`                    |      6 | Timestep fixo: 0,5 s → 30 passos; 10 s → limitado a 5 e descarta o resto     |
-| `core/scene-manager.test.js`                |      5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente             |
-| `input/keyboard-keymap.test.js`             |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado                |
-| `input/input-manager.test.js`               |      9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador   |
-| `physics/aabb.test.js`                      |      6 | Sobreposição de caixas, encostar ≠ sobrepor, caixa envolvente                |
-| `physics/physics-engine.test.js`            |     10 | Gravidade, velocidade terminal, colisão nos 4 lados, plataforma de mão única |
-| `gameplay/player/player-controller.test.js` |     12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições     |
-| `gameplay/lives-manager.test.js`            |      5 | Perda de coração, esgotamento anunciado uma vez, nunca negativo              |
-| `gameplay/level-manager.test.js`            |      7 | Coleta única, perigo ao entrar, queda anunciada uma vez                      |
-| `content/text-utils.test.js`                |      8 | Acentos, cedilha, caixa, espaços, entrada inválida                           |
-| `content/answer-validator.test.js`          |      7 | Acerto, acento, variantes, rejeição de distratores                           |
-| `content/level-loader.test.js`              |     12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas     |
-| `content/curriculum.test.js`                |     14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos       |
-| `persistence/migration.test.js`             |      9 | Primeira execução, migração v0→v1, save corrompido, versão futura            |
-| `persistence/persistence.test.js`           |     17 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial |
-| `render/camera.test.js`                     |      6 | Conversão mundo→tela, limite de rolagem, suavização                          |
-| `render/hud-model.test.js`                  |      5 | Corações, mensagem que aparece e desaparece                                  |
-| `render/effects.test.js`                    |      5 | Partículas nascem, caem, morrem; desenho sem canvas real                     |
-| `architecture.test.js`                      |      5 | **As regras de arquitetura** (ver seção 3)                                   |
-| `integration.test.js`                       |     10 | **O jogo inteiro**, em jsdom (ver seção 4)                                   |
+### 2.1 Núcleo e entrada
+
+| Arquivo                                 | Testes | O que garante                                                              |
+| --------------------------------------- | -----: | -------------------------------------------------------------------------- |
+| `core/event-bus.test.js`                |      5 | Assinatura, cancelamento, `once`, remoção durante o despacho               |
+| `core/game-loop.test.js`                |      6 | Timestep fixo: 0,5 s → 30 passos; 10 s → limitado a 5 e descarta o resto   |
+| `core/scene-manager.test.js`            |      5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente           |
+| `input/keyboard-keymap.test.js`         |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado              |
+| `input/input-manager.test.js`           |      9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
+| `app-lifecycle.test.js`                 |      3 | `blur`/`visibilitychange` limpam o input e pausam; grafo montado (jsdom)   |
+
+### 2.2 Física e regras de jogo
+
+| Arquivo                                     | Testes | O que garante                                                                 |
+| ------------------------------------------- | -----: | ----------------------------------------------------------------------------- |
+| `physics/aabb.test.js`                      |      6 | Sobreposição de caixas, encostar ≠ sobrepor, caixa envolvente                 |
+| `physics/physics-engine.test.js`            |     12 | Gravidade, velocidade terminal, colisão nos 4 lados, plataforma de mão única, broad-phase |
+| `gameplay/player/player-controller.test.js` |     12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições      |
+| `gameplay/lives-manager.test.js`            |      4 | Perda de coração, esgotamento anunciado uma vez, nunca negativo               |
+| `gameplay/level-manager.test.js`            |      8 | Coleta única, perigo ao entrar, queda anunciada uma vez, checkpoint           |
+| `gameplay/speedrun-course.test.js`          |      6 | Curso A→Z contínuo e congelado, itens fora do alcance de quem só anda, sem letra perto de perigo |
+
+### 2.3 Conteúdo
+
+| Arquivo                            | Testes | O que garante                                                            |
+| ---------------------------------- | -----: | ------------------------------------------------------------------------ |
+| `content/text-utils.test.js`       |      8 | Acentos, cedilha, caixa, espaços, entrada inválida                       |
+| `content/answer-validator.test.js` |      7 | Acerto, acento, variantes, rejeição de distratores                       |
+| `content/level-loader.test.js`     |     12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas |
+| `content/curriculum.test.js`       |     14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos   |
+
+### 2.4 Persistência
+
+| Arquivo                                  | Testes | O que garante                                                                 |
+| ---------------------------------------- | -----: | ----------------------------------------------------------------------------- |
+| `persistence/migration.test.js`          |      9 | Primeira execução, migração v0→v1, save corrompido, versão futura             |
+| `persistence/persistence.test.js`        |     18 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial, tempo do Speed Run |
+| `persistence/audio-settings-store.test.js` |    4 | Padrões, round-trip, recuperação de JSON corrompido, limite de volume         |
+
+### 2.5 Render e HUD
+
+| Arquivo                         | Testes | O que garante                                                                    |
+| ------------------------------- | -----: | -------------------------------------------------------------------------------- |
+| `render/camera.test.js`         |      6 | Conversão mundo→tela, limite de rolagem, suavização                              |
+| `render/canvas-renderer.test.js`|      9 | Offset da câmera, inset de meio pixel, espelhamento (`flipX`), espaço de tela    |
+| `render/sprite-assets.test.js`  |      7 | Recortes por número, `resolveBackgroundKey` e seus ramos de fallback             |
+| `render/sprites.test.js`        |      4 | Parallax, token da letra, checkpoint e portal do fim                             |
+| `render/effects.test.js`        |      5 | Partículas nascem, caem, morrem; desenho sem canvas real                         |
+| `render/hud-model.test.js`      |      6 | Corações, mensagem que aparece e desaparece, cronômetro do Speed Run             |
+
+### 2.6 Áudio
+
+| Arquivo                            | Testes | O que garante                                                          |
+| ---------------------------------- | -----: | ---------------------------------------------------------------------- |
+| `audio/audio-manager.test.js`      |      7 | Estado inicial, mudo/volume aplicados ao `Audio` criado, troca de faixa |
+
+### 2.7 Cenas e telas
+
+| Arquivo                                   | Testes | O que garante                                                                   |
+| ----------------------------------------- | -----: | ------------------------------------------------------------------------------- |
+| `scenes/boot-scene.test.js`               |      5 | Manifesto de assets, **merge dos sprites de personagem**, tolerância a falha de carga, transição única |
+| `scenes/menu-scene.test.js`               |     16 | **Fluxo de consentimento parental**, criação/renomeação de perfil, Speed Run, rótulo da próxima descoberta |
+| `scenes/game-scene.test.js`               |     14 | Acerto/erro, ordem do Speed Run, perigo, fim de maratona, pausa e game over      |
+| `scenes/victory-scene.test.js`            |     11 | Vitória normal e do Speed Run, `hasNext`, ações de cada botão                    |
+| `ui/screens/pause.test.js`                |     10 | Passos da pausa, aviso específico por modo, mudo, passo desconhecido (jsdom)     |
+| `ui/screens/privacy-notice.test.js`       |      3 | Aviso parental e que ele **não** é dispensável (jsdom)                           |
+| `ui/screens/celebration-canvas.test.js`   |      1 | Recorte seguro quando não existe `document` (SSR)                               |
+| `ui/screens/celebration-canvas.dom.test.js` |    4 | Loop de `requestAnimationFrame`, `stop` cancela, avanço da grade 2×2 (jsdom)    |
+| `ui/pixel-logo.test.js`                   |      3 | SVG do logo com título, `aria-label` e acentuação (jsdom)                       |
+
+### 2.8 Transversais
+
+| Arquivo                | Testes | O que garante                              |
+| ---------------------- | -----: | ------------------------------------------ |
+| `architecture.test.js` |      5 | **As regras de arquitetura** (ver seção 3) |
+| `integration.test.js`  |     11 | **O jogo inteiro**, em jsdom (ver seção 4) |
 
 ---
 

@@ -10,11 +10,13 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "generate:levels": "node tools/generate-levels.mjs"
+    "generate:levels": "node tools/generate-levels.mjs",
+    "generate:pwa-icons": "node tools/generate-pwa-icons.mjs"
   },
   "devDependencies": {
     "jsdom": "^29.1.1",
     "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^5.0.1"
   }
 }

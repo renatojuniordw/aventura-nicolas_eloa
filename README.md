@@ -25,7 +25,7 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:5173`).
 | Comando                   | O que faz                                          |
 | ------------------------- | -------------------------------------------------- |
 | `npm run dev`             | Servidor de desenvolvimento com recarga automática |
-| `npm test`                | Roda os 171 testes                                 |
+| `npm test`                | Roda os 283 testes                                 |
 | `npm run test:watch`      | Testes em modo observador                          |
 | `npm run build`           | Gera a versão de produção em `dist/`               |
 | `npm run preview`         | Serve a versão de produção localmente              |
@@ -40,14 +40,20 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:5173`).
 | Andar             | `←` `→` ou `A` `D`        |
 | Pular             | `Espaço`, `↑`, `W` ou `Z` |
 | Pausar            | `Esc` ou `P`              |
-| Confirmar (menus) | `Enter`                   |
-| Voltar (menus)    | `Backspace`               |
+| Confirmar (menus) | `Enter` ou `J`            |
+| Voltar (menus)    | `Backspace` ou `Y`        |
 | Mostrar hitboxes  | `F2`                      |
 
 - Colete o item indicado **no topo da tela**.
 - **Acertar** comemora e conclui a fase. **Errar** custa um coração (são 3).
 - **Cair em um buraco não custa coração** — o personagem volta para o mesmo lugar.
 - Segurar o pulo faz o personagem subir mais; soltar cedo encurta o pulo.
+- **Speed Run**: no menu, o modo corrida encadeia o alfabeto de A a Z e cronometra o
+  melhor tempo por jogador.
+- Na primeira execução o jogo mostra um **aviso aos responsáveis** explicando que nome e
+  progresso ficam só no aparelho (ver [10 — Privacidade](docs/10-privacidade-e-lgpd.md)).
+- O som pode ser ligado/desligado no menu e na pausa (ver
+  [02 — Gameplay](docs/02-gameplay-e-controles.md)).
 
 ---
 
@@ -77,6 +83,7 @@ Toda a documentação está em [`docs/`](docs/README.md), em português:
 | [07 — Plano por fases](docs/07-plano-de-desenvolvimento-fases.md) | Roadmap e critérios de aceite                                              |
 | [08 — Evolução futura](docs/08-evolucao-futura.md)                | Pulo duplo, poderes, som, toque, ESP32                                     |
 | [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md)  | Termos, nomes e regras de código                                           |
+| [10 — Privacidade e LGPD](docs/10-privacidade-e-lgpd.md)          | Quais dados o jogo guarda, consentimento parental e direitos               |
 
 ---
 
@@ -111,14 +118,17 @@ src/
 ├── core/         laço de jogo, eventos, cenas, configuração
 ├── input/        ações semânticas, adaptador de teclado, gerenciador
 ├── physics/      colisão AABB e motor de movimento
-├── gameplay/     controlador do jogador, estados, vidas, fase
+├── gameplay/     controlador do jogador, estados, vidas, fase, speed run
 ├── render/       canvas, câmera, sprites, HUD, efeitos
 ├── content/      currículo, fases, validação de resposta
-├── persistence/  perfis e progresso no localStorage
-├── ui/           telas de menu em DOM
+├── persistence/  perfis, progresso e preferências no localStorage
+├── audio/        gerenciador de música e efeitos
+├── ui/           overlays de menu em DOM (ui/screens/ tem uma tela por overlay)
+├── styles/       CSS do tema e das sobreposições
 └── scenes/       boot, menu, game, victory
 
 docs/             documentação completa em português
+public/fonts/     fonte pixel art self-hosted (OFL 1.1) + licença
 tools/            gerador de fases
 imgs_referencia/  sprite sheet apenas para referência de medidas
 ```
@@ -131,3 +141,9 @@ Código do projeto. A imagem em `imgs_referencia/` é **apenas referência de pr
 **não deve ser distribuída** (arte de terceiros). A arte de produção está prevista para a
 fase 5 do plano e deve ser original ou CC0 — ver
 [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md#7-licenças-e-procedência-de-arte).
+
+A fonte **Silkscreen** (pixel art) é distribuída junto do jogo em `public/fonts/`, sob a
+**SIL Open Font License 1.1** — o texto da licença acompanha os arquivos em
+`public/fonts/OFL.txt`. Ela é *self-hosted* de propósito: o jogo não faz nenhuma
+requisição a terceiros, o que mantém a política de privacidade simples (ver
+[10](docs/10-privacidade-e-lgpd.md)).

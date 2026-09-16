@@ -98,4 +98,22 @@ describe('AudioManager', () => {
     expect(createdAudios).toHaveLength(2);
     expect(createdAudios[1].url).toBe('/b.mp3');
   });
+
+  it('unlock() plays a muted probe element and flips isUnlocked', () => {
+    const audio = new AudioManager();
+    expect(audio.isUnlocked).toBe(false);
+
+    audio.unlock();
+
+    expect(audio.isUnlocked).toBe(true);
+    expect(createdAudios).toHaveLength(1);
+    expect(createdAudios[0].muted).toBe(true);
+  });
+
+  it('unlock() is a no-op after the first call', () => {
+    const audio = new AudioManager();
+    audio.unlock();
+    audio.unlock();
+    expect(createdAudios).toHaveLength(1);
+  });
 });
