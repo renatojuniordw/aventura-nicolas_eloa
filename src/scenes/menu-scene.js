@@ -18,7 +18,21 @@ export class MenuScene extends Scene {
 
   render() {
     const { profiles, progress, menu } = this.game;
-    const activeProfile = profiles.getActiveProfile();
+    let activeProfile = profiles.getActiveProfile();
+    if (!activeProfile) {
+      const existing = profiles.listProfiles()[0];
+      if (existing) {
+        profiles.setActiveProfile(existing.id);
+        activeProfile = existing;
+      } else {
+        activeProfile = profiles.createProfile('Nicolas', 'char-nicolas');
+      }
+    }
+    if (activeProfile && (activeProfile.name === 'Jogador' || !activeProfile.name)) {
+      profiles.renameProfile(activeProfile.id, 'Nicolas');
+      activeProfile = profiles.getActiveProfile();
+    }
+
     const { lessonOrder, getLesson } = this.game.curriculum;
     const nextLessonId = activeProfile
       ? (progress.getNextLesson(activeProfile.id, lessonOrder) ?? lessonOrder[0])
@@ -31,17 +45,13 @@ export class MenuScene extends Scene {
     menu.showMainMenu({
       profiles: profiles.listProfiles(),
       activeProfileId: activeProfile?.id ?? null,
-      selectedCharacterId: activeProfile?.characterId ?? null,
+      selectedCharacterId: activeProfile?.characterId ?? 'char-nicolas',
       completedCount: activeProfile ? progress.completedCount(activeProfile.id) : 0,
       totalLessons: this.game.curriculum.lessons.length,
       currentLessonTitle: discoveryTitle,
       onPlay: () => this.playNext(),
       onSelectProfile: (profileId) => {
         profiles.setActiveProfile(profileId);
-        this.render();
-      },
-      onCreateProfile: (name) => {
-        profiles.createProfile(name);
         this.render();
       },
       onSelectCharacter: (characterId) => {
@@ -61,7 +71,9 @@ export class MenuScene extends Scene {
 
   /** Start the first unfinished lesson, creating a profile if needed. */
   playNext() {
-    const profile = this.game.profiles.getActiveProfile() ?? this.game.profiles.createProfile('Jogador');
+    const profile =
+      this.game.profiles.getActiveProfile() ??
+      this.game.profiles.createProfile('Nicolas', 'char-nicolas');
     const { lessonOrder } = this.game.curriculum;
     const nextLessonId =
       this.game.progress.getNextLesson(profile.id, lessonOrder) ?? lessonOrder[0];

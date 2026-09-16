@@ -65,10 +65,7 @@ export class MenuOverlay {
       totalLessons = 0,
       currentLessonTitle = 'Família B',
       onPlay,
-      onSelectProfile,
-      onCreateProfile,
       onSelectCharacter,
-      onOpenCharacterPicker,
       onOpenLessonPicker,
       onResetProgress,
     } = options;
@@ -86,36 +83,8 @@ export class MenuOverlay {
     // 2. Tagline
     const tagline = el('div', { class: 'home-tagline', text: 'PULE. DESCUBRA. BRINQUE.' });
 
-    // 3. Profiles section: "QUEM VAI BRINCAR?"
-    const profileTitle = el('div', { class: 'home-section-title', text: 'QUEM VAI BRINCAR?' });
-
-    const profileButtons = profiles.slice(0, 2).map((profile) => {
-      const isSelected = profile.id === activeProfileId;
-      return el('button', {
-        class: `profile-tab ${isSelected ? 'selected' : ''}`,
-        type: 'button',
-        tabindex: '-1',
-        text: (isSelected ? '● ' : '') + profile.name,
-        onClick: () => onSelectProfile(profile.id),
-      });
-    });
-
-    // Convidado / Novo profile tab
-    const guestSelected = !activeProfileId || profiles.length === 0;
-    profileButtons.push(
-      el('button', {
-        class: `profile-tab ${guestSelected ? 'selected' : ''}`,
-        type: 'button',
-        tabindex: '-1',
-        text: (guestSelected ? '● ' : '') + (active ? '+ Novo jogador' : 'Convidado'),
-        onClick: () => this._showNameForm(onCreateProfile, () => this.showMainMenu(options)),
-      }),
-    );
-
-    const profileRow = el('div', { class: 'profile-tab-row' }, profileButtons);
-
-    // 4. Companions section: "ESCOLHA SEU COMPANHEIRO"
-    const companionTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU COMPANHEIRO' });
+    // 3. Characters section: "ESCOLHA SEU PERSONAGEM"
+    const companionTitle = el('div', { class: 'home-section-title', text: 'ESCOLHA SEU PERSONAGEM' });
 
     const companionCards = [];
     const TOTAL_SLOTS = 4;
@@ -176,8 +145,6 @@ export class MenuOverlay {
     const leftColumn = el('div', { class: 'home-col-left' }, [
       logoNode,
       tagline,
-      profileTitle,
-      profileRow,
       companionTitle,
       companionGrid,
     ]);
@@ -210,41 +177,15 @@ export class MenuOverlay {
       onClick: onOpenLessonPicker,
     });
 
-    const btnPowers = el('button', {
-      class: 'btn-retro btn-secondary-green',
-      type: 'button',
-      tabindex: '-1',
-      text: 'Poderes e duração',
-      onClick: () => this.showControls({ onBack: () => this.showMainMenu(options) }),
-    });
-
-    const btnSensor = el('button', {
+    const btnReset = el('button', {
       class: 'btn-util',
       type: 'button',
       tabindex: '-1',
-      text: 'Com sensor',
-      onClick: () => {
-        alert('Modo teclado e controle nativo ativo. ESP32 desabilitado no momento.');
-      },
+      text: 'Zerar progresso',
+      onClick: onResetProgress,
     });
 
-    const btnSettings = el('button', {
-      class: 'btn-util',
-      type: 'button',
-      tabindex: '-1',
-      text: 'Ajustes',
-      onClick: () => this.showControls({ onBack: () => this.showMainMenu(options) }),
-    });
-
-    const btnExit = el('button', {
-      class: 'btn-util',
-      type: 'button',
-      tabindex: '-1',
-      text: active ? 'Zerar' : 'Sair',
-      onClick: active ? onResetProgress : () => this.showControls({ onBack: () => this.showMainMenu(options) }),
-    });
-
-    const utilRow = el('div', { class: 'home-util-row' }, [btnSensor, btnSettings, btnExit]);
+    const utilRow = el('div', { class: 'home-util-row' }, [btnReset]);
     const subStatus = el('div', {
       class: 'home-substatus',
       text: `Aventura contínua · ${completedCount} de ${totalLessons} fases`,
@@ -256,7 +197,6 @@ export class MenuOverlay {
       btnStart,
       btnSpeedrun,
       btnStages,
-      btnPowers,
       utilRow,
       subStatus,
     ]);
@@ -383,18 +323,6 @@ export class MenuOverlay {
     this._mount(screen, { primary: hasNext ? onNext : onReplay, back: onMenu });
   }
 
-  showControls({ onBack }) {
-    const screen = el('div', { class: 'overlay' }, [
-      el('h2', { text: 'Como jogar' }),
-      el('p', {
-        text: 'Colete o item pedido no topo da tela. Cada erro custa um coração. Cair no buraco não custa coração — você volta para o mesmo lugar.',
-      }),
-      this._controlsHelp(),
-      el('div', { class: 'overlay-actions' }, [button('Voltar', { primary: true, onClick: onBack })]),
-    ]);
-    this._mount(screen, { primary: onBack, back: onBack });
-  }
-
   // --- Internals -----------------------------------------------------------
 
   /** One static frame cropped from the celebrate sprite sheet via CSS. */
@@ -410,57 +338,5 @@ export class MenuOverlay {
       'aria-label': name,
       style: `background-image:url(${celebrateImage});background-size:${columns * 100}% ${rows * 100}%;background-position:${posX}% ${posY}%;`,
     });
-  }
-
-  _showNameForm(onSubmit, onCancel) {
-    const input = el('input', {
-      type: 'text',
-      maxlength: '24',
-      placeholder: 'Nome do jogador',
-      'aria-label': 'Nome do jogador',
-      style:
-        'font-family:var(--font-pixel);font-size:0.9rem;padding:10px 14px;border-radius:4px;border:3px solid var(--color-ink);background:var(--color-cream);color:var(--color-ink);text-align:center;box-shadow:0 3px 0 var(--color-green-dark);',
-    });
-
-    const submit = () => {
-      const name = input.value.trim();
-      onSubmit(name === '' ? 'Jogador' : name);
-    };
-
-    const form = el(
-      'form',
-      {
-        class: 'overlay-actions',
-        onSubmit: (event) => {
-          event.preventDefault();
-          submit();
-        },
-      },
-      [
-        input,
-        el('button', { type: 'submit', class: 'primary', tabindex: '-1', text: 'Criar' }),
-        button('Cancelar', { onClick: () => (onCancel ? onCancel() : this.hide()) }),
-      ],
-    );
-
-    const screen = el('div', { class: 'overlay' }, [
-      el('h2', { text: 'Quem vai jogar?' }),
-      form,
-    ]);
-
-    this._mount(screen, {
-      primary: submit,
-      back: onCancel ?? null,
-    });
-    input.focus();
-  }
-
-  _controlsHelp() {
-    return el('div', { class: 'controls-help' }, [
-      el('span', {}, [el('kbd', { text: '←' }), ' ', el('kbd', { text: '→' }), ' ou ', el('kbd', { text: 'A' }), ' ', el('kbd', { text: 'D' }), ' andar   ']),
-      el('span', {}, [el('kbd', { text: 'Espaço' }), ' pular   ']),
-      el('span', {}, [el('kbd', { text: 'Esc' }), ' pausar   ']),
-      el('span', {}, [el('kbd', { text: 'Enter' }), ' confirmar']),
-    ]);
   }
 }

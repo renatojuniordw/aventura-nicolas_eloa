@@ -151,7 +151,7 @@ body {
   flex-direction: column;
   flex: 1.35;
   max-width: 530px;
-  gap: 5px;
+  gap: 12px;
 }
 
 .pixel-logo-wrapper {
@@ -176,53 +176,18 @@ body {
   text-shadow: 0 2px 0 var(--color-ink);
   letter-spacing: 1.5px;
   margin-top: -2px;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   font-weight: 700;
 }
 
 .home-section-title {
   font-family: var(--font-pixel);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--color-cream);
   text-shadow: 0 2px 0 var(--color-ink);
   letter-spacing: 1px;
-  margin-top: 4px;
+  margin-top: 2px;
   font-weight: 700;
-}
-
-/* Profile Selector Row */
-.profile-tab-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.profile-tab {
-  font-family: var(--font-pixel);
-  font-size: 0.75rem;
-  padding: 6px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 2px solid var(--color-ink);
-  box-shadow: 0 3px 0 var(--color-green-dark);
-  background: var(--color-green);
-  color: var(--color-cream);
-  text-shadow: 0 1px 0 var(--color-green-dark);
-  transition: transform 0.08s ease, background 0.15s ease;
-}
-
-.profile-tab:hover {
-  background: var(--color-green-hover);
-  transform: translateY(-1px);
-}
-
-.profile-tab.selected {
-  background: var(--color-cream);
-  color: var(--color-ink);
-  font-weight: bold;
-  border-color: var(--color-ink);
-  box-shadow: 0 3px 0 var(--color-green-dark);
-  text-shadow: none;
 }
 
 /* Companion Grid (4 cards horizontally) */
@@ -425,18 +390,20 @@ body {
   box-shadow: 0 2px 0 var(--color-green-dark);
 }
 
-/* Utility Row (3 buttons side-by-side) */
+/* Utility Row */
 .home-util-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
+  display: flex;
   margin-top: 2px;
+}
+
+.home-util-row .btn-util {
+  flex: 1;
 }
 
 .btn-util {
   font-family: var(--font-pixel);
-  font-size: 0.65rem;
-  padding: 6px 4px;
+  font-size: 0.72rem;
+  padding: 8px 12px;
   background: var(--color-cream);
   color: var(--color-ink);
   border: 2px solid var(--color-ink);
