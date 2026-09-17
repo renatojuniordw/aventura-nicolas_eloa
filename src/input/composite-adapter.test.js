@@ -52,6 +52,24 @@ describe('CompositeAdapter', () => {
     expect(input.getMoveAxis()).toBe(1);
   });
 
+  it('resyncs every child adapter', () => {
+    const input = new InputManager();
+    const keyboard = new FakeAdapter(input.handleAction);
+    const touch = new FakeAdapter(input.handleAction);
+    const composite = new CompositeAdapter(input.handleAction, [keyboard, touch]);
+    input.setAdapter(composite);
+
+    let keyboardResyncs = 0;
+    let touchResyncs = 0;
+    keyboard.resync = () => { keyboardResyncs += 1; };
+    touch.resync = () => { touchResyncs += 1; };
+
+    composite.resync();
+
+    expect(keyboardResyncs).toBe(1);
+    expect(touchResyncs).toBe(1);
+  });
+
   it('detaches every child adapter on dispose', () => {
     const input = new InputManager();
     const keyboard = new FakeAdapter(input.handleAction);

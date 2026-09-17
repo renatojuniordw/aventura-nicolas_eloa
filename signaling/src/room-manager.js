@@ -1,6 +1,13 @@
 import { isValidSessionId } from './session-id.js';
 
 export const DEFAULT_ROOM_TTL_MS = 5 * 60 * 1000;
+// Much shorter than the controller's grace period on purpose: a phone can
+// legitimately sit backgrounded/screen-locked for minutes before anyone
+// notices, but the TV's own WiFi wobbling is expected to resolve within
+// socket.io's own automatic reconnect (seconds) — a longer window here would
+// just leave the phone showing "reconectando" for a while after a game that
+// actually already ended (tab closed).
+export const DEFAULT_VIEWER_TTL_MS = 15 * 1000;
 export const DEFAULT_ACTION_RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 1000;
 
@@ -25,6 +32,7 @@ export class RoomManager {
   #rooms = new Map();
   #peers = new Map();
   #roomTtlMs;
+  #viewerTtlMs;
   #actionRateLimit;
   #now;
   #setTimeout;
@@ -32,12 +40,14 @@ export class RoomManager {
 
   constructor({
     roomTtlMs = DEFAULT_ROOM_TTL_MS,
+    viewerTtlMs = DEFAULT_VIEWER_TTL_MS,
     actionRateLimit = DEFAULT_ACTION_RATE_LIMIT,
     now = () => Date.now(),
     setTimeoutFn = (...args) => setTimeout(...args),
     clearTimeoutFn = (...args) => clearTimeout(...args),
   } = {}) {
     this.#roomTtlMs = roomTtlMs;
+    this.#viewerTtlMs = viewerTtlMs;
     this.#actionRateLimit = actionRateLimit;
     this.#now = now;
     this.#setTimeout = setTimeoutFn;
@@ -62,9 +72,13 @@ export class RoomManager {
 
     if (role === 'viewer') {
       if (!room) {
-        room = { session, viewer: null, controller: null, expiryTimer: null };
+        room = { session, viewer: null, controller: null, viewerExpiryTimer: null, controllerExpiryTimer: null };
         this.#rooms.set(session, room);
       }
+      // The TV's own WiFi can hiccup too (see disconnect() below) — a
+      // reconnect here must cancel any pending "viewer gone" expiry, exactly
+      // like a controller reconnect cancels its own.
+      this.#cancelTimer(room, 'viewerExpiryTimer');
       room.viewer = peer;
     } else {
       if (!room) return { ok: false, error: 'room-not-found' };
@@ -73,7 +87,7 @@ export class RoomManager {
       if (room.controller && room.controller.id !== peer.id) {
         return { ok: false, error: 'room-full' };
       }
-      this.#cancelExpiry(room);
+      this.#cancelTimer(room, 'controllerExpiryTimer');
       room.controller = peer;
       room.viewer?.emit('peer-joined', { role: 'controller' });
     }
@@ -98,6 +112,9 @@ export class RoomManager {
     }
 
     const room = this.#rooms.get(entry.session);
+    // The viewer (TV) can itself be mid-reconnect when this arrives — the
+    // jump is simply lost, same as a message crossing an actual network
+    // gap in transit. No special-casing needed either side.
     room?.viewer?.emit('action', { button: payload.button, pressed: payload.pressed });
     return { ok: true };
   }
@@ -112,11 +129,16 @@ export class RoomManager {
     if (!room) return;
 
     if (entry.role === 'viewer') {
-      // The game ending (or the TV tab closing) is the end of the session —
-      // no reason to keep a phone connected to a room nobody is watching.
-      room.controller?.emit('room-closed');
-      this.#cancelExpiry(room);
-      this.#rooms.delete(entry.session);
+      // The TV is on WiFi too — a dropped connection there deserves the same
+      // reconnect grace period as the phone gets below, not an instant
+      // teardown. Only the controller is told anything right now (so it
+      // knows pairing is momentarily unwatched); the room itself survives.
+      room.viewer = null;
+      room.viewerExpiryTimer = this.#setTimeout(() => {
+        if (this.#rooms.get(entry.session) !== room) return; // already gone/replaced
+        room.controller?.emit('room-closed');
+        this.#rooms.delete(entry.session);
+      }, this.#viewerTtlMs);
       return;
     }
 
@@ -125,7 +147,8 @@ export class RoomManager {
     // auto-run keep going with nobody able to jump (docs/12 §10, "critical").
     room.controller = null;
     room.viewer?.emit('peer-left', { role: 'controller' });
-    room.expiryTimer = this.#setTimeout(() => {
+    room.controllerExpiryTimer = this.#setTimeout(() => {
+      if (this.#rooms.get(entry.session) !== room) return;
       this.#rooms.delete(entry.session);
     }, this.#roomTtlMs);
   }
@@ -139,10 +162,10 @@ export class RoomManager {
     return false;
   }
 
-  #cancelExpiry(room) {
-    if (room.expiryTimer) {
-      this.#clearTimeout(room.expiryTimer);
-      room.expiryTimer = null;
+  #cancelTimer(room, field) {
+    if (room[field]) {
+      this.#clearTimeout(room[field]);
+      room[field] = null;
     }
   }
 }

@@ -73,6 +73,16 @@ export class InputManager {
   }
 
   /**
+   * Asks the current adapter to re-assert any state it owns without a
+   * physical source (see InputAdapter.resync). Call after `reset()` when
+   * resuming gameplay — e.g. GameScene.resume() — so an adapter like
+   * AutoRunAdapter isn't left silently "let go" forever.
+   */
+  resync(): void {
+    this._adapter?.resync();
+  }
+
+  /**
    * Clears one-shot presses that were never read, so a stale press cannot leak
    * into a later frame. Call once at the end of each simulated step.
    */

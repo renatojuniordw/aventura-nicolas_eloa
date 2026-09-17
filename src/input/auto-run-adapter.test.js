@@ -29,4 +29,15 @@ describe('AutoRunAdapter', () => {
     expect(input.isActionHeld(Actions.MOVE_LEFT)).toBe(false);
     expect(input.consumePressed(Actions.JUMP)).toBe(false);
   });
+
+  it('re-holds MOVE_RIGHT on resync after reset() wiped it (regression: pause/resume used to leave the character stuck)', () => {
+    const input = new InputManager();
+    input.setAdapter(new AutoRunAdapter(input.handleAction));
+
+    input.reset();
+    expect(input.isActionHeld(Actions.MOVE_RIGHT)).toBe(false);
+
+    input.resync();
+    expect(input.isActionHeld(Actions.MOVE_RIGHT)).toBe(true);
+  });
 });

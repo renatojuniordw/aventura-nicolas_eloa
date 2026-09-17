@@ -122,4 +122,20 @@ describe('InputManager', () => {
     input.dispose();
     expect(adapter.detachCalls).toBe(1);
   });
+
+  it('resync() delegates to the current adapter', () => {
+    const input = new InputManager();
+    const adapter = new FakeAdapter(input.handleAction);
+    adapter.resync = vi.fn();
+    input.setAdapter(adapter);
+
+    input.resync();
+
+    expect(adapter.resync).toHaveBeenCalledTimes(1);
+  });
+
+  it('resync() is a no-op with no adapter installed', () => {
+    const input = new InputManager();
+    expect(() => input.resync()).not.toThrow();
+  });
 });

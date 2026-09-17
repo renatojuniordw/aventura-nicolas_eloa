@@ -23,4 +23,14 @@ export class AutoRunAdapter extends InputAdapter {
   override detach(): void {
     this.onAction(Actions.MOVE_RIGHT, { pressed: false, repeated: false });
   }
+
+  /**
+   * `InputManager.reset()` (pause/resume, tab blur — see game-scene.ts) wipes
+   * held state for every adapter, including this one's MOVE_RIGHT, which has
+   * no key or touch behind it to re-press it. Without this, resuming from
+   * any pause left the character stopped for the rest of the session.
+   */
+  override resync(): void {
+    this.attach();
+  }
 }

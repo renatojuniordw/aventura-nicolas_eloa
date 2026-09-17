@@ -35,6 +35,17 @@ export class InputAdapter {
   /** Unregister hardware listeners. */
   detach(): void {}
 
+  /**
+   * Re-assert any state this adapter owns without a physical source behind
+   * it (e.g. AutoRunAdapter's continuous MOVE_RIGHT). Called by InputManager
+   * after `reset()` clears held state for a reason unrelated to this
+   * adapter's own input (pause/resume, tab blur) — a keyboard or touch
+   * adapter needs no override here, since nothing is physically held after
+   * a reset until the user acts again; an adapter with no hardware behind it
+   * would otherwise stay silently "let go" forever.
+   */
+  resync(): void {}
+
   /** Release all resources. */
   dispose(): void {
     this.detach();

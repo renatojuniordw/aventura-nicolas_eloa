@@ -9,9 +9,21 @@ interface PauseOptions {
   isSpeedrun?: boolean;
   isMuted?: boolean;
   onToggleMute: () => void;
+  /** Controle por celular (docs/12-controle-por-celular.md): lets a parent drop back to keyboard/touch mid-game without abandoning the lesson. */
+  isPhoneControlActive?: boolean;
+  onDisablePhoneControl?: () => void;
 }
 
-function PauseMenuStep({ onResume, onRestart, onMenu, isMuted, onToggleMute, goTo }: PauseOptions & { goTo: (step: PauseStep) => void }) {
+function PauseMenuStep({
+  onResume,
+  onRestart,
+  onMenu,
+  isMuted,
+  onToggleMute,
+  isPhoneControlActive,
+  onDisablePhoneControl,
+  goTo,
+}: PauseOptions & { goTo: (step: PauseStep) => void }) {
   return (
     <div className="overlay">
       <h2>Pausa</h2>
@@ -29,6 +41,11 @@ function PauseMenuStep({ onResume, onRestart, onMenu, isMuted, onToggleMute, goT
         <button type="button" tabIndex={-1} onClick={blurOnClick(onToggleMute)}>
           {isMuted ? '🔇 Som: Mudo' : '🔈 Som: Ligado'}
         </button>
+        {isPhoneControlActive ? (
+          <button type="button" tabIndex={-1} onClick={blurOnClick(onDisablePhoneControl)}>
+            📱 Desativar controle por celular
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -80,7 +97,16 @@ function PauseConfirmStep({
  */
 export function buildPauseScreen(
   step: PauseStep | string,
-  { onResume, onRestart, onMenu, isSpeedrun = false, isMuted = false, onToggleMute }: PauseOptions,
+  {
+    onResume,
+    onRestart,
+    onMenu,
+    isSpeedrun = false,
+    isMuted = false,
+    onToggleMute,
+    isPhoneControlActive = false,
+    onDisablePhoneControl,
+  }: PauseOptions,
   goTo: (step: PauseStep) => void,
 ) {
   if (step === 'menu') {
@@ -91,6 +117,8 @@ export function buildPauseScreen(
         onMenu={onMenu}
         isMuted={isMuted}
         onToggleMute={onToggleMute}
+        isPhoneControlActive={isPhoneControlActive}
+        onDisablePhoneControl={onDisablePhoneControl}
         goTo={goTo}
       />,
     );

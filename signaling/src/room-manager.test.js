@@ -171,7 +171,56 @@ describe('RoomManager: action forwarding', () => {
 });
 
 describe('RoomManager: disconnects and lifecycle', () => {
-  it('destroys the room immediately when the viewer disconnects', () => {
+  it('gives the viewer (TV) a short reconnect grace period instead of tearing the room down instantly', () => {
+    // The TV is on WiFi too — a momentary drop there deserves the same kind
+    // of reconnect grace the phone gets, not an immediate teardown that
+    // would strand an otherwise-fine phone pairing over a one-second wobble.
+    const { manager, timers } = makeManager();
+    const tv = makePeer('tv-1');
+    const phone = makePeer('phone-1');
+    manager.join(tv, { role: 'viewer', session: SESSION });
+    manager.join(phone, { role: 'controller', session: SESSION });
+
+    manager.disconnect(tv);
+
+    expect(phone.emit).not.toHaveBeenCalledWith('room-closed');
+    expect(manager.roomCount).toBe(1);
+    expect(timers.size).toBe(1);
+  });
+
+  it('lets the viewer reconnect within the grace period, cancelling the pending teardown', () => {
+    const { manager, timers, fireTimer } = makeManager();
+    const tv = makePeer('tv-1');
+    const phone = makePeer('phone-1');
+    manager.join(tv, { role: 'viewer', session: SESSION });
+    manager.join(phone, { role: 'controller', session: SESSION });
+
+    manager.disconnect(tv);
+    const timerId = [...timers.keys()][0];
+    manager.join(tv, { role: 'viewer', session: SESSION });
+
+    expect(timers.has(timerId)).toBe(false);
+    fireTimer(timerId); // no-op: already cancelled
+    expect(manager.roomCount).toBe(1);
+    expect(phone.emit).not.toHaveBeenCalledWith('room-closed');
+  });
+
+  it('tears the room down and notifies the controller once the viewer never reconnects', () => {
+    const { manager, timers, fireTimer } = makeManager();
+    const tv = makePeer('tv-1');
+    const phone = makePeer('phone-1');
+    manager.join(tv, { role: 'viewer', session: SESSION });
+    manager.join(phone, { role: 'controller', session: SESSION });
+
+    manager.disconnect(tv);
+    const [timerId] = [...timers.keys()];
+    fireTimer(timerId);
+
+    expect(phone.emit).toHaveBeenCalledWith('room-closed');
+    expect(manager.roomCount).toBe(0);
+  });
+
+  it('drops an action silently (no crash) if it arrives while the viewer is mid-reconnect', () => {
     const { manager } = makeManager();
     const tv = makePeer('tv-1');
     const phone = makePeer('phone-1');
@@ -180,8 +229,8 @@ describe('RoomManager: disconnects and lifecycle', () => {
 
     manager.disconnect(tv);
 
-    expect(phone.emit).toHaveBeenCalledWith('room-closed');
-    expect(manager.roomCount).toBe(0);
+    expect(() => manager.action(phone, { button: 'jump', pressed: true })).not.toThrow();
+    expect(manager.action(phone, { button: 'jump', pressed: true })).toEqual({ ok: true });
   });
 
   it('notifies the viewer and keeps the room alive when the controller disconnects', () => {

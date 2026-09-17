@@ -28,4 +28,8 @@ export class CompositeAdapter extends InputAdapter {
   override dispose(): void {
     for (const adapter of this._adapters) adapter.dispose();
   }
+
+  override resync(): void {
+    for (const adapter of this._adapters) adapter.resync();
+  }
 }

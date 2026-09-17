@@ -851,6 +851,40 @@ body {
   margin: clamp(8px, 1.5vh, 16px) auto;
 }
 
+.phone-pairing-hint {
+  font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+  color: var(--color-gold);
+  opacity: 0.95;
+}
+
+.phone-pairing-latency {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px auto 0;
+  font-size: clamp(0.68rem, 1.3vw, 0.8rem);
+  opacity: 0.85;
+}
+
+.phone-pairing-latency-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.phone-pairing-latency-good .phone-pairing-latency-dot {
+  background: #4caf7d;
+}
+
+.phone-pairing-latency-ok .phone-pairing-latency-dot {
+  background: var(--color-gold);
+}
+
+.phone-pairing-latency-bad .phone-pairing-latency-dot {
+  background: #e0566b;
+}
+
 .character-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 120px));

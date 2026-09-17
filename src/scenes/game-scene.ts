@@ -460,6 +460,14 @@ export class GameScene extends Scene {
         this.game.audio.toggleMuted();
         this._showPauseMenu();
       },
+      isPhoneControlActive: this.game.phoneControl.isActive,
+      onDisablePhoneControl: () => {
+        // Dropping input source mid-game isn't destructive to progress like
+        // restart/menu are, so no confirm step — just switch back to
+        // keyboard/touch and let the parent keep playing right away.
+        this.game.phoneControl.stop();
+        this.resume();
+      },
     });
   }
 
@@ -469,5 +477,9 @@ export class GameScene extends Scene {
     this.game.menu.hide();
     // Clear held keys so the player does not keep running after resuming.
     this.game.input.reset();
+    // Let an adapter with no physical key/touch behind it (AutoRunAdapter,
+    // in phone-control mode) re-assert its own state — reset() above just
+    // cleared it, and nothing else will ever re-press it.
+    this.game.input.resync();
   }
 }

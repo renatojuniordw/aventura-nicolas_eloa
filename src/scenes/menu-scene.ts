@@ -3,6 +3,9 @@ import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 
+/** How long the QR pairing screen waits before nudging toward "Voltar" (docs/12 §10). */
+const PAIRING_TIMEOUT_HINT_MS = 45_000;
+
 interface LessonLike {
   type?: string;
   target?: string;
@@ -32,6 +35,12 @@ export function describeLesson(lesson: LessonLike | null | undefined): string {
  */
 export class MenuScene extends Scene {
   override enter(): void {
+    // Arriving at the menu from anywhere (finishing a lesson, pausing out,
+    // the phone dropping) must always leave keyboard/touch working — phone
+    // mode replaces that composite entirely (see main.ts), and nothing else
+    // ever restored it. Re-pairing for the next lesson is one QR scan away;
+    // a menu with a dead keyboard is not an acceptable trade for skipping it.
+    if (this.game.phoneControl.isActive) this.game.phoneControl.stop();
     this.render();
   }
 
@@ -146,22 +155,42 @@ export class MenuScene extends Scene {
     let status: 'waiting' | 'paired' | 'disconnected' | 'error' = 'waiting';
     let errorMessage: string | null = null;
     let pairingUrl = '';
+    let showTimeoutHint = false;
+    let measureLatency: () => Promise<number | null> = () => Promise.resolve(null);
+
+    // If nobody ever scans the QR (camera didn't open, sensor permission
+    // denied on the phone...), the screen must not just wait forever with no
+    // way out — nudge toward the "Voltar" button that was already there
+    // (docs/12 §10: "precisa de um caminho de saída de volta pro controle
+    // padrão").
+    const timeoutId = setTimeout(() => {
+      if (status !== 'waiting') return;
+      showTimeoutHint = true;
+      renderPairing();
+    }, PAIRING_TIMEOUT_HINT_MS);
 
     const renderPairing = () => {
       this.game.menu.showPhonePairing({
         pairingUrl,
         status,
         errorMessage,
+        showTimeoutHint: showTimeoutHint && status === 'waiting',
+        measureLatency: () => measureLatency(),
         onBack: () => {
+          clearTimeout(timeoutId);
           this.game.phoneControl.stop();
           this.render();
         },
-        onPlay: () => this.playNext(),
+        onPlay: () => {
+          clearTimeout(timeoutId);
+          this.playNext();
+        },
       });
     };
 
     const result = this.game.phoneControl.start({
       onPaired: () => {
+        clearTimeout(timeoutId);
         status = 'paired';
         renderPairing();
       },
@@ -170,11 +199,13 @@ export class MenuScene extends Scene {
         renderPairing();
       },
       onError: (message) => {
+        clearTimeout(timeoutId);
         status = 'error';
         errorMessage = message;
         renderPairing();
       },
     });
+    measureLatency = result.measureLatency;
     pairingUrl = result.pairingUrl;
     renderPairing();
   }

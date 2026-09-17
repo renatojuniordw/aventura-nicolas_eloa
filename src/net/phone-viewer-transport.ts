@@ -40,4 +40,9 @@ export class PhoneViewerTransport implements PhoneTransport {
   onJoinError(handler: (payload: { error: string }) => void): void {
     this._socket.onJoinError(handler);
   }
+
+  /** Round-trip time to the signaling server, in ms, or null if unreachable — shown on the pairing screen. */
+  measureLatency(): Promise<number | null> {
+    return this._socket.measureLatency();
+  }
 }

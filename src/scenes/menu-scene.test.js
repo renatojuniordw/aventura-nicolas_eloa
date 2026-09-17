@@ -40,7 +40,11 @@ function makeFakeGame(overrides = {}) {
     scenes: { switchTo: vi.fn() },
     phoneControl: {
       isActive: false,
-      start: vi.fn(() => ({ session: 'AB23CD45', pairingUrl: 'https://example.test/controle?session=AB23CD45' })),
+      start: vi.fn(() => ({
+        session: 'AB23CD45',
+        pairingUrl: 'https://example.test/controle?session=AB23CD45',
+        measureLatency: vi.fn(() => Promise.resolve(42)),
+      })),
       stop: vi.fn(),
     },
     startSpeedrun: vi.fn(),
@@ -245,6 +249,61 @@ describe('MenuScene', () => {
 
     expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
     expect(game.menu.showMainMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes measureLatency through to the pairing screen', async () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    const { measureLatency } = game.menu.showPhonePairing.mock.calls[0][0];
+    expect(await measureLatency()).toBe(42);
+  });
+
+  it('shows a timeout hint if nobody pairs within the waiting window', () => {
+    vi.useFakeTimers();
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    expect(game.menu.showPhonePairing.mock.calls.at(-1)[0].showTimeoutHint).toBe(false);
+
+    vi.advanceTimersByTime(45_000);
+
+    expect(game.menu.showPhonePairing.mock.calls.at(-1)[0].showTimeoutHint).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('never shows the timeout hint once the phone has paired', () => {
+    vi.useFakeTimers();
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    const { onPaired } = game.phoneControl.start.mock.calls[0][0];
+    onPaired();
+    vi.advanceTimersByTime(45_000);
+
+    expect(game.menu.showPhonePairing.mock.calls.at(-1)[0].showTimeoutHint).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('stops phone control on entering the menu, so keyboard/touch always work when arriving there', () => {
+    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+    const scene = new MenuScene(game);
+
+    scene.enter();
+
+    expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not touch phone control on entering the menu when it was never active', () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+
+    scene.enter();
+
+    expect(game.phoneControl.stop).not.toHaveBeenCalled();
   });
 
   it('hides the menu on exit', () => {

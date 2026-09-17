@@ -42,15 +42,21 @@ servidor de sinalização próprio (na mesma VPS do jogo — nenhum terceiro).
 Isso é a única exceção à regra "nada sai do aparelho" deste documento, e por
 isso vale destacar exatamente o que trafega:
 
-- **O que trafega:** só o evento `{"pulou": true}` (`action: jump`), disparado
-  uma vez por pulo detectado. Nenhum dado contínuo do acelerômetro sai do
-  celular — a leitura bruta do sensor nunca deixa o aparelho da criança.
+- **O que trafega:** o evento `{"pulou": true}` (`action: jump`), disparado uma
+  vez por pulo detectado, e um segundo tipo de mensagem sem conteúdo nenhum —
+  um carimbo de tempo que a TV manda e o servidor só ecoa de volta
+  (`ping-check`/`pong-check`), usado só para mostrar "conexão boa/ruim" na
+  tela de pareamento. Nenhum dado contínuo do acelerômetro sai do celular — a
+  leitura bruta do sensor nunca deixa o aparelho da criança.
 - **O que não trafega:** nome, perfil, progresso, localização ou qualquer
   outro dado do save — o servidor de sinalização não tem acesso a nada disso,
-  só repassa a palavra "pulo" entre os dois navegadores.
+  só repassa a palavra "pulo" (e o carimbo de tempo do teste de latência)
+  entre os dois navegadores.
 - **Sem persistência:** o servidor guarda a sala (`session`) só na memória do
   processo Node enquanto a partida dura; nada é escrito em disco ou banco de
-  dados, e a sala é apagada quando a TV encerra a partida.
+  dados. A sala sobrevive só a uma queda breve de conexão (até 5 min do lado
+  do celular, até 15s do lado da TV — ver docs/12 §6) e é apagada de vez
+  quando a partida realmente termina.
 - **Sessão efêmera e aleatória:** o código de pareamento (`session`) é gerado
   na hora, só existe enquanto a partida está aberta, e só um celular pode
   parear por sala.
@@ -112,5 +118,7 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 
 *Documento criado em 2026-09-16 como parte do pipeline de engenharia (Fase 1,
 achados Seg 2 e Seg 3). Revisado junto da copy de UI na Fase 5, em 2026-09-17
-para corrigir a chave de armazenamento e cobrir o cache offline do PWA, e
-novamente em 2026-09-17 para cobrir o Controle por celular (§2.1).*
+para corrigir a chave de armazenamento e cobrir o cache offline do PWA,
+novamente em 2026-09-17 para cobrir o Controle por celular (§2.1), e uma
+terceira vez no mesmo dia para incluir o teste de latência (`ping-check`) e a
+janela de reconexão da TV.*

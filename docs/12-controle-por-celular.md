@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
 });
 ```
 
-**Ciclo de vida da sala:** criada quando o jogo (viewer) entra com um `session` novo; expira sozinha após alguns minutos sem nenhum `controller` conectado, ou quando o `viewer` desconecta (fim da partida). Sem persistência — tudo em memória do processo Node.
+**Ciclo de vida da sala:** criada quando o jogo (viewer) entra com um `session` novo. Cada lado tem sua própria janela de reconexão antes da sala morrer de vez: 5 minutos sem nenhum `controller` conectado (o celular pode legitimamente ficar minutos em segundo plano/tela bloqueada), 15 segundos sem o `viewer` conectado (a TV também está na mesma rede WiFi, mas uma queda ali normalmente é só um soluço resolvido pela reconexão automática do socket.io — uma janela mais longa deixaria o celular mostrando "reconectando" por tempo demais depois de uma partida que já tinha realmente terminado). Sem persistência — tudo em memória do processo Node (`RoomManager`, `signaling/src/room-manager.js`).
 
 ## 4. `PhoneAdapter` (novo arquivo em `src/input/`)
 
@@ -263,28 +263,35 @@ input.setAdapter(
 );
 ```
 
-**Ponto crítico que precisa ser verificado antes de confiar nisso:** isso só funciona sem sobressalto se `InputManager` trata o estado "segurado" (`isActionHeld`) de forma independente por ação, e não houver outro adaptador também emitindo `MOVE_LEFT`/`MOVE_RIGHT` ao mesmo tempo. Se `KeyboardAdapter` ou `TouchAdapter` continuarem ativos junto (ex.: para debug), um `keyup` de seta solto sem querer pode zerar o held state que o `AutoRunAdapter` mantém — dependendo de como o estado é armazenado internamente (um booleano por ação, compartilhado entre fontes, versus por origem). **Recomendação:** no modo celular de produção, não inclua `KeyboardAdapter`/`TouchAdapter` emitindo `MOVE_LEFT`/`MOVE_RIGHT` no mesmo `CompositeAdapter` — isso também resolve a pergunta deixada em comentário na seção 4 sobre manter o teclado ativo: mantenha-o, se quiser, só para `JUMP` de debug, nunca para movimento lateral quando o auto-run estiver no comando.
+**Ponto crítico, verificado e resolvido:** `InputManager` trata o estado "segurado" (`_held`) como um único `Set` por ação, compartilhado entre todas as fontes — não por origem. Isso tem duas consequências, as duas já tratadas:
+
+1. **Nunca misturar fontes de movimento.** `KeyboardAdapter`/`TouchAdapter` não entram no `CompositeAdapter` do modo celular — só `AutoRunAdapter` + `PhoneAdapter`. Isso também resolve a pergunta deixada em comentário na seção 4 sobre manter o teclado ativo: mantenha-o, se quiser, só para `JUMP` de debug, nunca para movimento lateral quando o auto-run estiver no comando.
+2. **`input.reset()` zera o `MOVE_RIGHT` do auto-run e nada o reemitia.** Qualquer pausa (botão de pausa do HUD, `blur` da aba, ou a própria desconexão do celular) chama `input.reset()` — e como o `AutoRunAdapter` só emite `MOVE_RIGHT` uma vez, no `attach()`, o personagem ficava parado para sempre depois do primeiro `resume()`. Corrigido com um método `resync()` na base `InputAdapter` (no-op por padrão): `AutoRunAdapter.resync()` reemite o `MOVE_RIGHT`, `CompositeAdapter.resync()` repassa para os filhos, e `GameScene.resume()` chama `input.reset()` seguido de `input.resync()`. Coberto por teste em `auto-run-adapter.test.js`, `composite-adapter.test.js`, `input-manager.test.js` e `game-scene.test.js`.
 
 Esse item entra no checklist da seção 8, junto da montagem do `PhoneAdapter`.
 
+**Saída explícita sem precisar voltar ao menu:** o menu de pausa ganhou um botão "📱 Desativar controle por celular" (só aparece quando o modo celular está ativo) que chama `phoneControl.stop()` e retoma o jogo na hora com teclado/toque — sem isso, a única saída era "Voltar" na própria tela de pareamento, antes de começar a fase. Além disso, `MenuScene.enter()` sempre desliga o controle por celular ao voltar para o menu (fim de fase, ou "Menu" na pausa) — isso garante que teclado/mouse sempre voltam a funcionar lá, ao custo de precisar escanear o QR de novo para a próxima fase.
+
 ## 10. Melhorias adicionais
+
+Todos os itens desta seção — críticos e de segunda iteração — foram implementados.
 
 ### Críticas — antes da primeira versão jogável
 
-**Detecção de desconexão do celular durante a partida.** Com auto-run ligado, se o socket do `controller` cair (WiFi, app em background, tela apagada), o personagem continua correndo sozinho sem ninguém pra pular e bate no primeiro obstáculo. O jogo precisa **pausar automaticamente** ao detectar desconexão do `controller` na sala, mostrando algo tipo "celular desconectado, reconectando..." em vez de deixar rodando.
+**Detecção de desconexão do celular durante a partida.** ✅ Feito. `RoomManager` avisa a TV (`peer-left`) assim que o `controller` cai; `main.ts` reaproveita o caminho de pausa já existente (`Events.APP_BLURRED` → `GameScene.pause()`) em vez de inventar um novo, então o personagem para em vez de bater no primeiro obstáculo sozinho.
 
-**Screen Wake Lock no celular.** A tela do Android apaga por economia de energia, o que mata o listener de `devicemotion` em vários navegadores. Sem a Screen Wake Lock API (`navigator.wakeLock.request('screen')`) na página `/controle`, o controle para de funcionar no meio da partida sem aviso.
+**Screen Wake Lock no celular.** ✅ Feito, com um cuidado extra: a Wake Lock API se libera sozinha sempre que a aba vai para segundo plano e **não se readquire sozinha**. `WakeLockKeeper` (`src/controle/main.ts`) reescuta `visibilitychange` e pede o lock de novo sempre que a página volta a ficar visível — sem isso, uma única distração no celular desligava a proteção pro resto da partida, sem aviso nenhum.
 
-**Feedback tátil no celular ao detectar o pulo.** `navigator.vibrate(50)` curto ao disparar o evento `jump` dá confirmação imediata de que o gesto foi captado, sem depender só do que acontece na TV.
+**Feedback tátil no celular ao detectar o pulo.** ✅ Feito. `navigator.vibrate(50)` a cada `jump` confirmado, com uma janela mínima entre vibrações para não sobrepor.
 
-**Thresholds ajustáveis sem rebuild.** `FREEFALL_THRESHOLD`, `IMPACT_THRESHOLD`, `MIN_FREEFALL_MS`, `COOLDOWN_MS` (seção 5) vão precisar de ajuste fino após testar com uma criança real. Um painel simples (mesmo que só visível via `?debug=1`) pra mexer neles em tempo real evita um ciclo lento de mudar código → build → testar → repetir.
+**Thresholds ajustáveis sem rebuild.** ✅ Feito, com dois complementos: o painel `?debug=1` bloqueia uma combinação que travaria a detecção pra sempre (`minFreefallMs >= maxFreefallMs`, ver `src/controle/jump-detector.ts`), e o ajuste agora **persiste** entre sessões via `localStorage` (`src/controle/threshold-storage.ts`) — sem isso, o mesmo ajuste fino teria que ser refeito toda vez que a página recarregasse.
 
 ### Relevantes — segunda iteração
 
-**Testabilidade do algoritmo de detecção sem hardware.** Seguindo o padrão já usado com `FakeAdapter`: extrair a lógica de queda-livre-mais-pico como função pura, que recebe uma série de leituras (fixture gravada de um pulo real) e retorna se detectou ou não — testável sem `devicemotion` de verdade.
+**Testabilidade do algoritmo de detecção sem hardware.** ✅ Feito. `JumpDetector` (`src/controle/jump-detector.ts`) é uma classe pura alimentada por amostras sintéticas de queda-livre-mais-impacto — testada sem `devicemotion` nenhum (`jump-detector.test.js`).
 
-**Indicador de qualidade da conexão na TV.** Mostrar não só "conectado", mas um indicador simples de latência/sinal antes de começar a partida, pra diagnosticar WiFi ruim antes de a criança já estar jogando.
+**Indicador de qualidade da conexão na TV.** ✅ Feito. Um ping/pong de ida e volta até o servidor de sinalização (`ping-check`/`pong-check`, sem conteúdo nenhum além do carimbo de tempo) alimenta um indicador simples na tela de pareamento (bom/razoável/ruim), atualizado a cada poucos segundos — antes de a criança já estar jogando, como pedido aqui.
 
-**Timeout no fluxo de pareamento.** Se a criança nunca escanear o QR (câmera não abre, permissão de sensor negada), a tela de start não pode ficar travada esperando — precisa de um caminho de saída de volta pro controle padrão (teclado/toque).
+**Timeout no fluxo de pareamento.** ✅ Feito. Depois de 45s sem ninguém parear, a tela de QR mostra uma dica apontando para o botão "Voltar" (que já existia, sempre visível) — um caminho de saída de volta pro controle padrão, sem travar a tela de start.
 
-**Atualizar o doc 10 de privacidade/LGPD.** Adicionar uma linha explicando que o novo fluxo transmite um evento efêmero (`jump`) entre celular e TV via servidor próprio, sem persistência — mantém a transparéncia que esse doc já promete sobre o que trafega.
+**Atualizar o doc 10 de privacidade/LGPD.** ✅ Feito — ver [10 — Privacidade e LGPD, §2.1](10-privacidade-e-lgpd.md#21-exceção-controle-por-celular-opcional-desligado-por-padrão), que também cobre o novo ping de latência.

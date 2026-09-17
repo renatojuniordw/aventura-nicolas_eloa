@@ -20,6 +20,11 @@ function makeFakeIoSocket() {
       if (!handlers.has(event)) handlers.set(event, []);
       handlers.get(event).push(handler);
     }),
+    off: vi.fn((event, handler) => {
+      const list = handlers.get(event);
+      if (!list) return;
+      handlers.set(event, list.filter((h) => h !== handler));
+    }),
     trigger(event, payload) {
       handlers.get(event)?.forEach((h) => h(payload));
     },
@@ -106,5 +111,55 @@ describe('SignalingSocket', () => {
     expect(onPeerLeft).toHaveBeenCalledTimes(1);
     expect(onRoomClosed).toHaveBeenCalledTimes(1);
     expect(onJoinError).toHaveBeenCalledWith({ error: 'room-full' });
+  });
+
+  describe('measureLatency', () => {
+    it('resolves the round-trip time once the server echoes the same timestamp back', async () => {
+      const fake = makeFakeIoSocket();
+      const socket = new SignalingSocket({ role: 'viewer', session: 'AB23CD45', createSocket: () => fake });
+      socket.connect();
+
+      const promise = socket.measureLatency();
+      const [, sentAt] = fake.emit.mock.calls.find(([event]) => event === 'ping-check');
+      fake.trigger('pong-check', sentAt);
+
+      expect(await promise).toBeGreaterThanOrEqual(0);
+    });
+
+    it('resolves null immediately when the socket is not connected', async () => {
+      const fake = makeFakeIoSocket();
+      const socket = new SignalingSocket({ role: 'viewer', session: 'AB23CD45', createSocket: () => fake });
+
+      expect(await socket.measureLatency()).toBeNull();
+      expect(fake.emit).not.toHaveBeenCalledWith('ping-check', expect.anything());
+    });
+
+    it('ignores a stale echo from an earlier measureLatency call', async () => {
+      const fake = makeFakeIoSocket();
+      const socket = new SignalingSocket({ role: 'viewer', session: 'AB23CD45', createSocket: () => fake });
+      socket.connect();
+
+      const first = socket.measureLatency();
+      const [, firstSentAt] = fake.emit.mock.calls.filter(([event]) => event === 'ping-check')[0];
+      // A completely unrelated echo (e.g. from a call this instance never
+      // made) must never resolve the promise.
+      fake.trigger('pong-check', firstSentAt - 1);
+      fake.trigger('pong-check', firstSentAt);
+
+      expect(await first).toBeGreaterThanOrEqual(0);
+    });
+
+    it('resolves null if no reply arrives within the timeout', async () => {
+      vi.useFakeTimers();
+      const fake = makeFakeIoSocket();
+      const socket = new SignalingSocket({ role: 'viewer', session: 'AB23CD45', createSocket: () => fake });
+      socket.connect();
+
+      const promise = socket.measureLatency(1000);
+      vi.advanceTimersByTime(1000);
+
+      expect(await promise).toBeNull();
+      vi.useRealTimers();
+    });
   });
 });

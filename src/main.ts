@@ -59,7 +59,11 @@ export interface GameContext {
   debug: { enabled: boolean; toggle(): void };
   phoneControl: {
     readonly isActive: boolean;
-    start(callbacks: PhoneControlUiCallbacks): { session: string; pairingUrl: string };
+    start(callbacks: PhoneControlUiCallbacks): {
+      session: string;
+      pairingUrl: string;
+      measureLatency(): Promise<number | null>;
+    };
     stop(): void;
   };
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
@@ -238,7 +242,11 @@ export function createGame({
       },
       onError: callbacks.onError,
     });
-    return { session: phoneHandle.session, pairingUrl: phoneHandle.pairingUrl };
+    return {
+      session: phoneHandle.session,
+      pairingUrl: phoneHandle.pairingUrl,
+      measureLatency: () => phoneHandle!.measureLatency(),
+    };
   };
 
   const stopPhoneControl = () => {

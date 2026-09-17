@@ -44,10 +44,12 @@ function makeFakeGame(overrides = {}) {
       isActionHeld: vi.fn(() => false),
       getMoveAxis: vi.fn(() => 0),
       reset: vi.fn(),
+      resync: vi.fn(),
     },
     debug: { enabled: false, toggle: vi.fn() },
     scenes: { switchTo: vi.fn() },
     startSpeedrun: vi.fn(),
+    phoneControl: { isActive: false, start: vi.fn(), stop: vi.fn() },
     ...overrides,
   };
 }
@@ -208,6 +210,30 @@ describe('GameScene (unit)', () => {
     );
   });
 
+  it('resyncs the input adapter on resume, so a hardware-less adapter (AutoRunAdapter) is not left stuck after reset()', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+
+    scene.pause();
+    expect(game.input.reset).toHaveBeenCalledTimes(1);
+    expect(game.input.resync).not.toHaveBeenCalled();
+
+    scene.resume();
+    expect(game.input.reset).toHaveBeenCalledTimes(2);
+    expect(game.input.resync).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing on resume when the scene was never paused', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+
+    scene.resume();
+
+    expect(game.input.reset).not.toHaveBeenCalled();
+    expect(game.input.resync).not.toHaveBeenCalled();
+    expect(game.menu.hide).not.toHaveBeenCalled();
+  });
+
   it('re-renders the pause menu when muting from inside it', () => {
     const game = makeFakeGame();
     const scene = enterNormalLesson(game);
@@ -308,5 +334,27 @@ describe('GameScene (unit)', () => {
     const { onMenu } = game.menu.showPause.mock.calls[0][0];
     onMenu();
     expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
+  });
+
+  it('tells the pause menu whether phone control is active', () => {
+    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+    const scene = enterNormalLesson(game);
+    scene.pause();
+
+    const { isPhoneControlActive } = game.menu.showPause.mock.calls[0][0];
+    expect(isPhoneControlActive).toBe(true);
+  });
+
+  it('disabling phone control from the pause menu stops it and resumes play immediately', () => {
+    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+    const scene = enterNormalLesson(game);
+    scene.pause();
+
+    const { onDisablePhoneControl } = game.menu.showPause.mock.calls[0][0];
+    onDisablePhoneControl();
+
+    expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
+    expect(game.menu.hide).toHaveBeenCalledTimes(1);
+    expect(game.input.resync).toHaveBeenCalledTimes(1);
   });
 });

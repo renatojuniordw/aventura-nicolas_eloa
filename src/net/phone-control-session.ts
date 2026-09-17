@@ -14,6 +14,8 @@ export interface PhoneControlHandle {
   session: string;
   pairingUrl: string;
   transport: PhoneViewerTransport;
+  /** Round-trip time to the signaling server, in ms, or null if unreachable. */
+  measureLatency(): Promise<number | null>;
   stop(): void;
 }
 
@@ -49,6 +51,7 @@ export function startPhoneControlSession(
     session,
     pairingUrl,
     transport,
+    measureLatency: () => transport.measureLatency(),
     stop: () => transport.disconnect(),
   };
 }

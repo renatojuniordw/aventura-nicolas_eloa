@@ -1,6 +1,7 @@
 import { el, clear } from '../ui/dom.js';
 import { parseControleParams } from './controle-params.js';
-import { JumpDetector, DEFAULT_JUMP_DETECTOR_THRESHOLDS, type JumpDetectorThresholds } from './jump-detector.js';
+import { JumpDetector, type JumpDetectorThresholds } from './jump-detector.js';
+import { loadThresholds, saveThresholds } from './threshold-storage.js';
 import { PhoneControllerTransport } from '../net/phone-controller-transport.js';
 import { statusMessage, canRetry, type AppState } from './status-message.js';
 
@@ -23,7 +24,7 @@ async function requestMotionPermission(): Promise<boolean> {
   }
 }
 
-/** Best-effort: keeps the screen (and the devicemotion listener) alive. Silently a no-op where unsupported. */
+/** Best-effort: acquires the screen wake lock. Silently a no-op where unsupported. */
 async function requestWakeLock(): Promise<{ release: () => void } | null> {
   const nav = navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<{ release: () => void }> } };
   if (!nav.wakeLock) return null;
@@ -31,6 +32,33 @@ async function requestWakeLock(): Promise<{ release: () => void } | null> {
     return await nav.wakeLock.request('screen');
   } catch {
     return null;
+  }
+}
+
+/**
+ * The Wake Lock API releases itself the instant the tab goes to the
+ * background (app switch, incoming call, phone flipped over) — it does not
+ * re-acquire on its own. Without listening for `visibilitychange`, a single
+ * distraction on the child's phone silently turned this protection off for
+ * the rest of the match, with no visible sign anything had changed.
+ */
+class WakeLockKeeper {
+  private _lock: { release: () => void } | null = null;
+  private _active = false;
+
+  constructor() {
+    document.addEventListener('visibilitychange', () => {
+      if (this._active && document.visibilityState === 'visible') void this._acquire();
+    });
+  }
+
+  async start(): Promise<void> {
+    this._active = true;
+    await this._acquire();
+  }
+
+  private async _acquire(): Promise<void> {
+    this._lock = await requestWakeLock();
   }
 }
 
@@ -82,9 +110,18 @@ function renderDebugPanel(root: HTMLElement, thresholds: JumpDetectorThresholds)
       step: String(step),
       value: String(thresholds[key]),
       onInput: (event: Event) => {
-        const value = Number((event.target as HTMLInputElement).value);
+        const target = event.target as HTMLInputElement;
+        // minFreefallMs >= maxFreefallMs makes a jump impossible to confirm:
+        // the freefall state resets to idle once maxFreefallMs elapses, so a
+        // longer minFreefallMs would never get the chance to be reached.
+        // Clamp instead of letting the panel silently produce a dead config.
+        let value = Number(target.value);
+        if (key === 'minFreefallMs') value = Math.min(value, thresholds.maxFreefallMs - 10);
+        if (key === 'maxFreefallMs') value = Math.max(value, thresholds.minFreefallMs + 10);
         thresholds[key] = value;
+        target.value = String(value);
         valueLabel.textContent = String(value);
+        saveThresholds(thresholds);
       },
     });
     panel.append(el('label', { class: 'controle-debug-row' }, [label, input, valueLabel]));
@@ -100,7 +137,7 @@ async function main(): Promise<void> {
   const { session, debug } = parseControleParams(window.location.search);
   const state: AppState = { phase: 'idle', connected: false, roomError: null };
 
-  const thresholds: JumpDetectorThresholds = { ...DEFAULT_JUMP_DETECTOR_THRESHOLDS };
+  const thresholds: JumpDetectorThresholds = loadThresholds();
 
   const rerender = (): void => {
     render(root, state, start);
@@ -117,6 +154,7 @@ async function main(): Promise<void> {
 
   const detector = new JumpDetector(thresholds);
   const transport = new PhoneControllerTransport(session);
+  const wakeLock = new WakeLockKeeper();
   let lastJumpVibration = 0;
 
   transport.onConnectionChange((connected) => {
@@ -149,7 +187,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    await requestWakeLock();
+    await wakeLock.start();
     transport.connect();
 
     state.phase = 'calibrating';

@@ -37,6 +37,16 @@ export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) 
       rooms.action(socket, payload);
     });
 
+    // Round-trip latency probe for the "connection quality" indicator on the
+    // TV pairing screen (docs/12 §10) — peer-agnostic, so it lives here
+    // rather than in RoomManager: it doesn't touch rooms or gameplay at all,
+    // just echoes the timestamp straight back to whoever sent it.
+    socket.on('ping-check', (sentAt) => {
+      if (typeof sentAt === 'number' && Number.isFinite(sentAt)) {
+        socket.emit('pong-check', sentAt);
+      }
+    });
+
     socket.on('disconnect', () => {
       rooms.disconnect(socket);
     });

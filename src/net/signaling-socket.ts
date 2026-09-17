@@ -1,4 +1,4 @@
-import { io, type Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 export type SignalingRole = 'viewer' | 'controller';
 
@@ -14,6 +14,7 @@ export interface SignalingIoSocket {
   disconnect(): void;
   emit(event: string, payload?: unknown): void;
   on(event: string, handler: (...args: never[]) => void): void;
+  off(event: string, handler: (...args: never[]) => void): void;
 }
 
 interface SignalingSocketOptions {
@@ -26,7 +27,10 @@ interface SignalingSocketOptions {
 }
 
 function defaultCreateSocket(url: string): SignalingIoSocket {
-  return io(url, { autoConnect: false, transports: ['websocket', 'polling'] }) as Socket;
+  // socket.io-client's real Socket type is far wider (typed per-event
+  // overloads) than the narrow structural interface above needs — cast
+  // through unknown rather than widen SignalingIoSocket to match it exactly.
+  return io(url, { autoConnect: false, transports: ['websocket', 'polling'] }) as unknown as SignalingIoSocket;
 }
 
 /**
@@ -89,6 +93,38 @@ export class SignalingSocket {
   onConnectionChange(handler: (connected: boolean) => void): void {
     this._socket.on('connect', () => handler(true));
     this._socket.on('disconnect', () => handler(false));
+  }
+
+  /**
+   * Round-trip time to the signaling server, in ms — a proxy for "connection
+   * quality" shown on the TV pairing screen (docs/12 §10). Resolves `null`
+   * if no reply arrives within `timeoutMs` (offline, or the socket isn't
+   * connected at all).
+   */
+  measureLatency(timeoutMs = 3000): Promise<number | null> {
+    if (!this._socket.connected) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      const sentAt = Date.now();
+      let settled = false;
+
+      const onPong = (echoedAt: unknown) => {
+        if (echoedAt !== sentAt || settled) return;
+        settled = true;
+        this._socket.off('pong-check', onPong as never);
+        resolve(Date.now() - sentAt);
+      };
+
+      this._socket.on('pong-check', onPong as never);
+      this._socket.emit('ping-check', sentAt);
+
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        this._socket.off('pong-check', onPong as never);
+        resolve(null);
+      }, timeoutMs);
+    });
   }
 
   private _join(): void {
