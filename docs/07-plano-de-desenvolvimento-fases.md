@@ -1,7 +1,8 @@
 # 07 — Plano de desenvolvimento por fases
 
-Roadmap do projeto, com entregáveis e critérios de aceite. As fases 0 a 4 estão
-**concluídas** nesta versão; a fase 5 é o próximo passo.
+Roadmap do projeto, com entregáveis e critérios de aceite. As fases 0 a 8 estão
+**concluídas** nesta versão; o hardware (ESP32) é o próximo passo natural, mas não está
+em desenvolvimento.
 
 Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo atual)
 
@@ -32,7 +33,7 @@ Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo at
 
 **Objetivo:** explicar a arquitetura antes de ela crescer.
 
-**Entregáveis:** os 10 documentos em `docs/`, em português.
+**Entregáveis:** os 11 documentos em `docs/`, em português.
 
 **Critérios de aceite**
 
@@ -55,7 +56,7 @@ Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo at
 - `content/`: `text-utils`, `level-loader`, uma fase de exemplo.
 - `render/`: `canvas-renderer`, `camera`, `sprites`, `hud`, `hud-model`, `effects`.
 - `scenes/`: `boot`, `menu`, `game`, `victory`; `ui/`: `dom`, `menu`.
-- `main.js` como composition root.
+- `main.ts` como composition root.
 - Pausa com `Esc`, altura variável de pulo, tempo de coiote, buffer de pulo, pausa automática.
 
 **Critérios de aceite**
@@ -76,8 +77,8 @@ Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo at
 
 - `curriculum.json` com 16 unidades e 152 lições (alfabeto, famílias silábicas, dígrafos,
   encontros consonantais, palavras monossílabas e dissílabas).
-- `curriculum-model.js` expandindo pools em lições (compartilhado com o gerador).
-- `tools/generate-levels.mjs` com 4 templates de terreno.
+- `curriculum-model.ts` expandindo pools em lições (compartilhado com o gerador).
+- `tools/generate-levels.mts` com 4 templates de terreno.
 - 152 arquivos de fase gerados e versionados.
 - Testes de coerência currículo ↔ fases.
 
@@ -110,36 +111,116 @@ Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo at
 
 ---
 
-## Fase 5 — Polimento e arte 🔜
+## Fase 5 — Polimento e arte ✅
 
 **Objetivo:** transformar o esqueleto funcional em um jogo bonito e agradável.
 
-**Tarefas**
+**Entregáveis**
 
-1. **Arte original.** Substituir as formas provisórias por pixel art própria (ou CC0).
-   Os pontos de troca são `render/sprites.js` e `render/atlas-meta.js`. A sprite sheet em
-   `imgs_referencia/` serve **apenas** para medir proporções — é arte estilo Mario e não
-   pode ser distribuída.
-2. **Animações.** `idle`, `andar`, `pular`, `cair` ligadas aos estados do jogador.
-   O mapeamento de pose já existe em `atlas-meta.js` (`POSE_BY_STATE`).
-3. **Som.** Efeitos de pulo, coleta, acerto, erro e uma trilha por unidade. O lugar
-   natural é um `SoundManager` inscrito nos mesmos eventos do `EventBus`
-   (`item.collected`, `answer.correct`, `level.complete`).
-4. **Sensação de jogo.** Ajuste fino de gravidade, altura de pulo e velocidade em
-   `config.js` com uma criança testando de verdade.
-5. **Qualidade de vida.** Contagem de fases concluídas no HUD; tela de escolha de fase
-   agrupada por unidade; botão de repetir áudio do objetivo.
+1. **Arte de produção.** As formas geométricas provisórias foram substituídas por pixel
+   art gerada por IA a partir de referências privadas da família (personagens, cenários,
+   itens, objetos), em `public/assets/`. Os pontos de leitura são `render/sprites.ts` e
+   `content/atlas-meta.ts`. A sprite sheet em `imgs_referencia/` continua **apenas** como
+   referência histórica de proporções — é arte estilo Mario e não é distribuída (nunca
+   entra no build). Procedência e restrições de uso da arte de produção: ver
+   [09 — Glossário e convenções §7](09-glossario-e-convencoes.md#7-licenças-e-procedência-de-arte).
+2. **Animações.** `idle`, `walk`, `run`, `jump`, `celebrate` por personagem, ligadas aos
+   estados do jogador via `atlas-meta.ts`.
+3. **Infraestrutura de som.** `AudioManager` (`src/audio/audio-manager.ts`) já existe,
+   com mute/volume persistidos e uma API `register`/`playMusic`/`playSfx` pronta para
+   receber arquivos. **Nenhum efeito sonoro ou trilha foi registrado ainda** — é
+   um item em aberto (ver [08 — Evolução futura §3](08-evolucao-futura.md#3-som)).
+4. **Sensação de jogo.** Números de física em `config.ts` (gravidade, pulo, velocidade)
+   ajustados e cobertos por teste; refinamento contínuo conforme feedback de uso real.
 
 **Critérios de aceite**
 
-- Uma criança joga uma lição completa sem ajuda e sem erro no console.
-- Cada estado do jogador tem uma animação correspondente.
-- Existe som para acerto, erro, pulo e vitória, com opção de silenciar.
-- Arte com licença documentada em `docs/09`.
+- ✅ Cada estado do jogador tem uma animação correspondente com arte de produção.
+- ✅ Arte com procedência documentada em `docs/09`.
+- 🔜 Existe som para acerto, erro, pulo e vitória, com opção de silenciar — infraestrutura
+  pronta, faltam os arquivos de áudio.
 
 ---
 
-## Fase 6 — Hardware: ESP32 💡
+## Fase 6 — TypeScript e UI em React ✅
+
+**Objetivo:** tipagem estática em todo o motor e uma camada de UI mais sustentável, sem
+abrir mão da arquitetura (motor sem framework, UI sem lógica de jogo).
+
+**Entregáveis**
+
+- Migração completa de `core/`, `physics/`, `gameplay/`, `render/`, `input/`, `audio/`,
+  `scenes/`, `persistence/`, `content/` e `main.ts` para TypeScript com `strict: true`
+  (`tsconfig.json`).
+- Telas de menu (`ui/screens/*.tsx`) reescritas em React, montadas por
+  `ui/screens/mount-screen.ts`; `ui/menu.ts` continua orquestrando qual tela está visível,
+  sem depender do React para isso.
+- Dois novos testes de arquitetura (`architecture: React stays out of the engine`)
+  garantindo que nenhum arquivo `.tsx` sai de `src/ui/` nem importa o motor, e que o
+  motor nunca importa React.
+- Script `npm run typecheck` (`tsc --noEmit`).
+
+**Critérios de aceite**
+
+- ✅ `npm run typecheck` passa sem erros.
+- ✅ `npm test` continua passando (298 testes).
+- ✅ A fronteira motor/React é verificada automaticamente, não só por convenção.
+
+---
+
+## Fase 7 — Mobile: toque e PWA ✅
+
+**Objetivo:** tornar o jogo jogável por toque e instalável como app, sem portar nada —
+adicionando uma camada sobre a arquitetura existente. Roteiro completo em
+[`MOBILE_PLAN.md`](../MOBILE_PLAN.md); detalhes de uso em
+[11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
+
+**Entregáveis**
+
+- `src/input/touch-adapter.ts` implementando `InputAdapter` via Pointer Events.
+- `src/input/composite-adapter.ts` combinando teclado e toque simultaneamente.
+- `src/ui/touch-controls.ts`: D-pad + botão de pulo em tela, detectados por
+  `matchMedia('(pointer: coarse)')`.
+- `vite-plugin-pwa` configurado em `vite.config.js`: manifest instalável, ícones
+  (`tools/generate-pwa-icons.mjs`), cache offline do app shell e cache sob demanda da
+  arte pesada (~22 MB) via Workbox.
+- CSS responsivo com `clamp()`/viewport units e aviso de "gire o celular" em telas
+  retrato.
+
+**Critérios de aceite**
+
+- ✅ Nenhum arquivo de gameplay, física ou render foi tocado para o toque existir.
+- ✅ Teclado e toque funcionam simultaneamente quando ambos estão disponíveis.
+- ✅ O jogo funciona offline após uma sessão normal de jogo.
+- ✅ `npm test` continua passando sem alterar testes de gameplay existentes.
+
+---
+
+## Fase 8 — Deploy: Docker e Nginx ✅
+
+**Objetivo:** um caminho de produção reproduzível e hardened para publicar o jogo numa
+VPS. Detalhes completos em [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
+
+**Entregáveis**
+
+- `Dockerfile` multi-stage: build com `node:22-alpine`, runtime com
+  `nginxinc/nginx-unprivileged:1.27-alpine` (não-root, porta 8080, `HEALTHCHECK`).
+- `docker/nginx.conf`: cabeçalhos de segurança, CSP estrita, gzip, cache imutável para
+  assets com hash, fallback de SPA.
+- `docker-compose.yml`: publicação só em loopback, `read_only`, `cap_drop: ALL`,
+  `no-new-privileges`, limites de CPU/memória/PIDs.
+- `docker/nginx-vps.conf`: proxy reverso na VPS com rate limiting, pronto para HTTPS via
+  `certbot`.
+
+**Critérios de aceite**
+
+- ✅ `docker compose up` sobe o jogo servido por Nginx não-root.
+- ✅ Nenhuma porta é exposta além de `127.0.0.1`; a VPS decide o que é público.
+- ✅ Cabeçalhos de segurança presentes (`CSP`, `X-Frame-Options`, etc.).
+
+---
+
+## Fase 9 — Hardware: ESP32 💡
 
 **Objetivo:** controlar o jogo com sensores e botões físicos.
 
@@ -149,8 +230,8 @@ Seguir o roteiro de [03 — Abstração de input](03-abstracao-de-input.md#7-com
 
 1. Definir o protocolo de mensagens (`{ "button": "jump", "pressed": true }`).
 2. Firmware no ESP32 enviando por BLE ou Web Serial.
-3. `src/input/esp32-adapter.js` implementando `InputAdapter`.
-4. Trocar uma linha em `main.js`.
+3. `src/input/esp32-adapter.ts` implementando `InputAdapter`.
+4. Trocar uma linha em `main.ts` (o `CompositeAdapter` já existe — ver [03 §7.5](03-abstracao-de-input.md#75-teclado-e-esp32-ou-toque-ao-mesmo-tempo)).
 5. Tela de conexão/estado do dispositivo.
 
 **Critérios de aceite**
@@ -161,15 +242,16 @@ Seguir o roteiro de [03 — Abstração de input](03-abstracao-de-input.md#7-com
 
 ---
 
-## Fase 7 — Ideias de longo prazo 💡
+## Fase 10 — Ideias de longo prazo 💡
 
 - **Pulo duplo** como novo `PlayerState` (ver [08](08-evolucao-futura.md)).
 - **Poderes `E`/`Q`**: as ações já estão reservadas no vocabulário de entrada.
+- **Som**: registrar os arquivos de efeito/trilha na infraestrutura já pronta (Fase 5).
 - **Modo dois jogadores** na mesma tela.
 - **Relatório para pais/professores**: quais letras a criança mais erra.
 - **Síntese de voz** para ler o objetivo em voz alta (apoio à alfabetização).
 - **Editor de fases** reaproveitando o `level-loader` como validador.
-- **Controles por toque** para tablet: eventos de ponteiro emitindo as mesmas ações.
+- **HTTPS na VPS** via `certbot` (o `docker/nginx-vps.conf` já está preparado para isso).
 
 ---
 
@@ -177,9 +259,10 @@ Seguir o roteiro de [03 — Abstração de input](03-abstracao-de-input.md#7-com
 
 | Prática | Regra |
 |---|---|
-| Antes de commitar | `npm test` e `npm run build` passando |
+| Antes de commitar | `npm test`, `npm run typecheck` e `npm run build` passando |
 | Mudou conteúdo | Rodar `npm run generate:levels` e commitar as fases |
 | Mudou regra de jogo | Atualizar `docs/02` e o teste correspondente |
 | Mudou arquitetura | Atualizar `docs/01`/`docs/05`, e o teste de arquitetura se aplicável |
-| Novo número de balanceamento | Vai para `config.js`, nunca solto no código |
+| Mudou input/toque/PWA/deploy | Atualizar `docs/03`/`docs/11` conforme o caso |
+| Novo número de balanceamento | Vai para `config.ts`, nunca solto no código |
 | Novo conteúdo pedagógico | Vai para `curriculum.json`, nunca em código |

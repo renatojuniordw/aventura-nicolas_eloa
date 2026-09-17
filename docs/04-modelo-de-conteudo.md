@@ -15,12 +15,12 @@ src/content/curriculum.json          ← escrito à mão (fonte de verdade)
         │
         │  npm run generate:levels
         ▼
-tools/generate-levels.mjs            ← combina currículo + templates de terreno
+tools/generate-levels.mts            ← combina currículo + templates de terreno
         │
         ▼
 src/content/levels/fase-*.json       ← 152 arquivos gerados (versionados)
         │
-        │  level-registry.js (import.meta.glob)
+        │  level-registry.ts (import.meta.glob)
         ▼
       jogo em execução
 ```
@@ -67,7 +67,7 @@ Uma **unidade** é um agrupamento didático; uma **lição** é uma unidade × u
 
 ### Como uma lição é derivada
 
-Para cada item do `pool`, `curriculum-model.js` cria uma lição:
+Para cada item do `pool`, `curriculum-model.ts` cria uma lição:
 
 ```jsonc
 {
@@ -155,7 +155,7 @@ Exemplo real (reduzido) de `fase-alfabeto-a.json`:
 
 ### Como o mapa vira colisão
 
-O `level-loader.js` converte a grade de caracteres em **retângulos**, agrupando
+O `level-loader.ts` converte a grade de caracteres em **retângulos**, agrupando
 sequências horizontais contíguas. As três linhas `"########"` viram **um único** retângulo
 grande, em vez de 24 quadradinhos. Isso reduz o número de checagens de colisão e evita
 arestas internas fantasmas.
@@ -179,7 +179,7 @@ Tudo isso roda em `src/content/curriculum.test.js` e `src/content/level-loader.t
 
 ## 4. Geração de fases
 
-`tools/generate-levels.mjs` monta uma fase por lição combinando:
+`tools/generate-levels.mts` monta uma fase por lição combinando:
 
 **Templates de terreno** (alternados entre as lições):
 
@@ -250,7 +250,7 @@ Chave: `joguinho.sobrinhos.v1` (prefixo + versão do schema).
 | JSON corrompido | Documento novo + cópia do original em `…v1.degraded` |
 | `localStorage` indisponível | Adaptador em memória: o jogo roda, só não salva |
 
-A escada de migração fica em `src/persistence/migration.js`. Acrescentar uma versão nova é
+A escada de migração fica em `src/persistence/migration.ts`. Acrescentar uma versão nova é
 acrescentar um passo à escada — de novo, Aberto/Fechado.
 
 ---
@@ -273,6 +273,6 @@ Nenhuma linha de código:
 
 ## 7. Personagens
 
-`src/content/characters.js` define os 4 personagens (id, nome, cores). É dado puro: o
+`src/content/characters.ts` define os 4 personagens (id, nome, cores). É dado puro: o
 desenho do jogador lê as cores de lá, então **acrescentar um personagem é acrescentar uma
 entrada na lista**.

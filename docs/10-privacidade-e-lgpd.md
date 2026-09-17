@@ -27,7 +27,11 @@ aparelho, e só este aparelho lê esses dados.
 
 Desde a versão com fontes próprias (self-hosted), o jogo **não faz nenhuma
 requisição a terceiros**: nem a fonte (arquivos em `/fonts`), nem imagens, nem
-sons saem do próprio servidor/aparelho.
+sons saem do próprio servidor/aparelho. Isso vale também para a versão
+instalável como PWA: o cache offline (service worker/Workbox) guarda cópias
+locais dos próprios arquivos do jogo no navegador — não é um servidor
+adicional nem envia nada para fora. Ver
+[11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
 
 ## 3. Consentimento parental (LGPD, arts. 8º e 14)
 
@@ -61,13 +65,17 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 - O texto é inserido via `textContent` (nunca `innerHTML`), então nomes de
   perfil não viram código executável.
 - Saves ilegíveis ou de versão futura são isolados (backup em chave separada)
-  em vez de travar o jogo — ver `src/persistence/save-store.js`.
+  em vez de travar o jogo — ver `src/persistence/save-store.ts`.
+- O Nginx de produção envia uma Content-Security-Policy estrita
+  (`default-src 'self'`, sem `script-src` externo) — ver
+  [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
 
 ## 6. Para desenvolvedores
 
-- Chave de armazenamento: `aventura-nicolas-eloa.v1` (ver
-  `src/persistence/storage-keys.js`); versão do schema em `SCHEMA_VERSION`.
-- Migrações em `src/persistence/migration.js`; o campo `parentalConsent` é
+- Chave de armazenamento: `joguinho.sobrinhos.v1` (ver
+  `src/persistence/storage-keys.ts` e `STORAGE.keyPrefix` em
+  `src/core/config.ts`); versão do schema em `SCHEMA_VERSION`.
+- Migrações em `src/persistence/migration.ts`; o campo `parentalConsent` é
   normalizado para booleano e preservado entre versões.
 - Ao adicionar qualquer dado novo ao save, atualize a tabela da seção 1 deste
   documento.
@@ -77,4 +85,5 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 ---
 
 *Documento criado em 2026-09-16 como parte do pipeline de engenharia (Fase 1,
-achados Seg 2 e Seg 3). Revisado junto da copy de UI na Fase 5.*
+achados Seg 2 e Seg 3). Revisado junto da copy de UI na Fase 5, e novamente em
+2026-09-17 para corrigir a chave de armazenamento e cobrir o cache offline do PWA.*

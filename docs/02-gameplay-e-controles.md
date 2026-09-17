@@ -1,7 +1,7 @@
 # 02 — Gameplay e controles
 
 Regras do jogo, controles e fluxo de uma partida. Tudo que está aqui é regra de
-comportamento; os números exatos vivem em `src/core/config.js` (ver
+comportamento; os números exatos vivem em `src/core/config.ts` (ver
 [01 — Arquitetura](01-arquitetura.md#8-configuração-central)).
 
 ---
@@ -23,20 +23,29 @@ punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.
 
 ## 2. Controles
 
-| Ação | Teclas | Ação semântica |
-|---|---|---|
-| Andar para a esquerda | `←` ou `A` | `moveLeft` |
-| Andar para a direita | `→` ou `D` | `moveRight` |
-| Pular | `Espaço`, `↑`, `W` ou `Z` | `jump` |
-| Pausar / continuar | `Esc` ou `P` | `pause` |
-| Confirmar (menus) | `Enter` ou `J` | `confirm` |
-| Voltar / cancelar | `Backspace` ou `Y` | `back` |
-| Mostrar hitboxes (depuração) | `F2` | `debug` |
-| Poder 1 / Poder 2 | `E` / `Q` | `power1` / `power2` — **reservados**, sem efeito nesta versão |
+| Ação | Teclado | Toque | Ação semântica |
+|---|---|---|---|
+| Andar para a esquerda | `←` ou `A` | Botão ◀ | `moveLeft` |
+| Andar para a direita | `→` ou `D` | Botão ▶ | `moveRight` |
+| Pular | `Espaço`, `↑`, `W` ou `Z` | Botão de pulo | `jump` |
+| Pausar / continuar | `Esc` ou `P` | Botão de pausa no HUD | `pause` |
+| Confirmar (menus) | `Enter` ou `J` | Toque no botão | `confirm` |
+| Voltar / cancelar | `Backspace` ou `Y` | Toque no botão | `back` |
+| Mostrar hitboxes (depuração) | `F2` | — | `debug` |
+| Poder 1 / Poder 2 | `E` / `Q` | — | `power1` / `power2` — **reservados**, sem efeito nesta versão |
 
-O mapeamento vive em `src/input/keyboard-keymap.js` e usa **posição física da tecla**
-(`event.code`), não o caractere produzido. Assim funciona igual em teclado ABNT2 e US, e
-não quebra com acentos ou teclas mortas.
+O mapeamento do teclado vive em `src/input/keyboard-keymap.ts` e usa **posição física da
+tecla** (`event.code`), não o caractere produzido. Assim funciona igual em teclado ABNT2
+e US, e não quebra com acentos ou teclas mortas.
+
+Os controles de toque são três botões fixos na tela (`src/ui/touch-controls.ts`),
+traduzidos em ações pelo `TouchAdapter` (`src/input/touch-adapter.ts`) via Pointer Events
+— por isso também funcionam com mouse/caneta, não só com o dedo. Eles aparecem
+automaticamente em dispositivos com `matchMedia('(pointer: coarse)')` verdadeiro; em
+notebook com tela de toque, teclado e toque ficam ativos **ao mesmo tempo** (ver
+[03 — Abstração de input](03-abstracao-de-input.md#8-um-segundo-adaptador-já-em-produção-o-toque)).
+Em telas de toque o jogo é **somente paisagem**: um aviso pede para girar o aparelho se
+estiver em retrato (ver [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)).
 
 > Estes controles são *intenção*, não *hardware*. Um adaptador de ESP32 pode emitir as
 > mesmas ações sem alterar uma linha do jogo — ver [03 — Abstração de input](03-abstracao-de-input.md).
@@ -88,7 +97,7 @@ Cada fase é um arquivo JSON (ver [04 — Modelo de conteúdo](04-modelo-de-cont
 
 As fases são montadas a partir de **4 templates de terreno** (`planície`, `degraus`,
 `plataformas`, `rio`), alternados entre as lições para dar variedade sem exigir trabalho
-manual. Ver o gerador em `tools/generate-levels.mjs`.
+manual. Ver o gerador em `tools/generate-levels.mts`.
 
 ---
 
@@ -147,6 +156,9 @@ tecla fica presa) e o jogo pausa sozinho.
 
 O conteúdo é **dado**, não código: acrescentar uma palavra é editar
 `src/content/curriculum.json` e rodar `npm run generate:levels`. Nada de programar.
+
+A arte de produção (personagens, cenários, itens) já está em `public/assets/` — ver
+[09 — Glossário e convenções](09-glossario-e-convencoes.md#7-licenças-e-procedência-de-arte).
 
 ---
 

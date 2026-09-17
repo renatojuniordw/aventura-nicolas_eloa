@@ -40,22 +40,25 @@ estar em português porque o público é uma criança brasileira em alfabetizaç
 
 | Termo | Significado neste projeto |
 |---|---|
-| **Ação semântica** | Intenção abstrata do jogador (`jump`), não uma tecla |
-| **Adaptador de entrada** | Traduz hardware em ações semânticas (`KeyboardAdapter`) |
+| **Ação semântica** | Intenção abstrata do jogador (`jump`), não uma tecla ou um toque |
+| **Adaptador de entrada** | Traduz hardware em ações semânticas (`KeyboardAdapter`, `TouchAdapter`) |
+| **Adaptador composto** | `CompositeAdapter`: liga vários adaptadores ao mesmo tempo (hoje teclado + toque) |
 | **AABB** | *Axis-Aligned Bounding Box*: caixa retangular alinhada aos eixos |
 | **Alvo de colisão / corpo** | Retângulo `{x, y, w, h}` que participa da física |
 | **Acumulador** | Técnica do laço de jogo para steps de duração fixa |
-| **Composition root** | O único lugar que monta as peças (`src/main.js`) |
+| **Composition root** | O único lugar que monta as peças (`src/main.ts`) |
 | **EventBus** | Publicador/assinante que desacopla quem anuncia de quem reage |
 | **Hitbox** | Área de colisão, visualizável com `F2` |
 | **Composição root** | ver *Composition root* |
-| **Overlay / sobreposição** | Tela de menu em DOM sobre o canvas |
+| **Overlay / sobreposição** | Tela de menu em DOM sobre o canvas (React em `ui/screens/*.tsx`, orquestrada sem React por `ui/menu.ts`) |
 | **Plataforma de mão única** | Sólida apenas quando se cai de cima |
 | **Template de terreno** | Molde de mapa reaproveitado por várias fases |
 | **Timestep fixo** | Simulação sempre em fatias de 1/60 s |
 | **Checkpoint** | Onde o jogador reaparece depois de cair |
 | **Slug** | Texto simplificado para usar em id/nome de arquivo (`PÉ` → `pe`) |
 | **Perfil** | Jogador cadastrado, com progresso próprio |
+| **PWA** | *Progressive Web App*: o jogo é instalável e funciona offline (ver [11](11-mobile-pwa-e-deploy.md)) |
+| **Service worker** | Script do navegador que faz o cache offline do PWA (gerado pelo `vite-plugin-pwa`/Workbox) |
 
 ---
 
@@ -63,17 +66,23 @@ estar em português porque o público é uma criança brasileira em alfabetizaç
 
 | Tipo | Convenção | Exemplo |
 |---|---|---|
-| Arquivo de módulo | `kebab-case.js` | `player-controller.js` |
+| Arquivo de módulo do motor | `kebab-case.ts` | `player-controller.ts` |
+| Componente de tela React | `kebab-case.tsx` em `ui/screens/` | `main-menu.tsx` |
 | Arquivo de teste | mesmo nome + `.test.js` | `player-controller.test.js` |
 | Classe | `PascalCase` | `PlayerController` |
 | Função / variável | `camelCase` | `applyGravity()` |
 | Constante de configuração | `SCREAMING_SNAKE_CASE` | `FIXED_STEP` |
 | Enum / mapa de opções | `PascalCase` + `Object.freeze` | `Actions`, `PlayerStateId` |
 | Membro privado | prefixo `_` | `this._jumpBufferTimer` |
-| Módulo puro / utilitário | `kebab-case.js` sem classe | `text-utils.js` |
+| Módulo puro / utilitário | `kebab-case.ts` sem classe | `text-utils.ts` |
 | Fase gerada | `fase-<unidade>-<alvo>.json` | `fase-alfabeto-a.json` |
 | Id de lição | `<unidade>-<slug>` | `palavras-dissilabas-bola` |
 | Chave de armazenamento | `<prefixo>.v<versão>` | `joguinho.sobrinhos.v1` |
+
+**Imports internos usam extensão `.js`, mesmo em arquivos `.ts`** (ex.:
+`import { Actions } from './actions.js';` dentro de `actions.ts`): é a convenção do
+`moduleResolution: "bundler"` do TypeScript, não um erro — o arquivo real é `.ts`/`.tsx`,
+só a especificação do import aponta para `.js`.
 
 **Idioma nos nomes:** sempre inglês. Exceção deliberada: os **dados** carregam português
 porque são conteúdo (`"name": "Planície — A"`, `title: "Família do B"`).
@@ -86,12 +95,12 @@ porque são conteúdo (`"name": "Planície — A"`, `title: "Família do B"`).
 
 1. **Nenhuma lógica de jogo em listener de tecla.** Ver [03](03-abstracao-de-input.md).
 2. **`event.code` só em `src/input/`.** Nada fora da camada de entrada conhece teclas.
-3. **O impulso de pulo só existe em `config.js` e `player-controller.js`.**
-4. **Números de balanceamento só em `config.js`.**
-5. **Conteúdo só em JSON** (`curriculum.json`, `levels/*.json`, `characters.js`).
-6. **Nada de `innerHTML`.** Sempre `textContent` via `ui/dom.js`.
-7. **Dependências injetadas.** Só `main.js` escolhe implementações concretas.
-8. **`npm test` e `npm run build` antes de commitar.**
+3. **O impulso de pulo só existe em `config.ts` e `player-controller.ts`.**
+4. **Números de balanceamento só em `config.ts`.**
+5. **Conteúdo só em JSON** (`curriculum.json`, `levels/*.json`, `characters.ts`).
+6. **Nada de `innerHTML`.** Sempre `textContent` via `ui/dom.ts`.
+7. **Dependências injetadas.** Só `main.ts` escolhe implementações concretas.
+8. **`npm test`, `npm run typecheck` e `npm run build` antes de commitar.**
 
 ### Recomendadas
 
@@ -104,7 +113,7 @@ porque são conteúdo (`"name": "Planície — A"`, `title: "Família do B"`).
 ### Proibidas
 
 - Lógica de jogo em handler de evento de DOM.
-- Números mágicos espalhados (`620`, `1500`, `3`) fora de `config.js`.
+- Números mágicos espalhados (`620`, `1500`, `3`) fora de `config.ts`.
 - Importar `gameplay/` a partir de `input/`.
 - Acoplar a `GameScene` a HUD, efeitos ou armazenamento (use eventos).
 - Arte de terceiros sem licença — ver seção 7.
@@ -135,17 +144,39 @@ Comentários em inglês (é código). Documentação em português.
 |---|---|
 | Código do projeto | Próprio do projeto |
 | `imgs_referencia/mario_graphics1.png` | **Referência apenas.** É arte estilo Mario (IP da Nintendo). **Não distribuir.** Usada só para medir proporções |
-| Arte de produção (fase 5) | Deve ser **original ou CC0**, com a licença registrada aqui |
+| Arte de produção (`public/assets/`) | **Proprietária, não distribuível fora do projeto.** Ver detalhes abaixo |
+| Fonte Silkscreen (`public/fonts/`) | SIL Open Font License 1.1 (texto em `public/fonts/OFL.txt`) |
 
-> **Regra:** nenhum arquivo em `imgs_referencia/` pode ser empacotado no build. O jogo
-> atual desenha formas geométricas; a troca por arte real está descrita em
-> [07 — Fase 5](07-plano-de-desenvolvimento-fases.md#fase-5--polimento-e-arte-).
+> **Regra:** nenhum arquivo em `imgs_referencia/` pode ser empacotado no build — isso é
+> verificado manualmente a cada revisão de `vite.config.js`/`public/`.
 
-Ao adicionar arte na fase 5, preencha aqui:
+### Arte de produção (personagens, cenários, itens)
 
-| Arquivo | Autor | Licença | Fonte |
-|---|---|---|---|
-| *(a preencher)* | | | |
+A arte que está hoje em `public/assets/` (personagens, cenários, itens e objetos, pixel
+art) foi **gerada por IA** (ferramenta de geração de imagem) a partir de **referências
+fotográficas privadas de crianças da família**, para preservar a semelhança dos quatro
+personagens. A proveniência de cada arquivo está registrada em
+`public/assets/manifest.json` (`source: "private generation source (not distributed)"`).
+
+Consequências práticas:
+
+- **Não é CC0 nem de terceiros licenciados.** É proprietária do projeto.
+- **Não deve ser redistribuída, reaproveitada ou publicada fora deste projeto** — as
+  imagens de origem são fotos privadas de crianças reais.
+- `public/assets/manifest.json` **não deve ser tratado como documentação pública**: é um
+  log operacional de geração, mantido versionado só para rastreabilidade interna.
+- Se o projeto algum dia for aberto/publicado, a arte de produção precisa ser revisada
+  separadamente (trocar por arte original sem referência de identidade, ou manter privada).
+
+| Personagem | Pasta em `public/assets/characters/` |
+|---|---|
+| João Miguel | `joao_miguel/` |
+| Luna | `luna/` |
+| Lucas (engenheiro) | `lucas_engenheiro/` |
+| Samara | `samara/` |
+
+(Os nomes dos personagens jogáveis são diferentes do nome do jogo — "Nicolas & Eloá" é a
+marca do jogo, não um dos quatro personagens.)
 
 ---
 
@@ -153,23 +184,29 @@ Ao adicionar arte na fase 5, preencha aqui:
 
 | Arquivo | Em uma frase |
 |---|---|
-| `main.js` | Monta tudo e inicia o laço |
-| `core/config.js` | Todos os números do jogo |
-| `core/game-loop.js` | Timestep fixo |
-| `core/event-bus.js` | Comunicação por eventos |
-| `input/actions.js` | O que o jogador pode querer fazer |
-| `input/keyboard-keymap.js` | Qual tecla corresponde a qual ação |
-| `input/keyboard-adapter.js` | Lê o teclado e repassa ações |
-| `input/input-manager.js` | Guarda "segurado" e "apertou uma vez" |
-| `gameplay/player/player-controller.js` | **Onde a regra do pulo vive** |
-| `physics/physics-engine.js` | Gravidade e colisão |
-| `gameplay/level-manager.js` | Itens, perigos e queda |
-| `gameplay/lives-manager.js` | Corações |
-| `content/answer-validator.js` | Acertou ou errou |
+| `main.ts` | Monta tudo e inicia o laço |
+| `core/config.ts` | Todos os números do jogo |
+| `core/game-loop.ts` | Timestep fixo |
+| `core/event-bus.ts` | Comunicação por eventos |
+| `input/actions.ts` | O que o jogador pode querer fazer |
+| `input/keyboard-keymap.ts` | Qual tecla corresponde a qual ação |
+| `input/keyboard-adapter.ts` | Lê o teclado e repassa ações |
+| `input/touch-adapter.ts` | Lê os botões de toque e repassa ações |
+| `input/composite-adapter.ts` | Liga vários adaptadores ao mesmo tempo (hoje: teclado + toque) |
+| `input/input-manager.ts` | Guarda "segurado" e "apertou uma vez" |
+| `gameplay/player/player-controller.ts` | **Onde a regra do pulo vive** |
+| `physics/physics-engine.ts` | Gravidade e colisão |
+| `gameplay/level-manager.ts` | Itens, perigos e queda |
+| `gameplay/lives-manager.ts` | Corações |
+| `content/answer-validator.ts` | Acertou ou errou |
 | `content/curriculum.json` | O conteúdo pedagógico |
 | `content/levels/*.json` | As fases |
-| `render/sprites.js` | Desenho do mundo |
-| `render/hud.js` | Corações, objetivo e mensagens |
-| `ui/menu.js` | Todas as telas de menu |
-| `persistence/progress-store.js` | Progresso por jogador |
-| `scenes/game-scene.js` | Orquestra uma lição |
+| `render/sprites.ts` | Desenho do mundo com a arte de produção |
+| `render/hud.ts` | Corações, objetivo e mensagens |
+| `ui/menu.ts` | Orquestra qual tela React está montada |
+| `ui/screens/*.tsx` | As telas de menu em si (React) |
+| `ui/touch-controls.ts` | D-pad e botão de pulo em tela |
+| `persistence/progress-store.ts` | Progresso por jogador |
+| `scenes/game-scene.ts` | Orquestra uma lição |
+| `vite.config.js` | Build, dev server e configuração do PWA (`vite-plugin-pwa`) |
+| `Dockerfile` / `docker-compose.yml` / `docker/` | Build e deploy em produção — ver [11](11-mobile-pwa-e-deploy.md) |

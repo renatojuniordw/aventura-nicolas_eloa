@@ -12,16 +12,16 @@ Cada módulo faz **uma** coisa, e o nome diz qual é.
 
 | Módulo | Sua única responsabilidade | O que ele **não** faz |
 |---|---|---|
-| `physics-engine.js` | Gravidade, movimento e colisão | Não lê input, não desenha, não sabe o que é uma letra |
-| `player-controller.js` | Estado do jogador e regra do pulo | Não desenha, não lê teclado |
-| `level-manager.js` | Itens, perigos e queda na fase | Não decide se o item era a resposta certa |
-| `answer-validator.js` | Comparar item coletado com a resposta | Não mexe em vidas nem em efeitos |
-| `lives-manager.js` | Contagem de corações | Não sabe por que o coração foi perdido |
-| `canvas-renderer.js` | Falar com o Canvas 2D | Não decide o que desenhar |
-| `hud-model.js` | Estado do HUD (corações, mensagens) | Não desenha nada |
-| `save-store.js` | Ler/escrever o documento de save | Não conhece perfis nem progresso |
-| `progress-store.js` | Progresso por perfil | Não sabe onde o dado é guardado |
-| `keyboard-adapter.js` | DOM → ações semânticas | Nenhuma regra de jogo |
+| `physics-engine.ts` | Gravidade, movimento e colisão | Não lê input, não desenha, não sabe o que é uma letra |
+| `player-controller.ts` | Estado do jogador e regra do pulo | Não desenha, não lê teclado |
+| `level-manager.ts` | Itens, perigos e queda na fase | Não decide se o item era a resposta certa |
+| `answer-validator.ts` | Comparar item coletado com a resposta | Não mexe em vidas nem em efeitos |
+| `lives-manager.ts` | Contagem de corações | Não sabe por que o coração foi perdido |
+| `canvas-renderer.ts` | Falar com o Canvas 2D | Não decide o que desenhar |
+| `hud-model.ts` | Estado do HUD (corações, mensagens) | Não desenha nada |
+| `save-store.ts` | Ler/escrever o documento de save | Não conhece perfis nem progresso |
+| `progress-store.ts` | Progresso por perfil | Não sabe onde o dado é guardado |
+| `keyboard-adapter.ts` / `touch-adapter.ts` | DOM → ações semânticas | Nenhuma regra de jogo |
 
 **Sinal de alerta usado na revisão:** se para descrever um módulo é preciso usar "e"
 ("ele move **e** valida **e** desenha"), ele tem responsabilidades demais.
@@ -31,10 +31,10 @@ Cada módulo faz **uma** coisa, e o nome diz qual é.
 Aberto para extensão, fechado para modificação. Três exemplos concretos:
 
 **1. Conteúdo novo não muda código.** Acrescentar uma lição é editar
-`curriculum.json` + rodar o gerador. Nenhum arquivo `.js` é tocado.
+`curriculum.json` + rodar o gerador. Nenhum arquivo `.ts` é tocado.
 
 **2. Nova fonte de input não muda gameplay.** Um adaptador ESP32 implementa o mesmo
-contrato e entra com uma linha em `main.js`. Ver [03](03-abstracao-de-input.md#7-como-plugar-o-esp32-no-futuro-o-caminho-exato).
+contrato e entra com uma linha em `main.ts`. Ver [03](03-abstracao-de-input.md#7-como-plugar-o-esp32-no-futuro-o-caminho-exato) — o toque já faz exatamente isso hoje via `CompositeAdapter`.
 
 **3. Nova cena não muda o `SceneManager`.** Cenas são registradas em um mapa:
 
@@ -87,7 +87,7 @@ E o `GameLoop` recebe `update` e `render` como funções — ele não sabe que e
 new GameLoop({ update: (dt) => scenes.update(dt), render: () => scenes.draw(renderer) })
 ```
 
-O único lugar que escolhe implementações concretas é `src/main.js`.
+O único lugar que escolhe implementações concretas é `src/main.ts`.
 
 ---
 
@@ -130,10 +130,21 @@ cena não deveria conhecer nenhuma delas.
 **Problema:** a cena não deveria saber se o input veio de teclado, sensor ou rede.
 **Solução:** duas perguntas bastam — `isActionHeld` e `consumePressed`.
 
+### Composite — `CompositeAdapter`
+
+**Problema:** o jogo precisa aceitar teclado **e** toque ao mesmo tempo (por exemplo, um
+notebook conversível com tela sensível ao toque), mas `InputManager.setAdapter()` só
+recebe um adaptador.
+**Solução:** `src/input/composite-adapter.ts` implementa o mesmo contrato `InputAdapter` e
+por dentro repassa `attach()`/`detach()` para uma lista de adaptadores concretos —
+`main.ts` registra `new CompositeAdapter(input.handleAction, [keyboardAdapter,
+touchAdapter])` como se fosse um único adaptador. Nenhum consumidor de `InputManager`
+precisa saber que existe mais de uma fonte de entrada ligada.
+
 ### Composition Root (com uma exceção consciente)
 
 **Problema:** alguém precisa escolher as implementações concretas.
-**Solução:** `src/main.js` monta o que é **global e duradouro** — barramento, renderizador,
+**Solução:** `src/main.ts` monta o que é **global e duradouro** — barramento, renderizador,
 input e adaptador, armazenamento, lojas e cenas. Os módulos que ele cria recebem tudo pronto.
 
 **Exceção deliberada:** a `GameScene` instancia os colaboradores que pertencem a **uma
@@ -181,18 +192,18 @@ Bons princípios também incluem saber o que **não** fazer.
 | Texto de interface e documentação em **português** | Público-alvo e requisito do projeto |
 | ES Modules com `import`/`export` nomeados | Sem build extra, fácil de rastrear |
 | Sem dependências de runtime | Só Canvas 2D; nada para quebrar |
-| Números mágicos só em `config.js` | Balancear é mudar dados |
+| Números mágicos só em `config.ts` | Balancear é mudar dados |
 | `Object.freeze` em enums e configs | Impede mutação acidental |
 | Erros com mensagem clara em português ou inglês descritivo | `LevelValidationError` diz **qual** campo falhou |
 | Funções puras quando possível | Física, validação, migração e câmera são testáveis sem DOM |
-| Nada de `innerHTML` | `dom.js` usa sempre `textContent` — sem risco de injeção de markup |
+| Nada de `innerHTML` | `dom.ts` usa sempre `textContent` — sem risco de injeção de markup |
 
 ---
 
 ## 5. Resumo visual: quem depende de quem
 
 ```
-                    main.js  (composition root)
+                    main.ts  (composition root)
                        │ monta tudo
         ┌──────────────┼───────────────────────┐
         ▼              ▼                       ▼

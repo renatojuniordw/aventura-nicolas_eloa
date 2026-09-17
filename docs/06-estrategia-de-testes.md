@@ -46,6 +46,9 @@ contam chamadas, não pegariam.
 | `core/scene-manager.test.js`            |      5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente           |
 | `input/keyboard-keymap.test.js`         |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado              |
 | `input/input-manager.test.js`           |      9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
+| `input/touch-adapter.test.js`           |      5 | Pointer down/up, cancel/leave soltam a ação, cada botão na sua ação, idempotência do `attach` |
+| `input/composite-adapter.test.js`       |      3 | Anexa/destaca todos os filhos, qualquer fonte filha comanda o mesmo `InputManager` |
+| `ui/touch-controls.test.js`             |      3 | Botões esquerda/direita/pulo mapeados às ações certas, `show()`/`hide()` preservam os elementos |
 | `app-lifecycle.test.js`                 |      3 | `blur`/`visibilitychange` limpam o input e pausam; grafo montado (jsdom)   |
 
 ### 2.2 Física e regras de jogo
@@ -126,8 +129,10 @@ Se alguém violar a regra no futuro, o teste falha e explica o porquê.
 | `the input layer never depends on gameplay, physics, render or scenes` | Adaptadores de entrada não podem conhecer regras de jogo          |
 | `keyboard listeners exist only inside the input layer`                 | Ninguém registra `keydown`/`keyup` fora de `src/input/`           |
 | `physical key codes are handled only inside the input layer`           | `event.code` só existe no mapa de teclas                          |
-| `the jump impulse is applied only by the player controller`            | `jumpVelocity` só aparece em `config.js` e `player-controller.js` |
+| `the jump impulse is applied only by the player controller`            | `jumpVelocity` só aparece em `config.ts` e `player-controller.ts` |
 | `semantic actions are never redefined outside actions.js`              | As ações têm uma única definição                                  |
+| `React components never import from the engine layers`                 | Telas `.tsx` só vivem em `src/ui/` e não importam `core/physics/gameplay/render/scenes` |
+| `engine layers never import React`                                     | Nenhum arquivo do motor importa `react`/`react-dom`                |
 
 **Na prática, foi isso que pegou um bug real durante o desenvolvimento:** um formulário de
 menu tinha um `addEventListener('keydown')` cru para o Enter. O teste apontou o arquivo, e
@@ -236,7 +241,7 @@ confira:
 | Ferramenta            | Como usar                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------- |
 | Hitboxes              | `F2` durante o jogo: contornos de terreno, plataformas, itens, perigos e do jogador      |
-| Grade da sprite sheet | Ao ligar a arte real, use as medidas de `render/atlas-meta.js` para conferir os recortes |
+| Grade da sprite sheet | As medidas da sprite sheet de produção ficam em `content/atlas-meta.ts`; use-as para conferir os recortes |
 | Save inspecionável    | DevTools → Application → Local Storage → `joguinho.sobrinhos.v1`                         |
 | Save corrompido       | Comparar com `joguinho.sobrinhos.v1.degraded`                                            |
 | Reset de progresso    | Botão "Zerar progresso" no menu (ou apagar a chave no DevTools)                          |

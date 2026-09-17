@@ -16,13 +16,13 @@ Cada seção mostra o ponto de extensão exato e o que **não** precisa mudar.
 **Ponto de extensão:** a máquina de estados do jogador.
 
 ```js
-// 1. player-state.js — acrescente o id
+// 1. player-state.ts — acrescente o id
 export const PlayerStateId = Object.freeze({
   IDLE: 'idle', WALK: 'walk', JUMP: 'jump', FALL: 'fall',
   DOUBLE_JUMP: 'doubleJump',        // novo
 });
 
-// 2. states/double-jump-state.js — uma classe pequena, igual a JumpState
+// 2. states/double-jump-state.ts — uma classe pequena, igual a JumpState
 export class DoubleJumpState extends PlayerState {
   get id() { return PlayerStateId.DOUBLE_JUMP; }
   update(_dt) {
@@ -31,7 +31,7 @@ export class DoubleJumpState extends PlayerState {
   }
 }
 
-// 3. player-controller.js — registre o estado e permita o segundo pulo
+// 3. player-controller.ts — registre o estado e permita o segundo pulo
 this._states.set(PlayerStateId.DOUBLE_JUMP, new DoubleJumpState(this));
 
 _jump() {
@@ -40,8 +40,8 @@ _jump() {
 }
 ```
 
-**O que NÃO muda:** `keyboard-adapter.js`, `input-manager.js`, `actions.js`,
-`game-scene.js`, `physics-engine.js`, a UI e todos os testes existentes. A ação
+**O que NÃO muda:** `keyboard-adapter.ts`, `touch-adapter.ts`, `input-manager.ts`,
+`actions.ts`, `game-scene.ts`, `physics-engine.ts`, a UI e todos os testes existentes. A ação
 `Actions.JUMP` continua igual — o que muda é só o que o controlador faz com ela. Esse é o
 benefício direto de ter tirado a lógica de pulo do listener.
 
@@ -85,7 +85,7 @@ poder (novo campo no `HudModel`).
 **Ponto de extensão:** um `SoundManager` que se inscreve nos **mesmos eventos** já emitidos.
 
 ```js
-// src/audio/sound-manager.js
+// src/audio/sound-manager.ts
 export class SoundManager {
   constructor({ bus, library }) {
     this._bus = bus;
@@ -108,21 +108,24 @@ exatamente para isso.
 
 ---
 
-## 4. Controles por toque (tablet)
+## 4. Controles por toque — já implementado ✅
 
-**Ponto de extensão:** um novo adaptador de entrada.
+Diferente das outras seções deste documento, esta já não é mais planejamento: o toque foi
+adicionado exatamente pelo ponto de extensão previsto aqui, sem tocar em gameplay, física
+ou render.
 
-```js
-// src/input/pointer-adapter.js
-export class PointerAdapter extends InputAdapter {
-  attach() { /* botões na tela -> onAction(Actions.JUMP, { pressed: true }) */ }
-}
-```
+- `src/input/touch-adapter.ts` implementa `InputAdapter`, traduzindo Pointer Events de
+  botões na tela em ações semânticas.
+- `src/input/composite-adapter.ts` combina teclado **e** toque ao mesmo tempo (ver
+  [03 §7.5](03-abstracao-de-input.md#75-teclado-e-esp32-ou-toque-ao-mesmo-tempo) e
+  [03 §8](03-abstracao-de-input.md#8-um-segundo-adaptador-já-em-produção-o-toque)).
+- `src/ui/touch-controls.ts` desenha os botões; a detecção de dispositivo de toque
+  (`matchMedia('(pointer: coarse)')`) decide só se eles aparecem, nunca a lógica do jogo.
 
-E um adaptador composto para aceitar teclado **e** toque ao mesmo tempo (ver
-[03](03-abstracao-de-input.md#75-bônus-teclado-e-esp32-ao-mesmo-tempo)).
+Detalhes de uso e de PWA em [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
 
-**O que NÃO muda:** tudo o que está acima da camada de input.
+**O que NÃO mudou:** `gameplay/`, `physics/`, `render/`, `game-scene.ts`, testes de
+gameplay existentes.
 
 ---
 
@@ -133,8 +136,8 @@ Resumo do impacto:
 
 | Camada | Muda? |
 |---|---|
-| `input/` | **Sim** — um arquivo novo (`esp32-adapter.js`) |
-| `main.js` | **Sim** — uma linha (`setAdapter`) |
+| `input/` | **Sim** — um arquivo novo (`esp32-adapter.ts`) |
+| `main.ts` | **Sim** — uma linha no `CompositeAdapter` (o mesmo mecanismo que já liga teclado e toque) |
 | Gameplay, física, render, conteúdo, persistência | **Não** |
 | Testes existentes | **Não** |
 
@@ -156,7 +159,7 @@ Ideias de conteúdo:
 
 ## 7. Novos tipos de fase
 
-O `level-loader.js` valida esquema e geometria; o `physics-engine` só conhece retângulos
+O `level-loader.ts` valida esquema e geometria; o `physics-engine` só conhece retângulos
 sólidos e plataformas de mão única. Extensões naturais:
 
 | Extensão | Onde |
@@ -164,7 +167,7 @@ sólidos e plataformas de mão única. Extensões naturais:
 | Plataformas móveis | Novo campo no schema + atualização na `GameScene` e no `PhysicsEngine` |
 | Blocos que somem | Novo campo + reação a evento |
 | Itens que se movem | `LevelManager` atualiza posição antes da checagem |
-| Fundos em parallax | `render/sprites.js` usa `camera.x` com fatores diferentes |
+| Fundos em parallax | `render/sprites.ts` usa `camera.x` com fatores diferentes |
 
 Como a física recebe uma **lista de retângulos**, uma plataforma móvel é apenas um
 retângulo cuja posição muda por quadro — o núcleo da colisão continua o mesmo.
@@ -176,8 +179,8 @@ retângulo cuja posição muda por quadro — o núcleo da colisão continua o m
 | Melhoria | Ponto de extensão |
 |---|---|
 | Narração do objetivo | Um `SpeechManager` inscrito em `lesson.started` |
-| Alto contraste | Variáveis de cor já centralizadas em `config.js` e no CSS |
-| Escala de fonte | `hud.js` recebe o tamanho por parâmetro |
+| Alto contraste | Variáveis de cor já centralizadas em `config.ts` e no CSS |
+| Escala de fonte | `hud.ts` recebe o tamanho por parâmetro |
 | Teclas remapeáveis | `DEFAULT_KEYMAP` já é um parâmetro de `translateKey` e do adaptador |
 | Modo com mais corações | `GAMEPLAY.startingLives` |
 | Modo sem perigos | Campo por fase; o `level-manager` simplesmente ignora a lista |
@@ -199,7 +202,7 @@ agrupar por `unitId` — não exige mudar nenhuma regra de jogo.
 Antes de implementar algo novo, faça três perguntas:
 
 1. **Isso é dado ou regra?** Se for dado (letras, fases, cores, dificuldade), vai para
-   `config.js` ou JSON — sem código.
+   `config.ts` ou JSON — sem código.
 2. **Isso é uma nova *fonte* de entrada?** Então é um `InputAdapter` novo.
 3. **Isso é um novo *comportamento* do personagem?** Então é um `PlayerState` novo.
 
