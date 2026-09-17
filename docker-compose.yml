@@ -7,7 +7,9 @@ services:
     container_name: joguinho-sobrinhos
     restart: unless-stopped
     ports:
-      - "65000:8080"
+      # Bind only to loopback: a reverse proxy (nginx) on the VPS itself
+      # handles the public interface and forwards to this port.
+      - "127.0.0.1:65000:8080"
 
     # --- Resource limits ---
     deploy:
@@ -15,13 +17,14 @@ services:
         limits:
           cpus: "0.50"
           memory: 128M
+          pids: 100
         reservations:
           cpus: "0.10"
           memory: 32M
     mem_swappiness: 0
-    pids_limit: 100
 
     # --- Security hardening ---
+    user: nginx
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -31,6 +34,11 @@ services:
       - /var/cache/nginx
       - /var/run
       - /tmp
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+      nproc: 64
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
