@@ -52,3 +52,59 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  signaling:
+    build:
+      context: ./signaling
+      dockerfile: Dockerfile
+    image: joguinho-signaling:latest
+    container_name: joguinho-signaling
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+    ports:
+      # Loopback only, same reasoning as "jogo" above: nginx on the VPS
+      # itself proxies /socket.io/ here (docker/nginx-vps.conf).
+      - "127.0.0.1:65001:3001"
+
+    # --- Resource limits ---
+    # Only forwards small JSON messages between two sockets — no gameplay
+    # state, no persistence — so it needs even less than the game container.
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 96M
+          pids: 50
+        reservations:
+          cpus: "0.05"
+          memory: 24M
+    mem_swappiness: 0
+
+    # --- Security hardening ---
+    user: node
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+      nproc: 64
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

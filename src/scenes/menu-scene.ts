@@ -94,6 +94,7 @@ export class MenuScene extends Scene {
       },
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenLessonPicker: () => this.openLessonPicker(),
+      onOpenPhonePairing: () => this.openPhonePairing(),
       onResetProgress: () => {
         const profile = profiles.getActiveProfile();
         if (profile) progress.resetProgress(profile.id);
@@ -137,6 +138,45 @@ export class MenuScene extends Scene {
     };
 
     open();
+  }
+
+  /** Controle por celular (docs/12-controle-por-celular.md §6): shows the QR
+   * pairing screen and re-renders it as the phone joins/drops. */
+  openPhonePairing(): void {
+    let status: 'waiting' | 'paired' | 'disconnected' | 'error' = 'waiting';
+    let errorMessage: string | null = null;
+    let pairingUrl = '';
+
+    const renderPairing = () => {
+      this.game.menu.showPhonePairing({
+        pairingUrl,
+        status,
+        errorMessage,
+        onBack: () => {
+          this.game.phoneControl.stop();
+          this.render();
+        },
+        onPlay: () => this.playNext(),
+      });
+    };
+
+    const result = this.game.phoneControl.start({
+      onPaired: () => {
+        status = 'paired';
+        renderPairing();
+      },
+      onDisconnected: () => {
+        status = 'disconnected';
+        renderPairing();
+      },
+      onError: (message) => {
+        status = 'error';
+        errorMessage = message;
+        renderPairing();
+      },
+    });
+    pairingUrl = result.pairingUrl;
+    renderPairing();
   }
 
   openLessonPicker(): void {

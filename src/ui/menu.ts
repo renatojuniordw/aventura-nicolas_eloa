@@ -6,6 +6,7 @@ import { buildPauseScreen, type PauseStep } from './screens/pause.js';
 import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
 import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
+import { buildPhonePairingScreen } from './screens/phone-pairing.js';
 
 interface ScreenResult {
   node: HTMLElement;
@@ -121,6 +122,11 @@ export class MenuOverlay {
 
   showPrivacyNotice(options: Parameters<typeof buildPrivacyNoticeScreen>[0]): void {
     const { node, primary, back, cleanup } = buildPrivacyNoticeScreen(options);
+    this._mount(node, { primary, back, cleanup });
+  }
+
+  showPhonePairing(options: Parameters<typeof buildPhonePairingScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildPhonePairingScreen(options);
     this._mount(node, { primary, back, cleanup });
   }
 }

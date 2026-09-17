@@ -28,6 +28,7 @@ function makeFakeGame(overrides = {}) {
     menu: {
       showPrivacyNotice: vi.fn(),
       showMainMenu: vi.fn(),
+      showPhonePairing: vi.fn(),
       hide: vi.fn(),
       isVisible: false,
     },
@@ -37,6 +38,11 @@ function makeFakeGame(overrides = {}) {
     },
     renderer: { clear: vi.fn() },
     scenes: { switchTo: vi.fn() },
+    phoneControl: {
+      isActive: false,
+      start: vi.fn(() => ({ session: 'AB23CD45', pairingUrl: 'https://example.test/controle?session=AB23CD45' })),
+      stop: vi.fn(),
+    },
     startSpeedrun: vi.fn(),
     startLesson: vi.fn(),
     ...overrides,
@@ -191,6 +197,54 @@ describe('MenuScene', () => {
     scene.playNext();
 
     expect(game.startLesson).toHaveBeenCalledWith('alfabeto-b');
+  });
+
+  it('starts a phone pairing session and shows the QR screen with its pairing URL', () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    expect(game.phoneControl.start).toHaveBeenCalledTimes(1);
+    expect(game.menu.showPhonePairing).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'waiting',
+        pairingUrl: 'https://example.test/controle?session=AB23CD45',
+      }),
+    );
+  });
+
+  it('re-renders the pairing screen as "paired" once the phone connects', () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    const { onPaired } = game.phoneControl.start.mock.calls[0][0];
+    onPaired();
+
+    expect(game.menu.showPhonePairing).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'paired' }),
+    );
+  });
+
+  it('stops phone control and returns to the main menu on "Voltar"', () => {
+    const game = makeFakeGame({
+      profiles: {
+        listProfiles: vi.fn(() => [{ id: 'p1', name: 'Nicolas', characterId: 'char-nicolas' }]),
+        getActiveProfile: vi.fn(() => ({ id: 'p1', name: 'Nicolas', characterId: 'char-nicolas' })),
+        setActiveProfile: vi.fn(),
+        hasParentalConsent: vi.fn(() => true),
+        createProfile: vi.fn(),
+        renameProfile: vi.fn(),
+      },
+    });
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    const { onBack } = game.menu.showPhonePairing.mock.calls[0][0];
+    onBack();
+
+    expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
+    expect(game.menu.showMainMenu).toHaveBeenCalledTimes(1);
   });
 
   it('hides the menu on exit', () => {

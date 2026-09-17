@@ -1,0 +1,99 @@
+/* ==========================================================================
+   /controle — phone-controller page (docs/12-controle-por-celular.md §5)
+   Deliberately self-contained: a light, separate bundle from the game, so
+   it does not inherit main.css's much larger game-UI ruleset.
+   ========================================================================== */
+
+:root {
+  --color-bg: #141c24;
+  --color-cream: #fbf4df;
+  --color-gold: #ffd479;
+  --color-gold-dark: #f5a623;
+  --color-green: #326855;
+  --color-ink: #233d38;
+  --font-ui: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-cream);
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+#controle-root {
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.controle-title {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.controle-status {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.92;
+}
+
+.controle-start-btn {
+  font-family: inherit;
+  font-size: 1.15rem;
+  padding: 16px 32px;
+  border-radius: 14px;
+  border: 2px solid var(--color-gold-dark);
+  background: var(--color-gold);
+  color: var(--color-ink);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--color-gold-dark);
+}
+
+.controle-start-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--color-gold-dark);
+}
+
+.controle-debug-panel {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.controle-debug-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.controle-debug-value {
+  text-align: right;
+  min-width: 3.5ch;
+  font-variant-numeric: tabular-nums;
+}

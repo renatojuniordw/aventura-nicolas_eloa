@@ -1,0 +1,18 @@
+{
+  "name": "joguinho-signaling",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Servidor de sinalização WebSocket para o controle por celular (ver docs/12-controle-por-celular.md). Repassa eventos de pulo entre o celular e o jogo — não guarda estado de jogo, não persiste nada.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
+  }
+}

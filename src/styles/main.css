@@ -826,6 +826,31 @@ body {
   margin-top: 0;
 }
 
+/* Controle por celular: QR pairing screen (docs/12-controle-por-celular.md §6) */
+.phone-pairing-status {
+  min-height: 2.6em;
+}
+
+.phone-pairing-qr,
+.phone-pairing-qr-placeholder {
+  width: 220px;
+  height: 220px;
+  margin: clamp(8px, 1.5vh, 16px) auto;
+  border-radius: 8px;
+  background: var(--color-cream);
+}
+
+.phone-pairing-qr-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phone-pairing-paired-badge {
+  font-size: 3rem;
+  margin: clamp(8px, 1.5vh, 16px) auto;
+}
+
 .character-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 120px));

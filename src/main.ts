@@ -5,6 +5,9 @@ import { InputManager } from './input/input-manager.js';
 import { KeyboardAdapter } from './input/keyboard-adapter.js';
 import { TouchAdapter } from './input/touch-adapter.js';
 import { CompositeAdapter } from './input/composite-adapter.js';
+import { PhoneAdapter } from './input/phone-adapter.js';
+import { AutoRunAdapter } from './input/auto-run-adapter.js';
+import { startPhoneControlSession, type PhoneControlHandle } from './net/phone-control-session.js';
 import { CanvasRenderer } from './render/canvas-renderer.js';
 import { SpriteRenderer } from './render/sprites.js';
 import { AssetManager } from './core/asset-manager.js';
@@ -54,6 +57,11 @@ export interface GameContext {
     getLesson: (lessonId: string | null | undefined) => Lesson | null;
   };
   debug: { enabled: boolean; toggle(): void };
+  phoneControl: {
+    readonly isActive: boolean;
+    start(callbacks: PhoneControlUiCallbacks): { session: string; pairingUrl: string };
+    stop(): void;
+  };
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
   // `scenes` and `loop` can only be constructed once `game` itself exists
@@ -63,6 +71,12 @@ export interface GameContext {
   // reference. See the `as GameContext` cast below.
   scenes: SceneManager;
   loop: GameLoop;
+}
+
+interface PhoneControlUiCallbacks {
+  onPaired(): void;
+  onDisconnected(): void;
+  onError(message: string): void;
 }
 
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
@@ -138,6 +152,13 @@ export function createGame({
         this.enabled = !this.enabled;
       },
     },
+    phoneControl: {
+      get isActive() {
+        return phoneActive;
+      },
+      start: (callbacks: PhoneControlUiCallbacks) => startPhoneControl(callbacks),
+      stop: () => stopPhoneControl(),
+    },
     /** Jump to a lesson by id (used by menus and the victory screen). */
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
@@ -175,12 +196,59 @@ export function createGame({
 
   // The only lines where physical input meets the game's actions. Both stay
   // attached at once (Composite) so a touch-screen laptop can use either.
-  input.setAdapter(
-    new CompositeAdapter(input.handleAction, [
-      new KeyboardAdapter(input.handleAction),
-      new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
-    ]),
-  );
+  const useDefaultInput = () => {
+    input.setAdapter(
+      new CompositeAdapter(input.handleAction, [
+        new KeyboardAdapter(input.handleAction),
+        new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
+      ]),
+    );
+  };
+  useDefaultInput();
+
+  // Phone-control mode (docs/12-controle-por-celular.md): once the phone
+  // pairs, the keyboard/touch composite above is replaced by AutoRun+Phone —
+  // production guidance is to never mix them, since InputManager's "held"
+  // state is one shared boolean per action (see auto-run-adapter.ts), not
+  // per source. `net/phone-control-session.ts` only owns the socket; this
+  // closure owns everything gameplay-facing: swapping the adapter in, and
+  // pausing (reusing the existing blur-pause path) if the phone drops mid
+  // session so auto-run never runs the character into an obstacle unwatched.
+  let phoneHandle: PhoneControlHandle | null = null;
+  let phoneActive = false;
+
+  const startPhoneControl = (callbacks: PhoneControlUiCallbacks) => {
+    stopPhoneControl();
+    phoneHandle = startPhoneControlSession({
+      onPaired: () => {
+        if (!phoneActive && phoneHandle) {
+          phoneActive = true;
+          input.setAdapter(
+            new CompositeAdapter(input.handleAction, [
+              new AutoRunAdapter(input.handleAction),
+              new PhoneAdapter(input.handleAction, { transport: phoneHandle.transport }),
+            ]),
+          );
+        }
+        callbacks.onPaired();
+      },
+      onDisconnected: () => {
+        if (phoneActive) bus.emit(Events.APP_BLURRED);
+        callbacks.onDisconnected();
+      },
+      onError: callbacks.onError,
+    });
+    return { session: phoneHandle.session, pairingUrl: phoneHandle.pairingUrl };
+  };
+
+  const stopPhoneControl = () => {
+    phoneHandle?.stop();
+    phoneHandle = null;
+    if (phoneActive) {
+      phoneActive = false;
+      useDefaultInput();
+    }
+  };
 
   const handleBlur = () => {
     input.reset();

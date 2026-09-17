@@ -45,14 +45,14 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 
 ## Como jogar
 
-| Ação              | Teclado                   | Toque                        |
-| ------------------ | -------------------------- | ------------------------------ |
-| Andar               | `←` `→` ou `A` `D`          | Botões ◀ ▶ fixos na tela      |
-| Pular               | `Espaço`, `↑`, `W` ou `Z`    | Botão de pulo fixo na tela    |
-| Pausar              | `Esc` ou `P`                 | Botão de pausa no HUD          |
-| Confirmar (menus)  | `Enter` ou `J`               | Toque no botão                 |
-| Voltar (menus)     | `Backspace` ou `Y`           | Toque no botão                 |
-| Mostrar hitboxes    | `F2`                         | —                               |
+| Ação              | Teclado                   | Toque                        | Celular (controle) |
+| ------------------ | -------------------------- | ------------------------------ | -------------------- |
+| Andar               | `←` `→` ou `A` `D`          | Botões ◀ ▶ fixos na tela      | Automático (auto-run) |
+| Pular               | `Espaço`, `↑`, `W` ou `Z`    | Botão de pulo fixo na tela    | Pular de verdade (acelerômetro) |
+| Pausar              | `Esc` ou `P`                 | Botão de pausa no HUD          | Automático se o celular desconectar |
+| Confirmar (menus)  | `Enter` ou `J`               | Toque no botão                 | —                     |
+| Voltar (menus)     | `Backspace` ou `Y`           | Toque no botão                 | —                     |
+| Mostrar hitboxes    | `F2`                         | —                               | —                     |
 
 - Colete o item indicado **no topo da tela**.
 - **Acertar** comemora e conclui a fase. **Errar** custa um coração (são 3).
@@ -68,6 +68,10 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
   progresso ficam só no aparelho (ver [10 — Privacidade](docs/10-privacidade-e-lgpd.md)).
 - O som pode ser ligado/desligado no menu e na pausa (ver
   [02 — Gameplay](docs/02-gameplay-e-controles.md)).
+- **Controle por celular**: no menu, "📱 Controle por celular" gera um QR code para parear
+  um Android preso ao corpo da criança — ele detecta o gesto de pulo pelo acelerômetro,
+  o personagem anda sozinho (auto-run) e o jogo pausa automaticamente se o celular
+  desconectar (ver [12 — Controle por celular](docs/12-controle-por-celular.md)).
 
 ---
 

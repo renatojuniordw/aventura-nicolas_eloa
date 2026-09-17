@@ -21,9 +21,9 @@ identificador do aparelho. Não há conta, login, senha ou cadastro.
 
 ## 2. Nada é enviado para a internet
 
-O jogo **não tem servidor**: não existe banco de dados, API ou serviço de
-análise recebendo dados. Tudo fica no `localStorage` do navegador, neste
-aparelho, e só este aparelho lê esses dados.
+O jogo **não tem servidor de dados**: não existe banco de dados, API ou
+serviço de análise recebendo dados. Tudo fica no `localStorage` do navegador,
+neste aparelho, e só este aparelho lê esses dados.
 
 Desde a versão com fontes próprias (self-hosted), o jogo **não faz nenhuma
 requisição a terceiros**: nem a fonte (arquivos em `/fonts`), nem imagens, nem
@@ -32,6 +32,31 @@ instalável como PWA: o cache offline (service worker/Workbox) guarda cópias
 locais dos próprios arquivos do jogo no navegador — não é um servidor
 adicional nem envia nada para fora. Ver
 [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
+
+### 2.1. Exceção: Controle por celular (opcional, desligado por padrão)
+
+Quem ativar o **Controle por celular** (ver
+[12 — Controle por celular](12-controle-por-celular.md)) liga, só durante
+aquela partida, uma conexão WebSocket entre o celular e a TV, passando por um
+servidor de sinalização próprio (na mesma VPS do jogo — nenhum terceiro).
+Isso é a única exceção à regra "nada sai do aparelho" deste documento, e por
+isso vale destacar exatamente o que trafega:
+
+- **O que trafega:** só o evento `{"pulou": true}` (`action: jump`), disparado
+  uma vez por pulo detectado. Nenhum dado contínuo do acelerômetro sai do
+  celular — a leitura bruta do sensor nunca deixa o aparelho da criança.
+- **O que não trafega:** nome, perfil, progresso, localização ou qualquer
+  outro dado do save — o servidor de sinalização não tem acesso a nada disso,
+  só repassa a palavra "pulo" entre os dois navegadores.
+- **Sem persistência:** o servidor guarda a sala (`session`) só na memória do
+  processo Node enquanto a partida dura; nada é escrito em disco ou banco de
+  dados, e a sala é apagada quando a TV encerra a partida.
+- **Sessão efêmera e aleatória:** o código de pareamento (`session`) é gerado
+  na hora, só existe enquanto a partida está aberta, e só um celular pode
+  parear por sala.
+- **Opt-in:** o recurso só liga se alguém tocar em "Controle por celular" no
+  menu; o jogo funciona inteiro, por padrão, sem abrir nenhuma conexão de
+  rede — exatamente como descrito no resto deste documento.
 
 ## 3. Consentimento parental (LGPD, arts. 8º e 14)
 
@@ -61,7 +86,8 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 ## 5. Segurança
 
 - O jogo roda 100% no lado do cliente; não há transmissão, então não há
-  interceptação de dados de jogo em trânsito.
+  interceptação de dados de jogo em trânsito — exceto durante o Controle por
+  celular (§2.1), cujo único dado em trânsito é o evento efêmero `jump`.
 - O texto é inserido via `textContent` (nunca `innerHTML`), então nomes de
   perfil não viram código executável.
 - Saves ilegíveis ou de versão futura são isolados (backup em chave separada)
@@ -85,5 +111,6 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 ---
 
 *Documento criado em 2026-09-16 como parte do pipeline de engenharia (Fase 1,
-achados Seg 2 e Seg 3). Revisado junto da copy de UI na Fase 5, e novamente em
-2026-09-17 para corrigir a chave de armazenamento e cobrir o cache offline do PWA.*
+achados Seg 2 e Seg 3). Revisado junto da copy de UI na Fase 5, em 2026-09-17
+para corrigir a chave de armazenamento e cobrir o cache offline do PWA, e
+novamente em 2026-09-17 para cobrir o Controle por celular (§2.1).*

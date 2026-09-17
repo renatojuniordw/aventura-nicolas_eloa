@@ -1,5 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+const root = fileURLToPath(new URL('.', import.meta.url));
 
 // Vite handles ES modules, JSON imports and asset hashing with zero config.
 // Kept explicit so the build's public path and server port are documented.
@@ -14,6 +17,15 @@ export default defineConfig({
     // No sourcemaps in production: `true` shipped the full original sources
     // (plus absolute local paths) alongside the bundle. Keep debugging local.
     sourcemap: false,
+    rollupOptions: {
+      // /controle (docs/12-controle-por-celular.md §5) is a separate, much
+      // lighter entry point — a second `<html>` input keeps it out of the
+      // main game bundle instead of code-splitting it out of index.html.
+      input: {
+        main: `${root}index.html`,
+        controle: `${root}controle.html`,
+      },
+    },
   },
   plugins: [
     VitePWA({

@@ -150,16 +150,34 @@ Arquitetura de produção, resumida:
 
 ```
 navegador → Nginx da VPS (TLS quando configurado, rate limit)
-          → 127.0.0.1:65000 → contêiner Docker → Nginx do contêiner (headers, cache, SPA)
-          → arquivos estáticos de dist/
+          → 127.0.0.1:65000 → contêiner Docker "jogo" → Nginx do contêiner (headers, cache, SPA)
+          → arquivos estáticos de dist/ (index.html + controle.html)
+
+celular   → Nginx da VPS, mesmo domínio/porta 443, location /socket.io/
+          → 127.0.0.1:65001 → contêiner Docker "signaling" (Node + socket.io)
 ```
+
+### `signaling` — servidor de sinalização (docs/12-controle-por-celular.md)
+
+Segundo serviço no `docker-compose.yml`, contêiner separado do jogo (não compartilha
+processo nem memória): repassa o evento `jump` entre o celular e a TV, sem tocar em
+gameplay, sem persistência e sem banco de dados (ver `signaling/src/room-manager.js`).
+
+| Medida | Efeito |
+|---|---|
+| `"127.0.0.1:65001:3001"` | Mesmo padrão do contêiner `jogo`: só a Nginx da VPS o alcança |
+| `user: node` + `cap_drop: ALL` + `read_only: true` | Mesmo hardening do contêiner `jogo` |
+| Limites menores (`0.25 CPU`, `96M`) | Só encaminha mensagens JSON pequenas, precisa de bem menos |
+| `location /socket.io/` no Nginx da VPS | Mesmo domínio/porta 443 do jogo — nenhuma porta nova exposta |
+| `limit_req_zone ... rate=20r/s` dedicado | Rate limit próprio, mais apertado que o do jogo (§2.1 do doc 10) |
 
 ### Comandos
 
 ```bash
-docker compose up -d --build   # builda e sobe o jogo em produção
-docker compose logs -f jogo    # acompanha os logs
-docker compose down            # derruba
+docker compose up -d --build     # builda e sobe jogo + signaling em produção
+docker compose logs -f jogo      # acompanha os logs do jogo
+docker compose logs -f signaling # acompanha os logs do servidor de sinalização
+docker compose down              # derruba os dois serviços
 ```
 
 ---

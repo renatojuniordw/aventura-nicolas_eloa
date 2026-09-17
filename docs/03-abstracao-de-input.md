@@ -370,6 +370,19 @@ que a seção 7.4 promete para o ESP32.
 Detalhes de UX (posição dos botões, orientação paisagem, PWA) estão em
 [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
 
+### 8.1. O ESP32 hipotético virou realidade: o celular
+
+A seção 7 descreve um ESP32 hipotético como exemplo — hoje o mesmo caminho exato já tem
+uma implementação real: `PhoneAdapter` (`src/input/phone-adapter.ts`), que traduz eventos
+de um celular via WebSocket (não hardware serial, mas o mesmo contrato `InputAdapter`) em
+`Actions.JUMP`. Ver [12 — Controle por celular](12-controle-por-celular.md) para o
+protocolo completo, o servidor de sinalização e a segurança do pareamento.
+
+Uma diferença desse caso que a seção 7 não previa: no modo celular, o personagem anda
+sozinho (`AutoRunAdapter`, `src/input/auto-run-adapter.ts`) — outro `InputAdapter` sem
+hardware nenhum atrás, que só emite `MOVE_RIGHT` continuamente. Nenhum dos dois precisou
+tocar em `gameplay/`, `physics/`, `render/` ou `scenes/` — a mesma garantia da seção 7.4.
+
 ---
 
 ## 9. Como testar sem hardware
