@@ -68,6 +68,26 @@
   background: rgba(255, 212, 121, 1);
 }
 
+@media (max-height: 480px) {
+  .touch-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  .touch-controls-dpad {
+    left: max(10px, env(safe-area-inset-left));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .touch-btn-jump {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 56px;
+    height: 56px;
+    font-size: 1.4rem;
+  }
+}
+
 /* ==========================================================================
    Orientation guard — landscape-only gameplay on touch devices
    ========================================================================== */

@@ -70,7 +70,9 @@ export class Hud {
   private _drawHearts(model: HudModel): void {
     const size = 22;
     const gap = 8;
-    const startX = this.viewport.width - 20 - (size + gap) * model.maxLives;
+    // Leave clearance for the pause button on the top-right corner
+    const rightMargin = 80;
+    const startX = this.viewport.width - rightMargin - (size + gap) * model.maxLives;
     model.hearts.forEach((filled, index) => {
       const x = startX + index * (size + gap);
       this.renderer.screenCircle(x + size / 2, 33, size / 2, filled ? COLORS.heartFull : COLORS.heartEmpty);

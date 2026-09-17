@@ -212,7 +212,10 @@ function MainMenuScreen({
       </div>
 
       {/* --- 4. Footer Tips --- */}
-      <div className="home-footer-tips">Setas ou controle para escolher · Enter para brincar</div>
+      <div className="home-footer-tips">
+        <span className="footer-tip-keyboard">Setas ou controle para escolher · Enter para brincar</span>
+        <span className="footer-tip-touch">Toque para escolher · Toque para brincar</span>
+      </div>
     </div>
   );
 }
