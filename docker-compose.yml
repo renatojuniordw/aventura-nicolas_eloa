@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: joguinho-sobrinhos:${IMAGE_TAG:-latest}
-    container_name: joguinho-sobrinhos
+    image: aventura-nicolas_eloa:${IMAGE_TAG:-latest}
+    container_name: aventura-nicolas_eloa
     restart: unless-stopped
     ports:
       # Bind only to loopback: a reverse proxy (nginx) on the VPS itself
@@ -57,8 +57,8 @@ services:
     build:
       context: ./signaling
       dockerfile: Dockerfile
-    image: joguinho-signaling:${IMAGE_TAG:-latest}
-    container_name: joguinho-signaling
+    image: aventura-nicolas_eloa-signaling:${IMAGE_TAG:-latest}
+    container_name: aventura-nicolas_eloa-signaling
     restart: unless-stopped
     environment:
       - PORT=3001
@@ -74,8 +74,8 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 96M
-          pids: 50
+          memory: 192M
+          pids: 200
         reservations:
           cpus: "0.05"
           memory: 24M
@@ -94,7 +94,7 @@ services:
       nofile:
         soft: 1024
         hard: 2048
-      nproc: 64
+      nproc: 256
 
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

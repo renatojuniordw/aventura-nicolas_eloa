@@ -17,5 +17,5 @@ docker compose build --no-cache
 echo "==> Subindo containers"
 docker compose up -d --force-recreate --remove-orphans
 
-echo "==> Publicado: joguinho-sobrinhos:${IMAGE_TAG} / joguinho-signaling:${IMAGE_TAG}"
+echo "==> Publicado: aventura-nicolas_eloa:${IMAGE_TAG} / aventura-nicolas_eloa-signaling:${IMAGE_TAG}"
 echo "==> Para limpar imagens antigas não usadas: docker image prune -f"

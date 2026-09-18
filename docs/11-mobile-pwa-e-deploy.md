@@ -176,7 +176,7 @@ gameplay, sem persistência e sem banco de dados (ver `signaling/src/room-manage
 O jeito recomendado de publicar é `./deploy.sh` (raiz do projeto): ele builda com
 `--no-cache`, sobe os dois serviços com `--force-recreate` e marca a imagem com a tag do
 commit atual (`IMAGE_TAG`, lida por `docker-compose.yml` como
-`image: joguinho-sobrinhos:${IMAGE_TAG:-latest}`). Isso existe porque, sem uma tag amarrada
+`image: aventura-nicolas_eloa:${IMAGE_TAG:-latest}`). Isso existe porque, sem uma tag amarrada
 ao commit, um `docker compose up -d` esquecido de `--build` reaproveita silenciosamente a
 imagem `:latest` já existente em disco — mesmo depois de `git pull` com commits novos — e o
 site fica servindo o bundle antigo (foi exatamente o que causou o menu de configurações e a
