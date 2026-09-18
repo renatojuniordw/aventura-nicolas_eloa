@@ -83,7 +83,10 @@ describe('JumpDetector', () => {
     feedAll(detector, fixture.slice(0, impactIndex + 1));
 
     // A second freefall+impact right after, inside the cooldown window.
+    // Two consecutive low samples so the freefall-entry debounce commits.
     let t = lastT + 5;
+    detector.feed(sampleAt(0.2), t);
+    t += 10;
     detector.feed(sampleAt(0.2), t);
     t += DEFAULT_JUMP_DETECTOR_THRESHOLDS.minFreefallMs + 20;
     const secondJump = detector.feed(sampleAt(2.2), t);
@@ -123,10 +126,11 @@ describe('JumpDetector', () => {
       maxFreefallMs: 100000,
       cooldownMs: 0,
     });
-    // A much smaller dip now counts as freefall.
+    // A much smaller dip now counts as freefall (two consecutive samples to commit).
     detector.feed(sampleAt(1), 0);
     detector.feed(sampleAt(0.85), 10);
-    const jumped = detector.feed(sampleAt(1.2), 20);
+    detector.feed(sampleAt(0.85), 20);
+    const jumped = detector.feed(sampleAt(1.2), 30);
     expect(jumped).toBe(true);
   });
 });

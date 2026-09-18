@@ -2,6 +2,7 @@ import { el, clear } from '../ui/dom.js';
 import { parseControleParams } from './controle-params.js';
 import { JumpDetector, magnitudeInG, type JumpDetectorThresholds } from './jump-detector.js';
 import { loadThresholds, saveThresholds } from './threshold-storage.js';
+import { SessionRecorder } from './session-recorder.js';
 import { PhoneControllerTransport } from '../net/phone-controller-transport.js';
 import { statusMessage, canRetry, type AppState } from './status-message.js';
 
@@ -66,6 +67,17 @@ function vibrate(ms: number): void {
   navigator.vibrate?.(ms);
 }
 
+/** Triggers a browser download of `content` as a file — no server round-trip needed. */
+function downloadTextFile(filename: string, content: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = el('a', { href: url, download: filename }) as HTMLAnchorElement;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 /**
  * A stale service worker silently serving the wrong cached page (see
  * navigateFallbackDenylist fix) and a missing/garbled `session` look
@@ -105,7 +117,11 @@ function render(root: HTMLElement, state: AppState, onStart: () => void, session
  * `JumpDetector` was constructed with reads its fields fresh on every
  * `feed()` call, so no extra wiring is needed to push the change through.
  */
-function renderDebugPanel(root: HTMLElement, thresholds: JumpDetectorThresholds): void {
+function renderDebugPanel(
+  root: HTMLElement,
+  thresholds: JumpDetectorThresholds,
+  { onDownload }: { onDownload: () => void },
+): void {
   const panel = el('div', { class: 'controle-debug-panel' });
   const fields: Array<[keyof JumpDetectorThresholds, string, number, number, number]> = [
     ['freefallDeltaG', 'Queda livre (g)', 0.05, 1, 0.05],
@@ -140,6 +156,18 @@ function renderDebugPanel(root: HTMLElement, thresholds: JumpDetectorThresholds)
     });
     panel.append(el('label', { class: 'controle-debug-row' }, [label, input, valueLabel]));
   }
+
+  panel.append(
+    el('div', { class: 'controle-debug-row' }, [
+      el('button', {
+        class: 'controle-debug-download',
+        type: 'button',
+        text: 'Baixar sessão do sensor (.json)',
+        onClick: onDownload,
+      }),
+    ]),
+  );
+
   root.append(panel);
 }
 
@@ -179,10 +207,17 @@ async function main(): Promise<void> {
 
   const thresholds: JumpDetectorThresholds = loadThresholds();
 
+  const recorder = new SessionRecorder();
+
   const rerender = (): void => {
     render(root, state, start, session);
     if (debug && (state.phase === 'calibrating' || state.phase === 'listening')) {
-      renderDebugPanel(root, thresholds);
+      renderDebugPanel(root, thresholds, {
+        onDownload: () => {
+          const json = recorder.toJSON({ thresholds, restMagnitude: detector.restMagnitude });
+          downloadTextFile(`joguinho-sensor-${Date.now()}.json`, json, 'application/json');
+        },
+      });
     }
   };
 
@@ -245,7 +280,9 @@ async function main(): Promise<void> {
     const onCalibrate = (event: DeviceMotionEvent) => {
       const a = event.accelerationIncludingGravity;
       if (a && a.x != null && a.y != null && a.z != null) {
-        calibrationSamples.push({ x: a.x, y: a.y, z: a.z });
+        const sample = { x: a.x, y: a.y, z: a.z };
+        calibrationSamples.push(sample);
+        if (debug) recorder.push(sample, performance.now());
       }
     };
     window.addEventListener('devicemotion', onCalibrate);
@@ -254,9 +291,11 @@ async function main(): Promise<void> {
     window.removeEventListener('devicemotion', onCalibrate);
     detector.calibrate(calibrationSamples);
 
-    console.log(
-      `[controle] calibração samples=${calibrationSamples.length} restMagnitude=${detector.restMagnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`,
-    );
+    if (debug) {
+      console.log(
+        `[controle] calibração samples=${calibrationSamples.length} restMagnitude=${detector.restMagnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`,
+      );
+    }
 
     state.phase = 'listening';
     rerender();
@@ -275,15 +314,18 @@ async function main(): Promise<void> {
       const jumped = detector.feed(sample, now);
       const stateAfter = detector.state;
 
-      if (stateBefore === 'idle' && stateAfter === 'freefall') {
-        console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
-      } else if (jumped) {
-        console.log(`[controle] pulo confirmado magnitude=${magnitude.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`);
-      } else if (stateBefore === 'freefall' && stateAfter === 'idle') {
-        console.log(`[controle] freefall abortado (excedeu maxFreefallMs) magnitude=${magnitude.toFixed(3)}g`);
-      } else if (now - lastBackgroundLog > BACKGROUND_LOG_INTERVAL_MS) {
-        console.log(`[controle] leitura magnitude=${magnitude.toFixed(3)}g estado=${stateAfter}`);
-        lastBackgroundLog = now;
+      if (debug) {
+        recorder.push(sample, now);
+        if (stateBefore === 'idle' && stateAfter === 'freefall') {
+          console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
+        } else if (jumped) {
+          console.log(`[controle] pulo confirmado magnitude=${magnitude.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`);
+        } else if (stateBefore === 'freefall' && stateAfter === 'idle') {
+          console.log(`[controle] freefall abortado (excedeu maxFreefallMs) magnitude=${magnitude.toFixed(3)}g`);
+        } else if (now - lastBackgroundLog > BACKGROUND_LOG_INTERVAL_MS) {
+          console.log(`[controle] leitura magnitude=${magnitude.toFixed(3)}g estado=${stateAfter}`);
+          lastBackgroundLog = now;
+        }
       }
 
       if (!jumped) return;

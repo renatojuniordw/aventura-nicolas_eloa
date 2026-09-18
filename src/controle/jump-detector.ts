@@ -38,6 +38,16 @@ export function magnitudeInG({ x, y, z }: AccelerationSample): number {
 type DetectorState = 'idle' | 'freefall';
 
 /**
+ * Consecutive below-threshold samples required before committing to
+ * `freefall`. A single noisy dip (the phone jostling during autorun) used to
+ * start the freefall clock on its own, "stealing" part of maxFreefallMs
+ * before the real jump's impact ever arrived — seen in the field as impacts
+ * that landed a hair past the abort window. At a typical devicemotion rate
+ * this costs one extra sample (~16ms), negligible next to minFreefallMs.
+ */
+const FREEFALL_CONFIRM_SAMPLES = 2;
+
+/**
  * Pure freefall-then-impact jump detector, extracted from the page so it can
  * be fed a recorded fixture in tests instead of a real `devicemotion`
  * listener (docs/12 §10, "Testabilidade do algoritmo de detecção sem
@@ -50,6 +60,8 @@ export class JumpDetector {
   private _state: DetectorState = 'idle';
   private _freefallStart = 0;
   private _lastJumpAt = -Infinity;
+  private _belowThresholdStreak = 0;
+  private _pendingFreefallStart: number | null = null;
 
   constructor(thresholds: JumpDetectorThresholds = DEFAULT_JUMP_DETECTOR_THRESHOLDS) {
     this._thresholds = thresholds;
@@ -89,8 +101,17 @@ export class JumpDetector {
 
     if (this._state === 'idle') {
       if (magnitude < this.freefallThreshold) {
-        this._state = 'freefall';
-        this._freefallStart = timestampMs;
+        if (this._pendingFreefallStart === null) this._pendingFreefallStart = timestampMs;
+        this._belowThresholdStreak += 1;
+        if (this._belowThresholdStreak >= FREEFALL_CONFIRM_SAMPLES) {
+          this._state = 'freefall';
+          this._freefallStart = this._pendingFreefallStart;
+          this._belowThresholdStreak = 0;
+          this._pendingFreefallStart = null;
+        }
+      } else {
+        this._belowThresholdStreak = 0;
+        this._pendingFreefallStart = null;
       }
       return false;
     }
@@ -118,5 +139,7 @@ export class JumpDetector {
   reset(): void {
     this._state = 'idle';
     this._freefallStart = 0;
+    this._belowThresholdStreak = 0;
+    this._pendingFreefallStart = null;
   }
 }

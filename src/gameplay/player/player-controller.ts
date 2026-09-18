@@ -1,4 +1,5 @@
 import { PHYSICS, PLAYER } from '../../core/config.js';
+import { DEBUG } from '../../core/debug-flag.js';
 import { PlayerStateId, PlayerState, type PlayerStateIdValue } from './player-state.js';
 import { IdleState } from './states/idle-state.js';
 import { WalkState } from './states/walk-state.js';
@@ -110,7 +111,7 @@ export class PlayerController {
    * jump immediately — there's no landing to buffer for.
    */
   jump(): void {
-    console.log('[player-controller] pedido de jump recebido');
+    if (DEBUG.enabled) console.log('[player-controller] pedido de jump recebido');
     if (!this.body.grounded && this._coyoteTimer <= 0 && this._airJumpsRemaining > 0) {
       this._performAirJump();
       return;
@@ -194,7 +195,7 @@ export class PlayerController {
   }
 
   private _performJump(): void {
-    console.log('[player-controller] jump executado (aplicando jumpVelocity)');
+    if (DEBUG.enabled) console.log('[player-controller] jump executado (aplicando jumpVelocity)');
     this.body.vy = this._config.jumpVelocity;
     this.body.grounded = false;
     this._jumpBufferTimer = 0;
@@ -206,7 +207,7 @@ export class PlayerController {
   /** Same impulse as a ground jump — an assist, so it needs real reach to clear tall obstacles. */
   private _performAirJump(): void {
     this._airJumpsRemaining -= 1;
-    console.log(`[player-controller] air jump executado (restam=${this._airJumpsRemaining})`);
+    if (DEBUG.enabled) console.log(`[player-controller] air jump executado (restam=${this._airJumpsRemaining})`);
     this.body.vy = this._config.jumpVelocity;
     this._jumpCutPending = true;
     this.setState(PlayerStateId.JUMP);

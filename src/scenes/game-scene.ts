@@ -183,7 +183,17 @@ export class GameScene extends Scene {
       if (this._gameOverJumpGesture.poll(performance.now()) === 'confirm') this.game.menu.triggerPrimary();
       return;
     }
-    if (this.status === Status.PAUSED) return;
+    if (this.status === Status.PAUSED) {
+      // Fixes the same gap as GAME_OVER above (CONFIRM/BACK never reached the
+      // overlay, only mouse clicks did). Deliberately NOT wiring the phone's
+      // jump gesture here: the pause menu's "confirm" step is a destructive
+      // action (restart/quit, losing progress) sharing the same primary
+      // button as its own screen — a stray jump from a phone still strapped
+      // on while paused shouldn't be able to trigger that.
+      if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
+      if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
+      return;
+    }
 
     if (this.mode === 'speedrun') {
       this.speedrunElapsed = (this.speedrunElapsed ?? 0) + dt;

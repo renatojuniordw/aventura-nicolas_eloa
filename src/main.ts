@@ -1,3 +1,4 @@
+import { DEBUG } from './core/debug-flag.js';
 import { EventBus, Events } from './core/event-bus.js';
 import { GameLoop } from './core/game-loop.js';
 import { SceneManager } from './core/scene-manager.js';
@@ -151,9 +152,11 @@ export function createGame({
       getLesson: curriculum.getLesson,
     },
     debug: {
-      enabled: false,
-      toggle(this: { enabled: boolean }) {
-        this.enabled = !this.enabled;
+      get enabled() {
+        return DEBUG.enabled;
+      },
+      toggle() {
+        DEBUG.enabled = !DEBUG.enabled;
       },
     },
     phoneControl: {

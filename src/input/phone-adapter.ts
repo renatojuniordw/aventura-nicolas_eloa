@@ -1,5 +1,6 @@
 import { InputAdapter, type OnAction } from './input-adapter.js';
 import { Actions } from './actions.js';
+import { DEBUG } from '../core/debug-flag.js';
 
 const BUTTON_TO_ACTION: Record<string, string> = {
   jump: Actions.JUMP,
@@ -45,7 +46,7 @@ export class PhoneAdapter extends InputAdapter {
   }
 
   private _handle({ button, pressed }: { button: string; pressed: boolean }): void {
-    console.log(`[phone-adapter] action recebida button=${button} pressed=${pressed}`);
+    if (DEBUG.enabled) console.log(`[phone-adapter] action recebida button=${button} pressed=${pressed}`);
     const action = BUTTON_TO_ACTION[button];
     if (!action) return;
     this.onAction(action, { pressed, repeated: false });
