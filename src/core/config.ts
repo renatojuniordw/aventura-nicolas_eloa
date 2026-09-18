@@ -42,7 +42,7 @@ export const PLAYER = Object.freeze({
    * player pinned against a taller obstacle by autorun (phone control) isn't
    * stuck with no way back — applies to every input source, not just the phone.
    */
-  maxAirJumps: 1,
+  maxAirJumps: 2,
 });
 
 export const CAMERA = Object.freeze({

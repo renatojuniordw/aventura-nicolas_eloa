@@ -24,9 +24,9 @@ export interface JumpDetectorThresholds {
 // constructor so a debug panel (?debug=1) can override them live.
 export const DEFAULT_JUMP_DETECTOR_THRESHOLDS: JumpDetectorThresholds = Object.freeze({
   freefallDeltaG: 0.4,
-  impactDeltaG: 0.8,
+  impactDeltaG: 0.7,
   minFreefallMs: 100,
-  maxFreefallMs: 600,
+  maxFreefallMs: 750,
   cooldownMs: 300,
 });
 

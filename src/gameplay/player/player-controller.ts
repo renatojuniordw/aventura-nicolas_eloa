@@ -205,8 +205,8 @@ export class PlayerController {
 
   /** Same impulse as a ground jump — an assist, so it needs real reach to clear tall obstacles. */
   private _performAirJump(): void {
-    console.log('[player-controller] air jump executado (pulo duplo)');
     this._airJumpsRemaining -= 1;
+    console.log(`[player-controller] air jump executado (restam=${this._airJumpsRemaining})`);
     this.body.vy = this._config.jumpVelocity;
     this._jumpCutPending = true;
     this.setState(PlayerStateId.JUMP);
