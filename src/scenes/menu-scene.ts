@@ -195,6 +195,10 @@ export class MenuScene extends Scene {
           clearTimeout(timeoutId);
           this.playNext();
         },
+        onSpeedrun: () => {
+          clearTimeout(timeoutId);
+          this.startSpeedrun();
+        },
       });
     };
 

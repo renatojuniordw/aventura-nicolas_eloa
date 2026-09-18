@@ -74,8 +74,13 @@ describe('JumpDetector', () => {
   it('applies a cooldown so a bouncing landing does not double-fire', () => {
     const detector = new JumpDetector();
     const fixture = jumpFixture();
-    const lastT = fixture[fixture.length - 1].t;
-    feedAll(detector, fixture);
+    // Feed only up through the impact sample, not the full fixture's fixed
+    // 200ms rest tail — that padding would by itself eat most of a short
+    // cooldown, making this test unable to express "still within cooldown"
+    // regardless of how minFreefallMs and cooldownMs are tuned.
+    const impactIndex = fixture.findIndex(({ sample }) => sample.z > 9.81 * 2);
+    const lastT = fixture[impactIndex].t;
+    feedAll(detector, fixture.slice(0, impactIndex + 1));
 
     // A second freefall+impact right after, inside the cooldown window.
     let t = lastT + 5;

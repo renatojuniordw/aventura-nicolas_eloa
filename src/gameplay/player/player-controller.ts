@@ -54,6 +54,7 @@ export class PlayerController {
   private _config: PlayerConfig;
   private _jumpBufferTimer = 0;
   private _coyoteTimer = 0;
+  private _airJumpsRemaining = 0;
   private _jumpHeld = false;
   private _jumpCutPending = false;
   private _states: Map<PlayerStateIdValue, PlayerState>;
@@ -103,9 +104,17 @@ export class PlayerController {
     this.moveIntent = 0;
   }
 
-  /** Buffered request: pressing slightly before landing still jumps. */
+  /**
+   * Buffered request: pressing slightly before landing still jumps. If
+   * already airborne outside the coyote window, this instead spends an air
+   * jump immediately — there's no landing to buffer for.
+   */
   jump(): void {
     console.log('[player-controller] pedido de jump recebido');
+    if (!this.body.grounded && this._coyoteTimer <= 0 && this._airJumpsRemaining > 0) {
+      this._performAirJump();
+      return;
+    }
     this._jumpBufferTimer = this._config.jumpBufferTime;
   }
 
@@ -162,6 +171,7 @@ export class PlayerController {
     this.moveIntent = 0;
     this._jumpBufferTimer = 0;
     this._coyoteTimer = 0;
+    this._airJumpsRemaining = this._config.maxAirJumps;
     this._jumpHeld = false;
     this._jumpCutPending = false;
     this.setState(PlayerStateId.IDLE);
@@ -193,6 +203,15 @@ export class PlayerController {
     this.setState(PlayerStateId.JUMP);
   }
 
+  /** Same impulse as a ground jump — an assist, so it needs real reach to clear tall obstacles. */
+  private _performAirJump(): void {
+    console.log('[player-controller] air jump executado (pulo duplo)');
+    this._airJumpsRemaining -= 1;
+    this.body.vy = this._config.jumpVelocity;
+    this._jumpCutPending = true;
+    this.setState(PlayerStateId.JUMP);
+  }
+
   /** Releasing jump early shortens the arc (applied once per jump). */
   private _applyJumpCut(): void {
     if (this._jumpCutPending && !this._jumpHeld && this.body.vy < 0) {
@@ -207,6 +226,7 @@ export class PlayerController {
   private _refreshGrounding(): void {
     if (this.body.grounded) {
       this._coyoteTimer = this._config.coyoteTime;
+      this._airJumpsRemaining = this._config.maxAirJumps;
     }
   }
 

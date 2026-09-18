@@ -27,7 +27,7 @@ export const DEFAULT_JUMP_DETECTOR_THRESHOLDS: JumpDetectorThresholds = Object.f
   impactDeltaG: 0.8,
   minFreefallMs: 100,
   maxFreefallMs: 600,
-  cooldownMs: 500,
+  cooldownMs: 300,
 });
 
 /** Magnitude of the acceleration vector, in g — orientation-independent (§5). */

@@ -37,6 +37,12 @@ export const PLAYER = Object.freeze({
   jumpBufferTime: 0.1,
   /** Grace period after leaving ground during which a jump is still allowed. */
   coyoteTime: 0.1,
+  /**
+   * Extra mid-air jumps allowed before landing again. Added as an assist so a
+   * player pinned against a taller obstacle by autorun (phone control) isn't
+   * stuck with no way back — applies to every input source, not just the phone.
+   */
+  maxAirJumps: 1,
 });
 
 export const CAMERA = Object.freeze({

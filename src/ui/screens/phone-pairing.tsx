@@ -14,6 +14,7 @@ interface PhonePairingOptions {
   measureLatency?: () => Promise<number | null>;
   onBack: () => void;
   onPlay: () => void;
+  onSpeedrun: () => void;
 }
 
 const STATUS_TEXT: Record<PairingStatus, string> = {
@@ -94,6 +95,7 @@ function PhonePairingScreen({
   measureLatency,
   onBack,
   onPlay,
+  onSpeedrun,
 }: PhonePairingOptions) {
   return (
     <div className="overlay phone-pairing">
@@ -114,9 +116,14 @@ function PhonePairingScreen({
       {measureLatency && status !== 'error' ? <LatencyIndicator measureLatency={measureLatency} /> : null}
       <div className="overlay-actions">
         {status === 'paired' ? (
-          <button className="btn-retro btn-primary-gold" type="button" tabIndex={-1} onClick={blurOnClick(onPlay)}>
-            Jogar
-          </button>
+          <>
+            <button className="btn-retro btn-primary-gold" type="button" tabIndex={-1} onClick={blurOnClick(onPlay)}>
+              Jogar fases
+            </button>
+            <button className="btn-retro btn-secondary-green" type="button" tabIndex={-1} onClick={blurOnClick(onSpeedrun)}>
+              ⚡ Speed Run
+            </button>
+          </>
         ) : null}
         <button className="btn-retro btn-secondary-green" type="button" tabIndex={-1} onClick={blurOnClick(onBack)}>
           Voltar

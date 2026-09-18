@@ -1,5 +1,6 @@
 import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
+import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
 import { Events } from '../core/event-bus.js';
 import { GAMEPLAY } from '../core/config.js';
 import { PhysicsEngine } from '../physics/physics-engine.js';
@@ -58,6 +59,7 @@ export class GameScene extends Scene {
   mistakes = 0;
   status: StatusValue = Status.RUNNING;
   private _winTimer = 0;
+  private _gameOverJumpGesture = new JumpConfirmGesture();
 
   level!: GameLevel;
   lesson!: Lesson;
@@ -168,7 +170,20 @@ export class GameScene extends Scene {
       this.togglePause();
     }
 
-    if (this.status === Status.PAUSED || this.status === Status.GAME_OVER) return;
+    if (this.status === Status.GAME_OVER) {
+      // Same primary/back triggers the victory screen already has, plus the
+      // phone's single-jump-confirms / double-jump-back gesture — until now
+      // this branch never consumed CONFIRM/BACK at all, so only a mouse
+      // click on "Tentar de novo"/"Menu" ever worked here.
+      if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
+      if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
+      if (this.game.input.consumePressed(Actions.JUMP)) {
+        if (this._gameOverJumpGesture.press(performance.now()) === 'back') this.game.menu.triggerBack();
+      }
+      if (this._gameOverJumpGesture.poll(performance.now()) === 'confirm') this.game.menu.triggerPrimary();
+      return;
+    }
+    if (this.status === Status.PAUSED) return;
 
     if (this.mode === 'speedrun') {
       this.speedrunElapsed = (this.speedrunElapsed ?? 0) + dt;
@@ -414,6 +429,7 @@ export class GameScene extends Scene {
 
   onGameOver(): void {
     this.status = Status.GAME_OVER;
+    this._gameOverJumpGesture.reset();
     if (this.mode === 'speedrun') {
       this.game.menu.showGameOver({
         lesson: this.lesson,
