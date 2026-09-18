@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: joguinho-sobrinhos:latest
+    image: joguinho-sobrinhos:${IMAGE_TAG:-latest}
     container_name: joguinho-sobrinhos
     restart: unless-stopped
     ports:
@@ -57,7 +57,7 @@ services:
     build:
       context: ./signaling
       dockerfile: Dockerfile
-    image: joguinho-signaling:latest
+    image: joguinho-signaling:${IMAGE_TAG:-latest}
     container_name: joguinho-signaling
     restart: unless-stopped
     environment:
