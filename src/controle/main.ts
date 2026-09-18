@@ -129,10 +129,36 @@ function renderDebugPanel(root: HTMLElement, thresholds: JumpDetectorThresholds)
   root.append(panel);
 }
 
+/**
+ * Without this, any exception thrown before the first `render()` call left
+ * the page a blank dark rectangle (body's background-color, nothing else) —
+ * indistinguishable from the page just being slow, with no way to tell what
+ * broke from the phone itself. Renders whatever detail is available directly
+ * into the page instead.
+ */
+function renderFatalError(root: HTMLElement, error: unknown): void {
+  clear(root);
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  root.append(
+    el('h1', { class: 'controle-title', text: 'Algo deu errado' }),
+    el('p', { class: 'controle-status', text: 'Recarregue a página. Se persistir, mostre esta mensagem:' }),
+    el('p', { class: 'controle-status', text: message }),
+  );
+}
+
 async function main(): Promise<void> {
   const rootEl = document.getElementById('controle-root');
   if (!rootEl) return;
   const root: HTMLElement = rootEl;
+
+  window.addEventListener('error', (event) => {
+    console.error('[controle] uncaught error', event.error ?? event.message);
+    renderFatalError(root, event.error ?? event.message);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[controle] unhandled rejection', event.reason);
+    renderFatalError(root, event.reason);
+  });
 
   const { session, debug } = parseControleParams(window.location.search);
   const state: AppState = { phase: 'idle', connected: false, roomError: null };

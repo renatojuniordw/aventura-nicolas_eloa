@@ -13,9 +13,14 @@ const KEYS = Object.keys(DEFAULT_JUMP_DETECTOR_THRESHOLDS) as Array<keyof JumpDe
  * `storage` is injectable (defaults to `window.localStorage`) so this stays
  * testable without a browser, matching `persistence/local-storage-adapter.ts`.
  */
-export function loadThresholds(storage: Storage = window.localStorage): JumpDetectorThresholds {
+export function loadThresholds(storage?: Storage): JumpDetectorThresholds {
   try {
-    const raw = storage.getItem(STORAGE_KEY);
+    // `window.localStorage` itself (not just .getItem) can throw synchronously
+    // in some restricted WebViews / hardened browser configs — evaluating it
+    // as a default parameter would happen outside this try and crash the
+    // caller before it ever rendered anything.
+    const store = storage ?? window.localStorage;
+    const raw = store.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_JUMP_DETECTOR_THRESHOLDS };
     const parsed = JSON.parse(raw);
     const result = { ...DEFAULT_JUMP_DETECTOR_THRESHOLDS };
@@ -30,9 +35,10 @@ export function loadThresholds(storage: Storage = window.localStorage): JumpDete
   }
 }
 
-export function saveThresholds(thresholds: JumpDetectorThresholds, storage: Storage = window.localStorage): void {
+export function saveThresholds(thresholds: JumpDetectorThresholds, storage?: Storage): void {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(thresholds));
+    const store = storage ?? window.localStorage;
+    store.setItem(STORAGE_KEY, JSON.stringify(thresholds));
   } catch {
     // Private browsing / storage full / disabled — tuning just won't persist.
   }
