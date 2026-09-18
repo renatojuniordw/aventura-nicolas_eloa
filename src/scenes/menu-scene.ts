@@ -103,12 +103,7 @@ export class MenuScene extends Scene {
       },
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenLessonPicker: () => this.openLessonPicker(),
-      onOpenPhonePairing: () => this.openPhonePairing(),
-      onResetProgress: () => {
-        const profile = profiles.getActiveProfile();
-        if (profile) progress.resetProgress(profile.id);
-        this.render();
-      },
+      onOpenSettings: () => this.openSettings(),
     });
   }
 
@@ -147,6 +142,21 @@ export class MenuScene extends Scene {
     };
 
     open();
+  }
+
+  /** Settings screen: houses the phone-pairing entry point and progress reset,
+   * so future config options have a home without crowding the main menu. */
+  openSettings(): void {
+    const { profiles, progress } = this.game;
+    this.game.menu.showSettings({
+      onOpenPhonePairing: () => this.openPhonePairing(),
+      onResetProgress: () => {
+        const profile = profiles.getActiveProfile();
+        if (profile) progress.resetProgress(profile.id);
+        this.render();
+      },
+      onBack: () => this.render(),
+    });
   }
 
   /** Controle por celular (docs/12-controle-por-celular.md §6): shows the QR

@@ -7,6 +7,7 @@ import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
 import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
 import { buildPhonePairingScreen } from './screens/phone-pairing.js';
+import { buildSettingsScreen } from './screens/settings.js';
 
 interface ScreenResult {
   node: HTMLElement;
@@ -127,6 +128,11 @@ export class MenuOverlay {
 
   showPhonePairing(options: Parameters<typeof buildPhonePairingScreen>[0]): void {
     const { node, primary, back, cleanup } = buildPhonePairingScreen(options);
+    this._mount(node, { primary, back, cleanup });
+  }
+
+  showSettings(options: Parameters<typeof buildSettingsScreen>[0]): void {
+    const { node, primary, back, cleanup } = buildSettingsScreen(options);
     this._mount(node, { primary, back, cleanup });
   }
 }

@@ -54,8 +54,7 @@ interface MainMenuOptions {
   onSelectCharacter?: (characterId: string) => void;
   onOpenCharacterPicker?: (characterId: string) => void;
   onOpenLessonPicker: () => void;
-  onOpenPhonePairing: () => void;
-  onResetProgress: () => void;
+  onOpenSettings: () => void;
 }
 
 function SelectorCard({ character, isSelected, onSelectCharacter }: { character: Character; isSelected: boolean; onSelectCharacter?: (id: string) => void }) {
@@ -102,8 +101,7 @@ function MainMenuScreen({
   onSpeedrun,
   onSelectCharacter,
   onOpenLessonPicker,
-  onOpenPhonePairing,
-  onResetProgress,
+  onOpenSettings,
 }: MainMenuOptions) {
   const active = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? null;
   const currentCharacterId = selectedCharacterId || active?.characterId || CHARACTERS[0].id;
@@ -201,11 +199,8 @@ function MainMenuScreen({
                 Escolher fase
               </button>
               <div className="menu-meta-row home-meta-row">
-                <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onResetProgress)}>
-                  Zerar progresso
-                </button>
-                <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onOpenPhonePairing)}>
-                  📱 Controle por celular
+                <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onOpenSettings)}>
+                  ⚙️ Configurações
                 </button>
                 <div className="home-substatus">
                   A aventura continua · {completedCount} de {totalLessons} fases
