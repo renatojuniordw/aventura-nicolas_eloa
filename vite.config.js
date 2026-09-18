@@ -49,6 +49,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // vite-plugin-pwa's default SPA navigation fallback serves index.html
+        // for every navigation the active service worker intercepts — including
+        // /controle. Without this denylist, once the SW takes control on a
+        // phone's second visit, scanning the QR code again loads the game menu
+        // instead of the control page (index.html), no matter the URL.
+        navigateFallbackDenylist: [/^\/controle/],
         // The app shell (code, styles, the ~150 level JSONs — inlined into
         // the JS bundle by content/level-registry.js) precaches on install.
         // Pixel-art backgrounds/characters/portraits under /assets/ are 22MB
