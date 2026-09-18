@@ -66,6 +66,14 @@ export class JumpDetector {
     this._restMagnitude = total / samples.length;
   }
 
+  get state(): DetectorState {
+    return this._state;
+  }
+
+  get restMagnitude(): number {
+    return this._restMagnitude;
+  }
+
   get freefallThreshold(): number {
     return this._restMagnitude - this._thresholds.freefallDeltaG;
   }

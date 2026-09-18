@@ -45,6 +45,7 @@ export class PhoneAdapter extends InputAdapter {
   }
 
   private _handle({ button, pressed }: { button: string; pressed: boolean }): void {
+    console.log(`[phone-adapter] action recebida button=${button} pressed=${pressed}`);
     const action = BUTTON_TO_ACTION[button];
     if (!action) return;
     this.onAction(action, { pressed, repeated: false });

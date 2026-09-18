@@ -1,6 +1,6 @@
 import { el, clear } from '../ui/dom.js';
 import { parseControleParams } from './controle-params.js';
-import { JumpDetector, type JumpDetectorThresholds } from './jump-detector.js';
+import { JumpDetector, magnitudeInG, type JumpDetectorThresholds } from './jump-detector.js';
 import { loadThresholds, saveThresholds } from './threshold-storage.js';
 import { PhoneControllerTransport } from '../net/phone-controller-transport.js';
 import { statusMessage, canRetry, type AppState } from './status-message.js';
@@ -254,17 +254,41 @@ async function main(): Promise<void> {
     window.removeEventListener('devicemotion', onCalibrate);
     detector.calibrate(calibrationSamples);
 
+    console.log(
+      `[controle] calibração samples=${calibrationSamples.length} restMagnitude=${detector.restMagnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`,
+    );
+
     state.phase = 'listening';
     rerender();
+
+    let lastBackgroundLog = 0;
+    const BACKGROUND_LOG_INTERVAL_MS = 500;
 
     window.addEventListener('devicemotion', (event: DeviceMotionEvent) => {
       const a = event.accelerationIncludingGravity;
       if (!a || a.x == null || a.y == null || a.z == null) return;
-      const jumped = detector.feed({ x: a.x, y: a.y, z: a.z }, performance.now());
+
+      const sample = { x: a.x, y: a.y, z: a.z };
+      const magnitude = magnitudeInG(sample);
+      const stateBefore = detector.state;
+      const now = performance.now();
+      const jumped = detector.feed(sample, now);
+      const stateAfter = detector.state;
+
+      if (stateBefore === 'idle' && stateAfter === 'freefall') {
+        console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
+      } else if (jumped) {
+        console.log(`[controle] pulo confirmado magnitude=${magnitude.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`);
+      } else if (stateBefore === 'freefall' && stateAfter === 'idle') {
+        console.log(`[controle] freefall abortado (excedeu maxFreefallMs) magnitude=${magnitude.toFixed(3)}g`);
+      } else if (now - lastBackgroundLog > BACKGROUND_LOG_INTERVAL_MS) {
+        console.log(`[controle] leitura magnitude=${magnitude.toFixed(3)}g estado=${stateAfter}`);
+        lastBackgroundLog = now;
+      }
+
       if (!jumped) return;
 
       transport.sendJump();
-      const now = performance.now();
       if (now - lastJumpVibration > VIBRATION_MIN_GAP_MS) {
         vibrate(VIBRATION_MS);
         lastJumpVibration = now;

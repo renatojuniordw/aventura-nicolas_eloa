@@ -105,6 +105,7 @@ export class PlayerController {
 
   /** Buffered request: pressing slightly before landing still jumps. */
   jump(): void {
+    console.log('[player-controller] pedido de jump recebido');
     this._jumpBufferTimer = this._config.jumpBufferTime;
   }
 
@@ -183,6 +184,7 @@ export class PlayerController {
   }
 
   private _performJump(): void {
+    console.log('[player-controller] jump executado (aplicando jumpVelocity)');
     this.body.vy = this._config.jumpVelocity;
     this.body.grounded = false;
     this._jumpBufferTimer = 0;
