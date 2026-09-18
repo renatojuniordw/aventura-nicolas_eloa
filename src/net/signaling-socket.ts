@@ -50,7 +50,16 @@ export class SignalingSocket {
     this._role = role;
     this._session = session;
     this._socket = createSocket(url);
-    this._socket.on('connect', () => this._join());
+    this._socket.on('connect', () => {
+      console.log(`[signaling] connected role=${role} session=${session}`);
+      this._join();
+    });
+    this._socket.on('disconnect', (reason: unknown) => {
+      console.log(`[signaling] disconnected role=${role} session=${session} reason=${String(reason)}`);
+    });
+    this._socket.on('join-error', (payload: unknown) => {
+      console.error(`[signaling] join-error role=${role} session=${session}`, payload);
+    });
   }
 
   connect(): void {
@@ -128,6 +137,7 @@ export class SignalingSocket {
   }
 
   private _join(): void {
+    console.log(`[signaling] join sent role=${this._role} session=${this._session}`);
     this._socket.emit('join', { role: this._role, session: this._session });
   }
 }

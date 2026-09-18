@@ -66,11 +66,25 @@ function vibrate(ms: number): void {
   navigator.vibrate?.(ms);
 }
 
-function render(root: HTMLElement, state: AppState, onStart: () => void): void {
+/**
+ * A stale service worker silently serving the wrong cached page (see
+ * navigateFallbackDenylist fix) and a missing/garbled `session` look
+ * identical from the outside — a blank or wrong screen with nothing to go
+ * on. This line stays visible through every phase (not gated behind
+ * `?debug=1`, since the bug it's meant to catch happens before calibration
+ * ever runs) so a photo of the phone screen is enough to tell them apart.
+ */
+function techStatusLine(session: string | null): string {
+  const swState = navigator.serviceWorker?.controller ? 'sw ativo' : 'sem sw';
+  return `session=${session ?? '(nenhuma)'} · ${swState}`;
+}
+
+function render(root: HTMLElement, state: AppState, onStart: () => void, session: string | null): void {
   clear(root);
   const items: (Node | string)[] = [
     el('h1', { class: 'controle-title', text: 'Controle por celular' }),
     el('p', { class: 'controle-status', text: statusMessage(state) }),
+    el('p', { class: 'controle-tech-status', text: techStatusLine(session) }),
   ];
   if (canRetry(state)) {
     items.push(
@@ -166,7 +180,7 @@ async function main(): Promise<void> {
   const thresholds: JumpDetectorThresholds = loadThresholds();
 
   const rerender = (): void => {
-    render(root, state, start);
+    render(root, state, start, session);
     if (debug && (state.phase === 'calibrating' || state.phase === 'listening')) {
       renderDebugPanel(root, thresholds);
     }

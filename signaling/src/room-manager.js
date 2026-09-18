@@ -65,8 +65,14 @@ export class RoomManager {
    */
   join(peer, payload) {
     const { role, session } = payload ?? {};
-    if (role !== 'viewer' && role !== 'controller') return { ok: false, error: 'invalid-role' };
-    if (!isValidSessionId(session)) return { ok: false, error: 'invalid-session' };
+    if (role !== 'viewer' && role !== 'controller') {
+      console.error(`[signaling] join rejected: invalid-role peer=${peer.id} role=${role}`);
+      return { ok: false, error: 'invalid-role' };
+    }
+    if (!isValidSessionId(session)) {
+      console.error(`[signaling] join rejected: invalid-session peer=${peer.id} session=${session}`);
+      return { ok: false, error: 'invalid-session' };
+    }
 
     let room = this.#rooms.get(session);
 
@@ -81,10 +87,14 @@ export class RoomManager {
       this.#cancelTimer(room, 'viewerExpiryTimer');
       room.viewer = peer;
     } else {
-      if (!room) return { ok: false, error: 'room-not-found' };
+      if (!room) {
+        console.error(`[signaling] join rejected: room-not-found peer=${peer.id} session=${session}`);
+        return { ok: false, error: 'room-not-found' };
+      }
       // A second, different phone must never slip into another child's
       // session — only the phone already paired (or a first pairing) wins.
       if (room.controller && room.controller.id !== peer.id) {
+        console.error(`[signaling] join rejected: room-full peer=${peer.id} session=${session}`);
         return { ok: false, error: 'room-full' };
       }
       this.#cancelTimer(room, 'controllerExpiryTimer');
@@ -92,6 +102,7 @@ export class RoomManager {
       room.viewer?.emit('peer-joined', { role: 'controller' });
     }
 
+    console.log(`[signaling] join ok peer=${peer.id} role=${role} session=${session}`);
     this.#peers.set(peer.id, { peer, session, role, actionTimestamps: [] });
     return { ok: true };
   }
@@ -124,6 +135,7 @@ export class RoomManager {
     const entry = this.#peers.get(peer.id);
     if (!entry) return;
     this.#peers.delete(peer.id);
+    console.log(`[signaling] disconnect peer=${peer.id} role=${entry.role} session=${entry.session}`);
 
     const room = this.#rooms.get(entry.session);
     if (!room) return;

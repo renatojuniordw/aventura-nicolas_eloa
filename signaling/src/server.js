@@ -28,6 +28,12 @@ export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) 
   const rooms = new RoomManager();
 
   io.on('connection', (socket) => {
+    // Logged separately from join() below: this fires as soon as the
+    // transport handshake succeeds, before any `join` payload arrives — the
+    // only way to tell "the phone never reached signaling at all" apart from
+    // "it connected but the join was rejected".
+    console.log(`[signaling] connected peer=${socket.id}`);
+
     socket.on('join', (payload) => {
       const result = rooms.join(socket, payload);
       if (!result.ok) socket.emit('join-error', { error: result.error });

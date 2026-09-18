@@ -56,6 +56,13 @@ body {
   opacity: 0.92;
 }
 
+.controle-tech-status {
+  font-size: 0.75rem;
+  font-family: monospace;
+  margin: 0;
+  opacity: 0.55;
+}
+
 .controle-start-btn {
   font-family: inherit;
   font-size: 1.15rem;
