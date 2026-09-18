@@ -215,6 +215,14 @@ async function main(): Promise<void> {
     rerender();
   });
 
+  // Every other call to rerender() above is a reaction to some later event
+  // (a socket state change, a join error) — none of them fire on their own.
+  // Without this, the initial "idle" screen (title + "Toque para começar"
+  // button) never paints: the page stays blank forever, since nothing ever
+  // triggers the button that would start the flow that would trigger a
+  // render.
+  rerender();
+
   async function start(): Promise<void> {
     state.roomError = null;
     state.phase = 'requesting-permission';
