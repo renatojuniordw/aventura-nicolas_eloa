@@ -5,6 +5,7 @@ import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
 import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from '../fullscreen.js';
+import { isPwaInstallable, onPwaInstallableChange, promptPwaInstall } from '../pwa-install.js';
 
 /**
  * Wraps the framework-agnostic celebration canvas (its own rAF loop, unit
@@ -64,10 +65,15 @@ function MainMenuScreen({
   const speedrunText = bestTimeStr ? `⚡ Speed Run (${bestTimeStr})` : '⚡ Speed Run (A ao Z)';
 
   const [fullscreen, setFullscreen] = useState(() => isFullscreen());
+  const [installable, setInstallable] = useState(() => isPwaInstallable());
   const supported = isFullscreenSupported();
 
   useEffect(() => {
     return onFullscreenChange((active) => setFullscreen(active));
+  }, []);
+
+  useEffect(() => {
+    return onPwaInstallableChange((canInstall) => setInstallable(canInstall));
   }, []);
 
   return (
@@ -166,6 +172,18 @@ function MainMenuScreen({
               >
                 Escolher fase
               </button>
+              {installable && (
+                <button
+                  className="btn-retro btn-secondary-green pwa-install-btn"
+                  type="button"
+                  tabIndex={-1}
+                  onClick={blurOnClick(async () => {
+                    await promptPwaInstall();
+                  })}
+                >
+                  📲 Instalar no Celular
+                </button>
+              )}
               <div className="menu-meta-row home-meta-row">
                 <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onOpenSettings)}>
                   ⚙️ Configurações

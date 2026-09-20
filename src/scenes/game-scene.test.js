@@ -33,6 +33,7 @@ function makeFakeGame(overrides = {}) {
     effects: {
       spawnConfetti: vi.fn(),
       spawnPuff: vi.fn(),
+      spawnFloatingText: vi.fn(),
       clear: vi.fn(),
       update: vi.fn(),
       draw: vi.fn(),

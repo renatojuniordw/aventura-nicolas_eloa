@@ -18,6 +18,8 @@ import { MenuOverlay } from './ui/menu.js';
 import { HudControls } from './ui/hud-controls.js';
 import { TouchControls } from './ui/touch-controls.js';
 import { AudioManager } from './audio/audio-manager.js';
+import { SpeechNarrator } from './audio/speech-narrator.js';
+import { initPwaInstallListener } from './ui/pwa-install.js';
 import { createStorageAdapter } from './persistence/local-storage-adapter.js';
 import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
@@ -45,6 +47,7 @@ export interface GameContext {
   hudControls: HudControls;
   touchControls: TouchControls;
   audio: AudioManager;
+  narrator: SpeechNarrator;
   sprites: SpriteRenderer;
   effects: Effects;
   hud: Hud;
@@ -127,6 +130,8 @@ export function createGame({
   const progress = new ProgressStore({ saves, bus });
   const audioSettings = new AudioSettingsStore({ adapter: storageAdapter });
   const audio = new AudioManager({ settings: audioSettings });
+  const narrator = new SpeechNarrator({ isMuted: () => audio.isMuted });
+  initPwaInstallListener();
 
   const game = {
     bus,
@@ -137,6 +142,7 @@ export function createGame({
     hudControls,
     touchControls,
     audio,
+    narrator,
     sprites,
     effects,
     hud,

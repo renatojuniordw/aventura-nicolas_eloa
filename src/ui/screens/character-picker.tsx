@@ -59,10 +59,10 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
         ))}
         <div className="companion-card character-picker-card placeholder" aria-disabled="true">
           <div className="character-picker-frame placeholder">
-            <span className="character-picker-placeholder-icon">🎀</span>
+            <span className="character-picker-placeholder-icon">✨</span>
           </div>
           <div className="character-picker-info">
-            <span className="character-picker-name">Eloá</span>
+            <span className="character-picker-name">Novos Amigos</span>
             <span className="character-picker-status locked">Em breve</span>
           </div>
         </div>

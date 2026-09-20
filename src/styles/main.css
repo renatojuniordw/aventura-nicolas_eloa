@@ -653,6 +653,19 @@ body {
   box-shadow: 0 1px 0 var(--color-green-dark);
 }
 
+.pwa-install-btn {
+  border-color: var(--color-gold) !important;
+  color: var(--color-gold) !important;
+  background: linear-gradient(180deg, #1f4f40 0%, #15382e 100%) !important;
+  box-shadow: 0 3px 0 var(--color-ink), 0 0 10px rgba(255, 212, 121, 0.4) !important;
+}
+
+.pwa-install-btn:hover {
+  background: linear-gradient(180deg, #2b6c58 0%, #1c4b3d 100%) !important;
+  box-shadow: 0 4px 0 var(--color-ink), 0 0 14px rgba(255, 212, 121, 0.6) !important;
+  transform: translateY(-2px);
+}
+
 .menu-meta-row {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
+import { getCharacter } from '../content/characters.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 
 /** How long the QR pairing screen waits before nudging toward "Voltar" (docs/12 §10). */
@@ -133,8 +134,23 @@ export class MenuScene extends Scene {
           open();
         },
         onConfirm: () => {
-          const profile = this.game.profiles.getActiveProfile();
-          if (profile) this.game.profiles.setCharacter(profile.id, selectedId);
+          const char = getCharacter(selectedId);
+          const activeProfile = this.game.profiles.getActiveProfile();
+
+          if (activeProfile && activeProfile.characterId === selectedId) {
+            this.render();
+            return;
+          }
+
+          const allProfiles = this.game.profiles.listProfiles();
+          let targetProfile = allProfiles.find((p) => p.characterId === selectedId);
+
+          if (!targetProfile) {
+            const defaultName = char.name.split(' ')[0];
+            targetProfile = this.game.profiles.createProfile(defaultName, selectedId);
+          }
+
+          this.game.profiles.setActiveProfile(targetProfile.id);
           this.render();
         },
         onBack: () => this.render(),

@@ -16,6 +16,8 @@ import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
+import { vibrateJump, vibrateCollect, vibrateVictory, vibrateWarning } from '../input/haptics.js';
+import { tryLockLandscape } from '../ui/orientation.js';
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -151,9 +153,14 @@ export class GameScene extends Scene {
     this.game.hudControls.showPauseButton({ onPause: () => this.togglePause() });
     if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
+    tryLockLandscape().catch(() => {});
+    if (this.lesson?.target) {
+      this.game.narrator?.speakSyllable(this.lesson.target);
+    }
   }
 
   override exit(): void {
+    this.game.narrator?.stop();
     for (const unsubscribe of this._unsubscribers) unsubscribe();
     this._unsubscribers = [];
     this.game.menu.hide();
@@ -254,7 +261,10 @@ export class GameScene extends Scene {
     else if (axis > 0) this.player.moveRight();
     else this.player.stop();
 
-    if (this.game.input.consumePressed(Actions.JUMP)) this.player.jump();
+    if (this.game.input.consumePressed(Actions.JUMP)) {
+      this.player.jump();
+      vibrateJump();
+    }
     this.player.holdJump(this.game.input.isActionHeld(Actions.JUMP));
   }
 
@@ -308,6 +318,9 @@ export class GameScene extends Scene {
   ): void {
     if (profile) this.game.progress.recordAnswer(profile.id, true);
     this.game.effects.spawnConfetti(centerX, centerY, 56);
+    this.game.effects.spawnFloatingText?.(centerX, centerY - 25, '+10 Muito bem!', '#ffd479');
+    vibrateCollect();
+    this.game.narrator?.speakPraise();
 
     if (this.mode === 'speedrun' && this.alphabet) {
       this._advanceSpeedrun();
@@ -351,6 +364,7 @@ export class GameScene extends Scene {
         `Boa! Agora letra ${nextLetter}!`,
         0.8,
       );
+      this.game.narrator?.speakSyllable(nextLetter);
       // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
       return;
     }
@@ -370,7 +384,9 @@ export class GameScene extends Scene {
     this.mistakes += 1;
     if (profile) this.game.progress.recordAnswer(profile.id, false);
     this.lives.loseHeart();
+    vibrateWarning();
     this.game.effects.spawnPuff(centerX, centerY, 14, '#ff5d73');
+    this.game.effects.spawnFloatingText?.(centerX, centerY - 20, 'Ops!', '#ff5d73');
     this.hudModel.showFeedback(
       FeedbackKind.WRONG,
       `Ops! Esse era "${item.label}". Procure "${this.lesson.target}".`,
@@ -380,6 +396,7 @@ export class GameScene extends Scene {
 
   onHazardHit(): void {
     this.lives.loseHeart();
+    vibrateWarning();
     this.hudModel.showFeedback(
       FeedbackKind.WRONG,
       'Ai! Cuidado com os espinhos!',
@@ -398,6 +415,8 @@ export class GameScene extends Scene {
 
   winLevel(): void {
     this.status = Status.WON;
+    vibrateVictory();
+    this.game.narrator?.speakPraise('Parabéns!');
     this._winTimer = this.mode === 'speedrun' ? 1.2 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
       this.player.body.x + this.player.body.w / 2,
