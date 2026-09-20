@@ -318,26 +318,28 @@ body {
 
 .selector-grid {
   display: flex;
-  gap: clamp(6px, 1.6vw, 14px);
+  gap: clamp(12px, 2.8vw, 24px);
   justify-content: center;
   align-items: center;
 }
 
 .selector-card {
-  width: clamp(56px, 9vw, 82px);
-  height: clamp(44px, 10vh, 66px);
-  padding: clamp(2px, 0.5vh, 4px);
-  border-radius: 4px;
+  width: clamp(68px, 11vw, 92px);
+  min-height: clamp(54px, 12vh, 72px);
+  height: auto;
+  padding: clamp(4px, 0.8vh, 6px) clamp(5px, 0.8vw, 8px);
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   border: 2px solid var(--color-ink);
   background: rgba(251, 244, 223, 0.92);
   box-shadow: 0 3px 0 var(--color-green-dark);
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   position: relative;
+  box-sizing: border-box;
 }
 
 .selector-card:hover {
@@ -348,26 +350,27 @@ body {
 .selector-card.selected {
   background: #ffe39a;
   border-color: #ffffff;
-  box-shadow: 0 3px 0 var(--color-ink), 0 0 0 2px var(--color-gold), 0 0 10px rgba(255, 212, 121, 0.7);
-  transform: scale(1.06);
+  box-shadow: 0 3px 0 var(--color-ink), 0 0 0 2px var(--color-gold), 0 0 12px rgba(255, 212, 121, 0.75);
+  transform: scale(1.08);
 }
 
 .selector-cursor-tag {
   position: absolute;
-  top: -8px;
+  top: -9px;
   left: 50%;
   transform: translateX(-50%);
   background: #e63946;
   color: #ffffff;
   font-family: var(--font-ui);
   font-size: clamp(0.62rem, 1.1vh, 0.72rem);
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid #ffffff;
   letter-spacing: 0.5px;
   font-weight: 800;
   white-space: nowrap;
   animation: bounceCursor 0.6s infinite alternate ease-in-out;
+  z-index: 2;
 }
 
 @keyframes bounceCursor {
@@ -376,24 +379,28 @@ body {
 }
 
 .selector-thumb {
-  width: clamp(22px, 5vh, 34px);
-  height: clamp(22px, 5vh, 34px);
+  width: clamp(24px, 4.8vh, 32px);
+  height: clamp(24px, 4.8vh, 32px);
   object-fit: contain;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  flex-shrink: 0;
 }
 
 .selector-name {
   font-family: var(--font-ui);
-  font-size: clamp(0.7rem, 1.4vh, 0.82rem);
+  font-size: clamp(0.72rem, 1.4vh, 0.84rem);
   color: var(--color-ink);
   text-align: center;
   font-weight: 700;
-  margin-top: 2px;
+  line-height: 1.2;
+  margin: 2px 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: clamp(52px, 9vw, 76px);
+  max-width: 100%;
+  width: 100%;
+  display: block;
 }
 
 .selector-card.placeholder {
@@ -410,14 +417,15 @@ body {
 }
 
 .selector-placeholder-thumb {
-  width: clamp(22px, 5vh, 34px);
-  height: clamp(22px, 5vh, 34px);
+  width: clamp(24px, 4.8vh, 32px);
+  height: clamp(24px, 4.8vh, 32px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-pixel);
   font-size: clamp(0.9rem, 2vh, 1.2rem);
   color: rgba(35, 61, 56, 0.4);
+  flex-shrink: 0;
 }
 
 /* 3. Main Stage (Hero Showcase + Game Menu) */
@@ -753,7 +761,6 @@ body {
   }
 }
 
-/* On compact mobile landscape screens (<= 480px height), hide footer tips to guarantee zero overflow */
 @media (max-height: 480px) {
   .home-footer-tips {
     display: none !important;
@@ -764,6 +771,22 @@ body {
   }
   .home-board {
     gap: 6px;
+  }
+  .selector-grid {
+    gap: 12px;
+  }
+  .selector-card {
+    min-height: 48px;
+    width: clamp(60px, 10vw, 76px);
+    padding: 2px 4px;
+  }
+  .selector-thumb {
+    width: 22px;
+    height: 22px;
+  }
+  .selector-name {
+    font-size: 0.68rem;
+    line-height: 1.1;
   }
 }
 
