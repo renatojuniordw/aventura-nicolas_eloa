@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mountScreen, blurOnClick } from './mount-screen.js';
 import { CHARACTERS, type Character } from '../../content/characters.js';
 import { createPixelLogoSvg } from '../pixel-logo.js';
 import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
+import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from '../fullscreen.js';
 
 /** Wraps the framework-agnostic SVG builder in a React lifecycle. */
 function PixelLogo() {
@@ -110,8 +111,30 @@ function MainMenuScreen({
   const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
   const speedrunText = bestTimeStr ? `⚡ Speed Run (${bestTimeStr})` : '⚡ Speed Run (A ao Z)';
 
+  const [fullscreen, setFullscreen] = useState(() => isFullscreen());
+  const supported = isFullscreenSupported();
+
+  useEffect(() => {
+    return onFullscreenChange((active) => setFullscreen(active));
+  }, []);
+
   return (
     <div className="overlay home-screen">
+      {supported && (
+        <button
+          className="home-fullscreen-btn"
+          type="button"
+          tabIndex={-1}
+          aria-label={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
+          title={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
+          onClick={blurOnClick(async () => {
+            const active = await toggleFullscreen();
+            setFullscreen(active);
+          })}
+        >
+          {fullscreen ? '🗗' : '⛶'}
+        </button>
+      )}
       <div className="home-board">
         {/* --- 1. Header (Centered Logo + Tagline) --- */}
         <div className="home-header">
