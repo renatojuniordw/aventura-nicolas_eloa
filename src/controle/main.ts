@@ -282,7 +282,7 @@ async function main(): Promise<void> {
       if (a && a.x != null && a.y != null && a.z != null) {
         const sample = { x: a.x, y: a.y, z: a.z };
         calibrationSamples.push(sample);
-        if (debug) recorder.push(sample, performance.now());
+        if (debug) recorder.push(sample, performance.now(), event.rotationRate);
       }
     };
     window.addEventListener('devicemotion', onCalibrate);
@@ -315,7 +315,7 @@ async function main(): Promise<void> {
       const stateAfter = detector.state;
 
       if (debug) {
-        recorder.push(sample, now);
+        recorder.push(sample, now, event.rotationRate);
         if (stateBefore === 'idle' && stateAfter === 'freefall') {
           console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
         } else if (jumped) {

@@ -3,6 +3,16 @@ export interface RecordedSample {
   x: number;
   y: number;
   z: number;
+  /** Gyroscope rate in deg/s (DeviceMotionEvent.rotationRate), when the device reports it. */
+  rx?: number;
+  ry?: number;
+  rz?: number;
+}
+
+export interface RotationSample {
+  alpha: number | null;
+  beta: number | null;
+  gamma: number | null;
 }
 
 /** ~5-6 minutes at a typical 60Hz devicemotion rate — plenty for one tuning session. */
@@ -19,9 +29,15 @@ const MAX_SAMPLES = 20_000;
 export class SessionRecorder {
   private _samples: RecordedSample[] = [];
 
-  push(sample: { x: number; y: number; z: number }, t: number): void {
+  push(sample: { x: number; y: number; z: number }, t: number, rotation?: RotationSample | null): void {
     if (this._samples.length >= MAX_SAMPLES) return;
-    this._samples.push({ t, x: sample.x, y: sample.y, z: sample.z });
+    const recorded: RecordedSample = { t, x: sample.x, y: sample.y, z: sample.z };
+    if (rotation && rotation.alpha != null && rotation.beta != null && rotation.gamma != null) {
+      recorded.rx = rotation.alpha;
+      recorded.ry = rotation.beta;
+      recorded.rz = rotation.gamma;
+    }
+    this._samples.push(recorded);
   }
 
   get sampleCount(): number {
