@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "generate:levels": "node --import ./tools/register-ts-hook.mjs tools/generate-levels.mts",
-    "generate:pwa-icons": "node tools/generate-pwa-icons.mjs"
+    "generate:pwa-icons": "node tools/generate-pwa-icons.mjs",
+    "replay:session": "node --import ./tools/register-ts-hook.mjs tools/replay-session.mts"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

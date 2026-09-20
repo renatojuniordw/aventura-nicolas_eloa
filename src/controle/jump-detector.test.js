@@ -134,3 +134,45 @@ describe('JumpDetector', () => {
     expect(jumped).toBe(true);
   });
 });
+
+describe('JumpDetector lastJump', () => {
+  it('records freefall length, depth and impact of a confirmed jump', () => {
+    const detector = new JumpDetector();
+    expect(detector.lastJump).toBeNull();
+    feedAll(detector, jumpFixture());
+    expect(detector.lastJump.freefallMs).toBeGreaterThan(DEFAULT_JUMP_DETECTOR_THRESHOLDS.minFreefallMs);
+    expect(detector.lastJump.minFreefallG).toBeLessThan(0.7);
+    expect(detector.lastJump.impactG).toBeGreaterThan(1.7);
+  });
+});
+
+describe('JumpDetector trackRest', () => {
+  const settle = (detector, g, fromMs, toMs) => {
+    for (let t = fromMs; t < toMs; t += 10) detector.feed(sampleAt(g), t);
+  };
+
+  it('follows a slow drift of the resting magnitude when enabled', () => {
+    const detector = new JumpDetector(undefined, { trackRest: true });
+    settle(detector, 1.15, 0, 4000);
+    expect(detector.restUpdates).toBeGreaterThan(0);
+    expect(detector.restMagnitude).toBeGreaterThan(1.1);
+  });
+
+  it('leaves the rest magnitude alone by default', () => {
+    const detector = new JumpDetector();
+    settle(detector, 1.15, 0, 4000);
+    expect(detector.restMagnitude).toBe(1);
+  });
+
+  it('does not adopt a noisy stretch as the new rest', () => {
+    const detector = new JumpDetector(undefined, { trackRest: true });
+    for (let t = 0; t < 4000; t += 10) detector.feed(sampleAt(t % 20 === 0 ? 1.0 : 1.4), t);
+    expect(detector.restUpdates).toBe(0);
+  });
+
+  it('never adopts a drop below the freefall threshold as rest', () => {
+    const detector = new JumpDetector(undefined, { trackRest: true });
+    settle(detector, 0.3, 0, 4000);
+    expect(detector.restMagnitude).toBe(1);
+  });
+});

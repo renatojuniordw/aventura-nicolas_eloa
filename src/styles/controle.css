@@ -104,3 +104,10 @@ body {
   min-width: 3.5ch;
   font-variant-numeric: tabular-nums;
 }
+
+/* Big tap target: the parent hits it right after each real jump (ground truth for replay). */
+.controle-debug-mark {
+  grid-column: 1 / 3;
+  padding: 14px;
+  font-size: 1rem;
+}

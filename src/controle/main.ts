@@ -3,12 +3,19 @@ import { parseControleParams } from './controle-params.js';
 import { JumpDetector, magnitudeInG, type JumpDetectorThresholds } from './jump-detector.js';
 import { loadThresholds, saveThresholds } from './threshold-storage.js';
 import { SessionRecorder } from './session-recorder.js';
+import { resolveEventTime } from './sensor-time.js';
 import { PhoneControllerTransport } from '../net/phone-controller-transport.js';
 import { statusMessage, canRetry, type AppState } from './status-message.js';
 
 const CALIBRATION_MS = 1500;
 const VIBRATION_MS = 50;
 const VIBRATION_MIN_GAP_MS = 100;
+/**
+ * Re-estimates the resting magnitude in quiet stretches, so a phone sliding on
+ * the body doesn't skew thresholds. Off until `npm run replay:session --
+ * <file> --trackRest` shows a gain on a real recording.
+ */
+const TRACK_REST = false;
 
 type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
@@ -120,7 +127,7 @@ function render(root: HTMLElement, state: AppState, onStart: () => void, session
 function renderDebugPanel(
   root: HTMLElement,
   thresholds: JumpDetectorThresholds,
-  { onDownload }: { onDownload: () => void },
+  { onDownload, onMarkJump, getMarkCount }: { onDownload: () => void; onMarkJump: () => number; getMarkCount: () => number },
 ): void {
   const panel = el('div', { class: 'controle-debug-panel' });
   const fields: Array<[keyof JumpDetectorThresholds, string, number, number, number]> = [
@@ -156,6 +163,23 @@ function renderDebugPanel(
     });
     panel.append(el('label', { class: 'controle-debug-row' }, [label, input, valueLabel]));
   }
+
+  // Ground truth for offline replay: tap right after each real jump so
+  // recorded detections can be scored as hits, false positives or misses.
+  const markCount = el('span', { class: 'controle-debug-value', text: String(getMarkCount()) });
+  panel.append(
+    el('div', { class: 'controle-debug-row' }, [
+      el('button', {
+        class: 'controle-debug-mark',
+        type: 'button',
+        text: 'Pulei agora',
+        onClick: () => {
+          markCount.textContent = String(onMarkJump());
+        },
+      }),
+      markCount,
+    ]),
+  );
 
   panel.append(
     el('div', { class: 'controle-debug-row' }, [
@@ -208,15 +232,29 @@ async function main(): Promise<void> {
   const thresholds: JumpDetectorThresholds = loadThresholds();
 
   const recorder = new SessionRecorder();
+  let calibrationEndT: number | null = null;
+  let reportedIntervalMs: number | null = null;
 
   const rerender = (): void => {
     render(root, state, start, session);
     if (debug && (state.phase === 'calibrating' || state.phase === 'listening')) {
       renderDebugPanel(root, thresholds, {
         onDownload: () => {
-          const json = recorder.toJSON({ thresholds, restMagnitude: detector.restMagnitude });
+          const json = recorder.toJSON({
+            thresholds,
+            restMagnitude: detector.restMagnitude,
+            calibrationEndT,
+            trackRest: TRACK_REST,
+            userAgent: navigator.userAgent,
+            reportedIntervalMs,
+          });
           downloadTextFile(`joguinho-sensor-${Date.now()}.json`, json, 'application/json');
         },
+        onMarkJump: () => {
+          recorder.mark('jump', performance.now());
+          return recorder.markerCount;
+        },
+        getMarkCount: () => recorder.markerCount,
       });
     }
   };
@@ -227,7 +265,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const detector = new JumpDetector(thresholds);
+  const detector = new JumpDetector(thresholds, { trackRest: TRACK_REST });
   const transport = new PhoneControllerTransport(session);
   const wakeLock = new WakeLockKeeper();
   let lastJumpVibration = 0;
@@ -282,7 +320,12 @@ async function main(): Promise<void> {
       if (a && a.x != null && a.y != null && a.z != null) {
         const sample = { x: a.x, y: a.y, z: a.z };
         calibrationSamples.push(sample);
-        if (debug) recorder.push(sample, performance.now(), event.rotationRate);
+        if (debug) {
+          const handlerNow = performance.now();
+          const t = resolveEventTime(event.timeStamp, handlerNow);
+          recorder.push(sample, t, event.rotationRate, handlerNow - t);
+          reportedIntervalMs = event.interval;
+        }
       }
     };
     window.addEventListener('devicemotion', onCalibrate);
@@ -290,6 +333,7 @@ async function main(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, CALIBRATION_MS));
     window.removeEventListener('devicemotion', onCalibrate);
     detector.calibrate(calibrationSamples);
+    calibrationEndT = performance.now();
 
     if (debug) {
       console.log(
@@ -301,6 +345,8 @@ async function main(): Promise<void> {
     rerender();
 
     let lastBackgroundLog = 0;
+    let lastRestUpdates = detector.restUpdates;
+    let lastSampleT = -Infinity;
     const BACKGROUND_LOG_INTERVAL_MS = 500;
 
     window.addEventListener('devicemotion', (event: DeviceMotionEvent) => {
@@ -310,12 +356,21 @@ async function main(): Promise<void> {
       const sample = { x: a.x, y: a.y, z: a.z };
       const magnitude = magnitudeInG(sample);
       const stateBefore = detector.state;
-      const now = performance.now();
+      const handlerNow = performance.now();
+      // Measured time, kept monotonic — a batched delivery can hand samples over out of order.
+      const now = Math.max(lastSampleT, resolveEventTime(event.timeStamp, handlerNow));
+      lastSampleT = now;
       const jumped = detector.feed(sample, now);
       const stateAfter = detector.state;
 
       if (debug) {
-        recorder.push(sample, now, event.rotationRate);
+        recorder.push(sample, now, event.rotationRate, handlerNow - now);
+        reportedIntervalMs = event.interval;
+        if (jumped && detector.lastJump) recorder.logDetection(now, detector.lastJump);
+        if (detector.restUpdates !== lastRestUpdates) {
+          lastRestUpdates = detector.restUpdates;
+          console.log(`[controle] repouso reestimado restMagnitude=${detector.restMagnitude.toFixed(3)}g`);
+        }
         if (stateBefore === 'idle' && stateAfter === 'freefall') {
           console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
         } else if (jumped) {
