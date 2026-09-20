@@ -209,6 +209,100 @@ body {
 }
 
 /* ==========================================================================
+   Splash / Loading Screen (Shown during game boot)
+   ========================================================================== */
+.splash-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #0e1d1a;
+  background-image: radial-gradient(circle at center, #1b382f 0%, #0d1a17 70%, #08100e 100%);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+.splash-screen.splash-fade-out {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+.splash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2.8vh, 22px);
+  padding: clamp(20px, 4vh, 40px);
+  text-align: center;
+  animation: splashPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes splashPulse {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1.01); }
+}
+
+.splash-card .pixel-logo-svg {
+  width: auto;
+  height: clamp(48px, 12vh, 88px);
+  max-width: 90vw;
+  filter: drop-shadow(0 4px 0 var(--color-ink));
+  image-rendering: pixelated;
+}
+
+.splash-tagline {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.75rem, 2vh, 1.05rem);
+  color: var(--color-gold);
+  text-shadow: 0 2px 0 var(--color-ink);
+  letter-spacing: clamp(1.2px, 0.4vw, 2.5px);
+  font-weight: 700;
+  margin: 0;
+}
+
+.splash-bar-outer {
+  width: clamp(180px, 42vw, 290px);
+  height: 14px;
+  background: rgba(14, 28, 25, 0.9);
+  border: 2px solid var(--color-gold-border);
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: 0 3px 0 var(--color-ink), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.splash-bar-inner {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #326855 0%, #ffd479 50%, #fbf4df 100%);
+  border-radius: 4px;
+  animation: splashProgress 1.4s ease-in-out forwards;
+  transform-origin: left;
+}
+
+@keyframes splashProgress {
+  0% { transform: scaleX(0.05); }
+  40% { transform: scaleX(0.45); }
+  75% { transform: scaleX(0.85); }
+  100% { transform: scaleX(1); }
+}
+
+.splash-loading-text {
+  font-family: var(--font-ui);
+  font-size: clamp(0.76rem, 1.6vh, 0.9rem);
+  color: var(--color-cream);
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
    Home Screen (Pixel-art layout matching reference)
    ========================================================================== */
 

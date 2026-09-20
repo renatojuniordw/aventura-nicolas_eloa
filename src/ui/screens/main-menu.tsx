@@ -135,14 +135,9 @@ function MainMenuScreen({
           {fullscreen ? '🗗' : '⛶'}
         </button>
       )}
+      <h1 className="sr-only">Aventura do Nicolas&amp;Eloá</h1>
       <div className="home-board">
-        {/* --- 1. Header (Centered Logo + Tagline) --- */}
-        <div className="home-header">
-          <PixelLogo />
-          <div className="home-tagline">PULE. DESCUBRA. BRINQUE.</div>
-        </div>
-
-        {/* --- 2. Character Selector Strip (KoF Small Thumbnails) --- */}
+        {/* --- 1. Character Selector Strip (KoF Small Thumbnails) --- */}
         <div className="home-selector-strip">
           <div className="home-section-title">ESCOLHA SEU PERSONAGEM</div>
           <div className="selector-grid companion-grid">

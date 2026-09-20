@@ -32,6 +32,55 @@
         <div id="hud-controls-root" class="hud-controls-root"></div>
         <div id="touch-controls-root" class="touch-controls-root"></div>
         <div id="overlay-root" class="overlay-root"></div>
+
+        <!-- Opening splash / loading screen -->
+        <div id="splash-screen" class="splash-screen" role="status" aria-label="Carregando jogo">
+          <div class="splash-card">
+            <div class="pixel-logo-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 84" class="pixel-logo-svg" role="img" aria-label="Aventura do Nicolas &amp; Eloá">
+                <defs>
+                  <filter id="pixel-title-shadow-splash" x="-10%" y="-10%" width="130%" height="140%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="0" flood-color="#142622" flood-opacity="1" />
+                  </filter>
+                </defs>
+                <style>
+                  .pixel-logo-text {
+                    font-family: 'Silkscreen', monospace, sans-serif;
+                    font-weight: 700;
+                    text-anchor: middle;
+                    paint-order: stroke fill;
+                    user-select: none;
+                  }
+                  .pixel-logo-row1 {
+                    font-size: 25px;
+                    fill: #ffd479;
+                    stroke: #182e29;
+                    stroke-width: 4.5px;
+                    stroke-linejoin: miter;
+                    letter-spacing: 2px;
+                  }
+                  .pixel-logo-row2 {
+                    font-size: 31px;
+                    fill: #fbf4df;
+                    stroke: #182e29;
+                    stroke-width: 5px;
+                    stroke-linejoin: miter;
+                    letter-spacing: 1.5px;
+                  }
+                </style>
+                <g filter="url(#pixel-title-shadow-splash)">
+                  <text x="220" y="33" class="pixel-logo-text pixel-logo-row1">Aventura do</text>
+                  <text x="220" y="72" class="pixel-logo-text pixel-logo-row2">Nicolas &amp; Eloá</text>
+                </g>
+              </svg>
+            </div>
+            <div class="splash-tagline">PULE. DESCUBRA. BRINQUE.</div>
+            <div class="splash-bar-outer">
+              <div class="splash-bar-inner"></div>
+            </div>
+            <div class="splash-loading-text">Carregando aventura...</div>
+          </div>
+        </div>
       </div>
     </div>
 

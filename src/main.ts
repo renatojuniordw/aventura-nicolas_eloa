@@ -289,6 +289,13 @@ const bootHudControls = typeof document !== 'undefined' ? document.getElementByI
 const bootTouchControls =
   typeof document !== 'undefined' ? document.getElementById('touch-controls-root') : null;
 
+function dismissSplashScreen(): void {
+  const splash = typeof document !== 'undefined' ? document.getElementById('splash-screen') : null;
+  if (!splash) return;
+  splash.classList.add('splash-fade-out');
+  setTimeout(() => splash.remove(), 550);
+}
+
 if (bootCanvas && bootOverlay) {
   const game = createGame({
     canvas: bootCanvas as HTMLCanvasElement,
@@ -297,4 +304,10 @@ if (bootCanvas && bootOverlay) {
     touchControlsRoot: bootTouchControls as HTMLElement | null,
   });
   game.loop.start();
+
+  if (typeof window !== 'undefined') {
+    setTimeout(dismissSplashScreen, 1400);
+    const splash = document.getElementById('splash-screen');
+    splash?.addEventListener('pointerdown', dismissSplashScreen, { once: true });
+  }
 }
