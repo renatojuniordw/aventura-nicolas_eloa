@@ -69,6 +69,22 @@ describe('SpeechNarrator', () => {
     expect(mockSynth.cancel).toHaveBeenCalledTimes(1);
   });
 
+  it('speaks lesson target for letters, syllables, and words without maiusculo artifact', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+
+    narrator.speakLessonTarget('A', 'letter');
+    let utterance = mockSynth.speak.mock.calls[0][0];
+    expect(utterance.text).toBe('Encontre a letra a');
+
+    narrator.speakLessonTarget('BA', 'syllable');
+    utterance = mockSynth.speak.mock.calls[1][0];
+    expect(utterance.text).toBe('Encontre a sílaba ba');
+
+    narrator.speakLessonTarget('BOLA', 'word');
+    utterance = mockSynth.speak.mock.calls[2][0];
+    expect(utterance.text).toBe('Encontre a palavra bola');
+  });
+
   it('speaks text via speakText convenience helper', () => {
     window.speechSynthesis = mockSynth;
     const result = speakText('Nicolas');

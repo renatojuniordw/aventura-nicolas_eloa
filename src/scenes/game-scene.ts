@@ -155,12 +155,14 @@ export class GameScene extends Scene {
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
     tryLockLandscape().catch(() => {});
     if (this.lesson?.target) {
-      this.game.narrator?.speakSyllable(this.lesson.target);
+      this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
   }
 
   override exit(): void {
-    this.game.narrator?.stop();
+    if (this.status !== Status.WON) {
+      this.game.narrator?.stop();
+    }
     for (const unsubscribe of this._unsubscribers) unsubscribe();
     this._unsubscribers = [];
     this.game.menu.hide();
@@ -364,7 +366,7 @@ export class GameScene extends Scene {
         `Boa! Agora letra ${nextLetter}!`,
         0.8,
       );
-      this.game.narrator?.speakSyllable(nextLetter);
+      this.game.narrator?.speakLessonTarget(nextLetter, 'letter');
       // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
       return;
     }
@@ -392,6 +394,9 @@ export class GameScene extends Scene {
       `Ops! Esse era "${item.label}". Procure "${this.lesson.target}".`,
       GAMEPLAY.wrongFeedbackDuration,
     );
+    if (item.label) {
+      this.game.narrator?.speak(`Ops! Essa é a letra ${item.label.toLowerCase()}`);
+    }
   }
 
   onHazardHit(): void {
@@ -416,7 +421,9 @@ export class GameScene extends Scene {
   winLevel(): void {
     this.status = Status.WON;
     vibrateVictory();
-    this.game.narrator?.speakPraise('Parabéns!');
+    if (this.mode === 'speedrun') {
+      this.game.narrator?.speakPraise('Parabéns!');
+    }
     this._winTimer = this.mode === 'speedrun' ? 1.2 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
       this.player.body.x + this.player.body.w / 2,
