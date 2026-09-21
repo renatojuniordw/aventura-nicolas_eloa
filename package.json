@@ -1,7 +1,7 @@
 {
   "name": "aventura-nicolas_eloa",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Aventura do Nicolas&Eloá — jogo de plataforma 2D educativo, motor em TypeScript com Canvas 2D e UI em React.",
   "scripts": {
