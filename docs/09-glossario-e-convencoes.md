@@ -144,7 +144,8 @@ Comentários em inglês (é código). Documentação em português.
 |---|---|
 | Código do projeto | Próprio do projeto |
 | `imgs_referencia/mario_graphics1.png` | **Referência apenas.** É arte estilo Mario (IP da Nintendo). **Não distribuir.** Usada só para medir proporções |
-| Arte de produção (`public/assets/`) | **Proprietária, não distribuível fora do projeto.** Ver detalhes abaixo |
+| Cenários, itens, objetos, terreno e `manifest.json` (`public/assets/`) | **MIT**, de [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras). Ver `THIRD_PARTY_NOTICES.md` |
+| Personagens e retratos (`public/assets/characters/`, `portraits/`) | **Proprietária, não distribuível fora do projeto.** Ver detalhes abaixo |
 | Fonte Silkscreen (`public/fonts/`) | SIL Open Font License 1.1 (texto em `public/fonts/OFL.txt`) |
 
 > **Regra:** nenhum arquivo em `imgs_referencia/` pode ser empacotado no build — isso é

@@ -170,11 +170,18 @@ Nginx na VPS (`docker/nginx-vps.conf`) faz proxy reverso com rate limiting e TLS
 
 ## Créditos e licenças
 
+Este projeto foi inspirado em
+[Aventura das Letras](https://github.com/samarameneses/aventura-das-letras), de Samara
+Meneses (licença MIT). Daí em diante seguiu um caminho próprio, com outra proposta e
+outras mecânicas. Os cenários, itens, objetos e tiles de terreno em `public/assets/` vêm
+desse projeto e estão sob a licença MIT dela — ver
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 Código do projeto. A imagem em `imgs_referencia/` é **apenas referência de proporções** e
-**não deve ser distribuída** (arte de terceiros). A arte de produção em `public/assets/`
-(personagens, cenários, itens) foi gerada por IA a partir de referências privadas da
-família — **não é CC0 nem de terceiros licenciados**, é proprietária do projeto e não deve
-ser redistribuída fora dele — ver
+**não deve ser distribuída** (arte de terceiros). A arte dos personagens e retratos em
+`public/assets/` foi gerada por IA a partir de referências privadas da família — **não é
+CC0 nem de terceiros licenciados**, é proprietária do projeto e não deve ser
+redistribuída fora dele — ver
 [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md#7-licenças-e-procedência-de-arte).
 
 A fonte **Silkscreen** (pixel art) é distribuída junto do jogo em `public/fonts/`, sob a
