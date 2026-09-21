@@ -1,5 +1,7 @@
 import { mountScreen, blurOnClick } from './mount-screen.js';
 import { CHARACTERS, type Character } from '../../content/characters.js';
+import { speakText } from '../../audio/speech-narrator.js';
+import { vibrateTap, vibrateSuccess } from '../../input/haptics.js';
 
 interface CharacterPickerOptions {
   selectedId: string | null;
@@ -17,13 +19,20 @@ function CharacterCard({
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const handleClick = () => {
+    vibrateTap();
+    const firstName = character.name.split(' ')[0];
+    speakText(firstName);
+    onSelect(character.id);
+  };
+
   return (
     <button
       className={`companion-card character-picker-card ${selected ? 'selected' : ''}`}
       type="button"
       tabIndex={-1}
       aria-pressed={selected}
-      onClick={blurOnClick(() => onSelect(character.id))}
+      onClick={blurOnClick(handleClick)}
     >
       {selected ? <div className="character-picker-tag">1P Ativo</div> : null}
       {character.portrait ? (
@@ -60,7 +69,15 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
           ))}
         </div>
         <div className="overlay-actions character-picker-actions">
-          <button type="button" tabIndex={-1} className="btn-retro btn-primary-gold" onClick={blurOnClick(onConfirm)}>
+          <button
+            type="button"
+            tabIndex={-1}
+            className="btn-retro btn-primary-gold"
+            onClick={blurOnClick(() => {
+              vibrateSuccess();
+              onConfirm();
+            })}
+          >
             Confirmar Escolha
           </button>
           <button type="button" tabIndex={-1} className="btn-util" onClick={blurOnClick(onBack)}>

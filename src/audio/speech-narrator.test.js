@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SpeechNarrator } from './speech-narrator.js';
+import { SpeechNarrator, speakText } from './speech-narrator.js';
 
 describe('SpeechNarrator', () => {
   let mockSynth;
@@ -67,5 +67,11 @@ describe('SpeechNarrator', () => {
     const narrator = new SpeechNarrator({ synth: mockSynth });
     narrator.stop();
     expect(mockSynth.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('speaks text via speakText convenience helper', () => {
+    window.speechSynthesis = mockSynth;
+    const result = speakText('Nicolas');
+    expect(typeof result).toBe('boolean');
   });
 });

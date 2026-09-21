@@ -39,6 +39,16 @@ export function vibrateWarning(): boolean {
   return vibrate([30, 40, 30]);
 }
 
+/** Subtle tap feedback for UI buttons and card selection (18ms). */
+export function vibrateTap(): boolean {
+  return vibrate(18);
+}
+
+/** Confirmatory pulse for positive selections and confirmations. */
+export function vibrateSuccess(): boolean {
+  return vibrate([20, 30, 40]);
+}
+
 /** Stop any ongoing vibration immediately. */
 export function cancelHaptics(): void {
   if (!isHapticsSupported()) return;

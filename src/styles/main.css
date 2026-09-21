@@ -980,7 +980,8 @@ body {
   margin: 8px 0;
 }
 
-/* Character Picker Screen & Modal Overlay */
+/* Menu Modal Screens (Character Picker, Lesson Picker, Settings, Privacy Notice) */
+.menu-modal-screen,
 .character-picker-screen {
   position: absolute;
   inset: 0;
@@ -1000,6 +1001,7 @@ body {
   z-index: 1;
 }
 
+.menu-modal-screen::before,
 .character-picker-screen::before {
   content: '';
   position: absolute;
@@ -1018,6 +1020,105 @@ body {
   background: rgba(20, 36, 32, 0.94);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+
+.lesson-picker-overlay {
+  position: relative;
+  z-index: 2;
+  width: min(600px, 94%);
+  max-width: 600px;
+  max-height: 88vh;
+  text-align: center;
+  background: rgba(20, 36, 32, 0.94);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+}
+
+.lesson-picker-subtitle {
+  font-size: clamp(0.72rem, 1.4vh, 0.86rem);
+  color: var(--color-cream);
+  opacity: 0.9;
+  margin: 0 0 10px;
+}
+
+.lesson-picker-scroll {
+  max-height: clamp(160px, 48vh, 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 6px;
+}
+
+.lesson-unit-group {
+  margin-bottom: 12px;
+}
+
+.lesson-unit-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.78rem, 1.6vh, 0.95rem);
+  color: var(--color-gold);
+  text-align: left;
+  margin: 6px 0 8px;
+}
+
+.lesson-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.lesson-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 52px;
+  padding: 6px 12px;
+  font-size: clamp(0.85rem, 1.8vh, 1.05rem);
+  font-family: var(--font-pixel);
+  background: rgba(251, 244, 223, 0.94);
+  color: var(--color-green-dark);
+  border: 2px solid var(--color-ink);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--color-green-dark);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.lesson-pick-btn:hover {
+  transform: translateY(-2px);
+  background: #ffffff;
+}
+
+.lesson-badge {
+  font-size: 0.85rem;
+}
+
+.lesson-unit-locked {
+  font-size: 0.76rem;
+  color: rgba(251, 244, 223, 0.6);
+  text-align: left;
+  margin: 4px 0;
+}
+
+.settings-screen {
+  position: relative;
+  z-index: 2;
+  width: min(480px, 92%);
+  max-width: 480px;
+  text-align: center;
+  background: rgba(20, 36, 32, 0.94);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .character-picker-subtitle {

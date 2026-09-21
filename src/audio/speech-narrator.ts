@@ -94,3 +94,17 @@ export class SpeechNarrator {
     }
   }
 }
+
+let defaultNarrator: SpeechNarrator | null = null;
+
+export function getDefaultNarrator(): SpeechNarrator {
+  if (!defaultNarrator) {
+    defaultNarrator = new SpeechNarrator();
+  }
+  return defaultNarrator;
+}
+
+/** Convenience helper to pronounce friendly text in Portuguese (pt-BR). */
+export function speakText(text: string): boolean {
+  return getDefaultNarrator().speak(text);
+}

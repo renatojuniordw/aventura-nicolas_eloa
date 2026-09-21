@@ -7,6 +7,8 @@ import {
   vibrateCollect,
   vibrateVictory,
   vibrateWarning,
+  vibrateTap,
+  vibrateSuccess,
   cancelHaptics,
 } from './haptics.js';
 
@@ -54,6 +56,18 @@ describe('haptics', () => {
     const success = vibrateWarning();
     expect(success).toBe(true);
     expect(navigator.vibrate).toHaveBeenCalledWith([30, 40, 30]);
+  });
+
+  it('calls vibrate with tap duration', () => {
+    const success = vibrateTap();
+    expect(success).toBe(true);
+    expect(navigator.vibrate).toHaveBeenCalledWith(18);
+  });
+
+  it('calls vibrate with success pattern', () => {
+    const success = vibrateSuccess();
+    expect(success).toBe(true);
+    expect(navigator.vibrate).toHaveBeenCalledWith([20, 30, 40]);
   });
 
   it('cancels vibration on cancelHaptics()', () => {
