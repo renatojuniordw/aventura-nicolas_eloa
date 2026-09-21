@@ -14,7 +14,14 @@ pela fase existem vários itens; **um deles é a resposta certa** e os outros s�
 
 - **Coletar o item certo** → comemoração (confete) e a fase termina em vitória.
 - **Coletar um item errado** → o jogador perde um coração e continua procurando.
+- **Margem de coleta**: cada item aceita toque com `GAMEPLAY.itemPickupMargin` (12 px)
+  ao redor, para que um pulo curto (toque rápido) ainda alcance o item.
 - **Cair em um buraco** → o jogador volta ao *checkpoint* **sem perder coração**.
+
+No modo velocidade (`speedrun-course.ts`), o item certo é sempre posicionado onde um
+toque rápido no pulo o alcança (`isTapReachable`) e na primeira parte do trecho; os
+distratores excluem a letra atual e suas vizinhas no alfabeto, para que um "parecido" nunca
+fique ao lado do alvo.
 
 O objetivo pedagógico é reconhecer letras, sílabas e palavras — então errar não deve ser
 punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.

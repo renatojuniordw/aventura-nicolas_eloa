@@ -44,7 +44,7 @@ Configurado em `vite.config.js` via `vite-plugin-pwa`:
 
 ```js
 VitePWA({
-  registerType: 'autoUpdate',
+  registerType: 'prompt',
   manifest: {
     name: 'Aventura do Nicolas&Eloá',
     short_name: 'Nicolas&Eloá',
@@ -64,6 +64,20 @@ VitePWA({
   biblioteca de imagem (mesma filosofia do `generate-levels`), que desenha um "A" em
   pixel art sobre o dourado do tema e grava PNGs manualmente. Rodar de novo com
   `npm run generate:pwa-icons`.
+
+### Fluxo de atualização segura
+
+Com `registerType: 'prompt'`, um service worker novo é baixado em segundo plano e fica
+**esperando** — `autoUpdate` o ativaria na hora e deixaria a página aberta rodando código
+velho. Quem decide *quando* ativar é `src/ui/pwa-update.ts` (`UpdateController`), que nunca
+recarrega a página durante uma fase:
+
+- **Versão nova pronta** → aparece o banner "Nova versão disponível!" com o botão
+  *Atualizar*, sempre fora do gameplay (some enquanto a cena é `game`).
+- **Volta ao menu** (entre fases) ou **app vai para segundo plano** fora do gameplay →
+  a atualização é aplicada automaticamente.
+- **Checagem periódica**: a cada 30 min e ao voltar para a aba/app (`visibilitychange`),
+  já que um PWA instalado raramente é aberto do zero.
 
 ### Estratégia de cache offline (Workbox)
 

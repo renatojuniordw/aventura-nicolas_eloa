@@ -165,6 +165,13 @@ function onMotion({ accelerationIncludingGravity: a }) {
 }
 ```
 
+**Disparo na decolagem (takeoff).** Além do disparo na aterrissagem, o `JumpDetector` dispara
+o pulo assim que a queda livre é confirmada, se um pico de impulso (`takeoffDeltaG`, 0,4 g
+acima do repouso) ocorreu até `takeoffWindowMs` (250 ms) antes dela — o pulo responde ao
+sair do chão, não ao pousar. Cada pulo registra `trigger: 'takeoff' | 'landing'`; na
+aterrissagem seguinte a um disparo antecipado só se completa o registro (`impactG`).
+`takeoffDeltaG: 0` desliga o recurso (detecção só na aterrissagem).
+
 Usa a **magnitude do vetor** (não só eixo Z), porque não importa a orientação exata em que o celular ficou preso no corpo da criança.
 
 **Requisito de infraestrutura:** `DeviceMotionEvent` só funciona em HTTPS. A VPS já tem TLS via certbot, então isso já está coberto — só confirmar que a rota `/controle` fica atrás do mesmo domínio com certificado válido.
