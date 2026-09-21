@@ -217,7 +217,6 @@ confira:
 - [ ] Item errado: perde um coração e aparece a mensagem com a dica.
 - [ ] Item certo: confete, mensagem de acerto e a tela de vitória.
 - [ ] Cair no buraco (fase "Rio"): volta ao início **sem** perder coração.
-- [ ] Espinhos (fase "Plataformas"): perdem um coração e voltam ao checkpoint.
 - [ ] Com 0 corações: aparece "Acabaram os corações" e "Tentar de novo" funciona.
 
 **Robustez**

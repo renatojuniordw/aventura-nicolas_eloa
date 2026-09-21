@@ -107,9 +107,7 @@ function plataformas() {
       { x: 29 * TILE, y: 11 * TILE - PLATFORM_ITEM_LIFT },
       { x: 44 * TILE, y: 11 * TILE - PLATFORM_ITEM_LIFT },
     ],
-    hazards: [
-      { id: 'espinhos-1', kind: 'spikes', x: 36 * TILE, y: GROUND_Y - TILE, w: 2 * TILE, h: TILE },
-    ],
+    hazards: [],
   };
 }
 

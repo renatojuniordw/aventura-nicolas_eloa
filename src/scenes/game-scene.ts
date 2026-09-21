@@ -399,7 +399,7 @@ export class GameScene extends Scene {
     vibrateWarning();
     this.hudModel.showFeedback(
       FeedbackKind.WRONG,
-      'Ai! Cuidado com os espinhos!',
+      'Ai! Cuidado!',
       GAMEPLAY.wrongFeedbackDuration,
     );
     this.respawn();

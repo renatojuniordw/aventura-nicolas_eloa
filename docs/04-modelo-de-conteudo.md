@@ -127,9 +127,7 @@ Exemplo real (reduzido) de `fase-alfabeto-a.json`:
       "label": "B", "x": 1280, "y": 352, "w": 32, "h": 32 }
   ],
 
-  "hazards": [
-    { "id": "espinhos-1", "kind": "spikes", "x": 1152, "y": 416, "w": 64, "h": 32 }
-  ],
+  "hazards": [],
 
   "decorations": []
 }
@@ -187,7 +185,7 @@ Tudo isso roda em `src/content/curriculum.test.js` e `src/content/level-loader.t
 |---|---|
 | `planicie` | Chão reto e uma plataforma suspensa |
 | `degraus` | Dois patamares elevados |
-| `plataformas` | Três plataformas suspensas + espinhos no chão |
+| `plataformas` | Três plataformas suspensas |
 | `rio` | Fenda no chão: exige um pulo para atravessar |
 
 **Itens** (a resposta + até 3 distratores do `pool` da unidade), com a posição da resposta
