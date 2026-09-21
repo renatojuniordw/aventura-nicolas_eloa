@@ -9,7 +9,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Local semantic-search model into public/models (git-ignored, >100MB); needs network at build time
+RUN npm run fetch:model && npm run build
 
 # --- Stage 2: serve with a minimal, hardened Nginx ---
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime

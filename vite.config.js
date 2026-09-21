@@ -80,6 +80,18 @@ export default defineConfig({
         ],
         runtimeCaching: [
           {
+            // Local semantic-search model (~140MB): never precached, cached the
+            // first time a guardian opts in (see src/ai/transformers-embedder.ts).
+            urlPattern: ({ url }) => url.pathname.startsWith('/models/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ai-models',
+              expiration: { maxEntries: 20 },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true,
+            },
+          },
+          {
             urlPattern: ({ url }) => url.pathname.startsWith('/assets/'),
             handler: 'CacheFirst',
             options: {

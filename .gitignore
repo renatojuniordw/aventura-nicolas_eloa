@@ -25,3 +25,6 @@ evidence/
 .gemini/
 .claude/
 .antigravity/
+
+# Local semantic-search model (fetched by npm run fetch:model; ONNX > 100MB)
+public/models/
