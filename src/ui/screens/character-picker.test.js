@@ -20,9 +20,9 @@ describe('buildCharacterPickerScreen', () => {
     expect(overlay.classList.contains('character-picker-overlay')).toBe(true);
     expect(node.querySelector('h2').textContent).toContain('Escolha seu Personagem');
 
-    // Cards exist: Nicolas, Eloá, and Novos Amigos placeholder
+    // Cards exist: Nicolas and Eloá
     const cards = node.querySelectorAll('.character-picker-card');
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(2);
 
     // Nicolas card is selected
     const nicolasCard = cards[0];
@@ -33,12 +33,6 @@ describe('buildCharacterPickerScreen', () => {
     const eloaCard = cards[1];
     expect(eloaCard.classList.contains('selected')).toBe(false);
     expect(eloaCard.textContent).toContain('Eloá');
-
-    // Novos Amigos placeholder card exists
-    const placeholderCard = cards[2];
-    expect(placeholderCard.classList.contains('placeholder')).toBe(true);
-    expect(placeholderCard.textContent).toContain('Novos Amigos');
-    expect(placeholderCard.textContent).toContain('Em breve');
 
     // Buttons
     expect(typeof primary).toBe('function');
@@ -54,7 +48,7 @@ describe('buildCharacterPickerScreen', () => {
       onBack: vi.fn(),
     });
 
-    const card = node.querySelector('.character-picker-card:not(.placeholder)');
+    const card = node.querySelector('.character-picker-card');
     card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(onSelect).toHaveBeenCalledWith('char-nicolas');
