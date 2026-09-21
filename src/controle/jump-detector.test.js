@@ -176,3 +176,75 @@ describe('JumpDetector trackRest', () => {
     expect(detector.restMagnitude).toBe(1);
   });
 });
+
+describe('JumpDetector takeoff trigger', () => {
+  /** rest, a push-off spike, then freefall, then landing — timestamps returned with each result. */
+  function takeoffFixture({ spikeG = 1.9, gapMs = 20, freefallMs = 300 } = {}) {
+    const samples = [];
+    let t = 0;
+    for (; t < 100; t += 10) samples.push({ t, sample: sampleAt(1) });
+    samples.push({ t, sample: sampleAt(spikeG) });
+    t += gapMs;
+    for (let ft = 0; ft < freefallMs; ft += 10) samples.push({ t: t + ft, sample: sampleAt(0.2) });
+    t += freefallMs;
+    samples.push({ t, sample: sampleAt(2.2) });
+    t += 10;
+    for (let rt = 0; rt < 200; rt += 10) samples.push({ t: t + rt, sample: sampleAt(1) });
+    return samples;
+  }
+
+  it('fires right after leaving the ground, well before the landing', () => {
+    const detector = new JumpDetector();
+    const fixture = takeoffFixture();
+    const results = feedAll(detector, fixture);
+    const firedAt = fixture[results.indexOf(true)].t;
+    const landingAt = fixture.find((f) => f.sample.z > 2 * 9.81).t;
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(landingAt - firedAt).toBeGreaterThan(200);
+    expect(detector.lastJump.trigger).toBe('takeoff');
+  });
+
+  it('completes the record with the landing but does not fire twice', () => {
+    const detector = new JumpDetector();
+    feedAll(detector, takeoffFixture());
+    expect(detector.lastJump.impactG).toBeCloseTo(2.2, 5);
+    expect(detector.lastJump.freefallMs).toBeGreaterThan(200);
+    expect(detector.lastJump.takeoffG).toBeCloseTo(1.9, 5);
+  });
+
+  it('does not fire on a freefall with no push-off spike, and falls back to the landing', () => {
+    const detector = new JumpDetector();
+    const results = feedAll(detector, jumpFixture());
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(detector.lastJump.trigger).toBe('landing');
+  });
+
+  it('ignores a push-off spike that is too old by the time freefall starts', () => {
+    const detector = new JumpDetector();
+    const results = feedAll(detector, takeoffFixture({ gapMs: 400, freefallMs: 200 }));
+    expect(detector.lastJump?.trigger).not.toBe('takeoff');
+    expect(results.filter(Boolean)).toHaveLength(1);
+  });
+
+  it('is landing-only when takeoffDeltaG is 0', () => {
+    const detector = new JumpDetector({ ...DEFAULT_JUMP_DETECTOR_THRESHOLDS, takeoffDeltaG: 0 });
+    feedAll(detector, takeoffFixture());
+    expect(detector.lastJump.trigger).toBe('landing');
+  });
+
+  it('does not fire on a spike alone (a bump with no freefall)', () => {
+    const detector = new JumpDetector();
+    let fired = false;
+    for (let t = 0; t < 1000; t += 10) {
+      if (detector.feed(sampleAt(t === 500 ? 2.5 : 1), t)) fired = true;
+    }
+    expect(fired).toBe(false);
+  });
+
+  it('respects the cooldown between two takeoffs', () => {
+    const detector = new JumpDetector();
+    const first = takeoffFixture({ freefallMs: 40 });
+    const results = feedAll(detector, first);
+    expect(results.filter(Boolean).length).toBeLessThanOrEqual(1);
+  });
+});

@@ -111,3 +111,7 @@ body {
   padding: 14px;
   font-size: 1rem;
 }
+
+.controle-debug-reset {
+  grid-column: 1 / -1;
+}

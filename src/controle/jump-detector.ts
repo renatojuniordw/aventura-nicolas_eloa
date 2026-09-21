@@ -17,6 +17,14 @@ export interface JumpDetectorThresholds {
   maxFreefallMs: number;
   /** Minimum gap between two detected jumps, absorbs impact vibration. */
   cooldownMs: number;
+  /**
+   * Takeoff (push-off) spike, in g above rest. A freefall that follows such a
+   * spike fires the jump as soon as the phone leaves the ground, instead of
+   * waiting for the landing. 0 turns this off (landing-only detection).
+   */
+  takeoffDeltaG: number;
+  /** The push-off spike must have happened at most this long before the freefall began. */
+  takeoffWindowMs: number;
 }
 
 // Starting point only — docs/12-controle-por-celular.md §10 flags these as
@@ -28,6 +36,8 @@ export const DEFAULT_JUMP_DETECTOR_THRESHOLDS: JumpDetectorThresholds = Object.f
   minFreefallMs: 100,
   maxFreefallMs: 750,
   cooldownMs: 300,
+  takeoffDeltaG: 0.4,
+  takeoffWindowMs: 250,
 });
 
 /** Magnitude of the acceleration vector, in g — orientation-independent (§5). */
@@ -42,8 +52,12 @@ export interface JumpInfo {
   freefallMs: number;
   /** Deepest magnitude reached during freefall, in g. */
   minFreefallG: number;
-  /** Magnitude of the sample that confirmed the landing, in g. */
-  impactG: number;
+  /** Magnitude of the sample that confirmed the landing, in g. Null until an early (takeoff) jump lands. */
+  impactG: number | null;
+  /** Whether it fired on the way up (takeoff) or on the way down (landing). */
+  trigger: 'takeoff' | 'landing';
+  /** Push-off spike magnitude that armed a takeoff trigger, in g. Null when none was seen. */
+  takeoffG: number | null;
 }
 
 export interface JumpDetectorOptions {
@@ -91,6 +105,9 @@ export class JumpDetector {
   private _pendingMinG = Infinity;
   private _minFreefallG = Infinity;
   private _lastJump: JumpInfo | null = null;
+  private _spikeAt = -Infinity;
+  private _spikeG = 0;
+  private _firedThisFlight = false;
   private _trackRest: boolean;
   private _restUpdates = 0;
   private _windowStart: number | null = null;
@@ -162,11 +179,14 @@ export class JumpDetector {
           this._belowThresholdStreak = 0;
           this._pendingFreefallStart = null;
           this._pendingMinG = Infinity;
+          this._firedThisFlight = false;
+          return this._tryTakeoffFire(timestampMs);
         }
       } else {
         this._belowThresholdStreak = 0;
         this._pendingFreefallStart = null;
         this._pendingMinG = Infinity;
+        this._noteTakeoffSpike(magnitude, timestampMs);
         this._trackRestSample(magnitude, timestampMs);
       }
       return false;
@@ -179,11 +199,23 @@ export class JumpDetector {
     if (magnitude > this.impactThreshold) {
       this._state = 'idle';
       this._resetRestWindow();
+      if (this._firedThisFlight) {
+        // Already fired on takeoff — the landing only completes the record.
+        this._firedThisFlight = false;
+        if (this._lastJump) this._lastJump = { ...this._lastJump, freefallMs: elapsed, impactG: magnitude };
+        return false;
+      }
       const longEnough = elapsed > minFreefallMs;
       const pastCooldown = timestampMs - this._lastJumpAt > cooldownMs;
       if (longEnough && pastCooldown) {
         this._lastJumpAt = timestampMs;
-        this._lastJump = { freefallMs: elapsed, minFreefallG: this._minFreefallG, impactG: magnitude };
+        this._lastJump = {
+          freefallMs: elapsed,
+          minFreefallG: this._minFreefallG,
+          impactG: magnitude,
+          trigger: 'landing',
+          takeoffG: null,
+        };
         return true;
       }
       return false;
@@ -191,6 +223,7 @@ export class JumpDetector {
 
     if (elapsed > maxFreefallMs) {
       this._state = 'idle'; // was never a real jump — abort
+      this._firedThisFlight = false;
     }
     return false;
   }
@@ -201,7 +234,37 @@ export class JumpDetector {
     this._belowThresholdStreak = 0;
     this._pendingFreefallStart = null;
     this._pendingMinG = Infinity;
+    this._spikeAt = -Infinity;
+    this._firedThisFlight = false;
     this._resetRestWindow();
+  }
+
+  /** Remembers the most recent push-off spike so a freefall right after it can fire early. */
+  private _noteTakeoffSpike(magnitude: number, timestampMs: number): void {
+    const { takeoffDeltaG, takeoffWindowMs } = this._thresholds;
+    if (!(takeoffDeltaG > 0) || magnitude <= this._restMagnitude + takeoffDeltaG) return;
+    const sameSpike = timestampMs - this._spikeAt <= takeoffWindowMs;
+    this._spikeG = sameSpike ? Math.max(this._spikeG, magnitude) : magnitude;
+    this._spikeAt = timestampMs;
+  }
+
+  /** Fires on the sample that confirms freefall, if a push-off spike just preceded it. */
+  private _tryTakeoffFire(timestampMs: number): boolean {
+    const { takeoffDeltaG, takeoffWindowMs, cooldownMs } = this._thresholds;
+    if (!(takeoffDeltaG > 0)) return false; // also covers thresholds saved before this field existed
+    if (this._freefallStart - this._spikeAt > takeoffWindowMs) return false;
+    if (timestampMs - this._lastJumpAt <= cooldownMs) return false;
+    this._lastJumpAt = timestampMs;
+    this._firedThisFlight = true;
+    this._lastJump = {
+      freefallMs: timestampMs - this._freefallStart,
+      minFreefallG: this._minFreefallG,
+      impactG: null,
+      trigger: 'takeoff',
+      takeoffG: this._spikeG,
+    };
+    this._spikeAt = -Infinity;
+    return true;
   }
 
   private _resetRestWindow(): void {

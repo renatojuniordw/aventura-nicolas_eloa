@@ -1,6 +1,11 @@
 import { el, clear } from '../ui/dom.js';
 import { parseControleParams } from './controle-params.js';
-import { JumpDetector, magnitudeInG, type JumpDetectorThresholds } from './jump-detector.js';
+import {
+  JumpDetector,
+  magnitudeInG,
+  DEFAULT_JUMP_DETECTOR_THRESHOLDS,
+  type JumpDetectorThresholds,
+} from './jump-detector.js';
 import { loadThresholds, saveThresholds } from './threshold-storage.js';
 import { SessionRecorder } from './session-recorder.js';
 import { resolveEventTime } from './sensor-time.js';
@@ -127,7 +132,12 @@ function render(root: HTMLElement, state: AppState, onStart: () => void, session
 function renderDebugPanel(
   root: HTMLElement,
   thresholds: JumpDetectorThresholds,
-  { onDownload, onMarkJump, getMarkCount }: { onDownload: () => void; onMarkJump: () => number; getMarkCount: () => number },
+  {
+    onDownload,
+    onMarkJump,
+    getMarkCount,
+    onReset,
+  }: { onDownload: () => void; onMarkJump: () => number; getMarkCount: () => number; onReset: () => void },
 ): void {
   const panel = el('div', { class: 'controle-debug-panel' });
   const fields: Array<[keyof JumpDetectorThresholds, string, number, number, number]> = [
@@ -136,6 +146,8 @@ function renderDebugPanel(
     ['minFreefallMs', 'Queda mín. (ms)', 0, 400, 10],
     ['maxFreefallMs', 'Queda máx. (ms)', 200, 1500, 10],
     ['cooldownMs', 'Cooldown (ms)', 100, 1500, 10],
+    ['takeoffDeltaG', 'Decolagem (g, 0=só pouso)', 0, 1.5, 0.05],
+    ['takeoffWindowMs', 'Janela decolagem (ms)', 50, 600, 10],
   ];
 
   for (const [key, label, min, max, step] of fields) {
@@ -178,6 +190,17 @@ function renderDebugPanel(
         },
       }),
       markCount,
+    ]),
+  );
+
+  panel.append(
+    el('div', { class: 'controle-debug-row' }, [
+      el('button', {
+        class: 'controle-debug-reset',
+        type: 'button',
+        text: 'Restaurar limiares padrão',
+        onClick: onReset,
+      }),
     ]),
   );
 
@@ -255,6 +278,12 @@ async function main(): Promise<void> {
           return recorder.markerCount;
         },
         getMarkCount: () => recorder.markerCount,
+        onReset: () => {
+          // In place, same object the detector reads (see renderDebugPanel's doc).
+          Object.assign(thresholds, DEFAULT_JUMP_DETECTOR_THRESHOLDS);
+          saveThresholds(thresholds);
+          rerender();
+        },
       });
     }
   };
@@ -374,7 +403,7 @@ async function main(): Promise<void> {
         if (stateBefore === 'idle' && stateAfter === 'freefall') {
           console.log(`[controle] freefall início magnitude=${magnitude.toFixed(3)}g freefallThreshold=${detector.freefallThreshold.toFixed(3)}g`);
         } else if (jumped) {
-          console.log(`[controle] pulo confirmado magnitude=${magnitude.toFixed(3)}g impactThreshold=${detector.impactThreshold.toFixed(3)}g`);
+          console.log(`[controle] pulo confirmado (${detector.lastJump?.trigger}) magnitude=${magnitude.toFixed(3)}g takeoffG=${detector.lastJump?.takeoffG?.toFixed(3) ?? '-'} impactThreshold=${detector.impactThreshold.toFixed(3)}g`);
         } else if (stateBefore === 'freefall' && stateAfter === 'idle') {
           console.log(`[controle] freefall abortado (excedeu maxFreefallMs) magnitude=${magnitude.toFixed(3)}g`);
         } else if (now - lastBackgroundLog > BACKGROUND_LOG_INTERVAL_MS) {

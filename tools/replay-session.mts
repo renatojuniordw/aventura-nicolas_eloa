@@ -38,7 +38,7 @@ const baselineScore = scoreDetections(baseline, markers);
 baseline.forEach((d, i) => {
   const label = jumpMarkers === 0 ? '?' : baselineScore.matched[i] ? 'ACERTO' : 'FALSO+';
   console.log(
-    `t=${d.t.toFixed(0)}ms ${label} queda=${fmt(d.info.freefallMs, 0)}ms mín=${fmt(d.info.minFreefallG)}g impacto=${fmt(d.info.impactG)}g rot=${fmt(d.rotationPeak, 0)}°/s`,
+    `t=${d.t.toFixed(0)}ms ${label} ${d.info.trigger} queda=${fmt(d.info.freefallMs, 0)}ms mín=${fmt(d.info.minFreefallG)}g impacto=${fmt(d.info.impactG)}g decolagem=${fmt(d.info.takeoffG)}g rot=${fmt(d.rotationPeak, 0)}°/s`,
   );
 });
 console.log(
@@ -48,13 +48,14 @@ console.log(
 if (jumpMarkers > 0) {
   console.log('\n== Varredura de limiares (top 10 por f1) ==');
   const grid = thresholdGrid({
-    freefallDeltaG: [0.2, 0.3, 0.4, 0.5, 0.6],
-    impactDeltaG: [0.4, 0.55, 0.7, 0.85, 1.0],
-    minFreefallMs: [60, 100, 150],
+    freefallDeltaG: [0.25, 0.3, 0.4, 0.5],
+    impactDeltaG: [0.4, 0.55, 0.7, 0.85],
+    minFreefallMs: [60, 100],
+    takeoffDeltaG: [0, 0.3, 0.4, 0.6],
   });
   for (const { thresholds: t, score } of sweepThresholds(recording, grid, { trackRest }).slice(0, 10)) {
     console.log(
-      `queda=${t.freefallDeltaG} impacto=${t.impactDeltaG} min=${t.minFreefallMs}ms → acertos=${score.hits} falsos+=${score.falsePositives} perdidos=${score.misses} f1=${score.f1.toFixed(2)}`,
+      `queda=${t.freefallDeltaG} impacto=${t.impactDeltaG} min=${t.minFreefallMs}ms decolagem=${t.takeoffDeltaG} → acertos=${score.hits} falsos+=${score.falsePositives} perdidos=${score.misses} f1=${score.f1.toFixed(2)}`,
     );
   }
 }
