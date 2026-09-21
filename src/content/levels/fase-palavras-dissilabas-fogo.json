@@ -105,15 +105,6 @@
       "h": 32
     }
   ],
-  "hazards": [
-    {
-      "id": "espinhos-1",
-      "kind": "spikes",
-      "x": 1152,
-      "y": 416,
-      "w": 64,
-      "h": 32
-    }
-  ],
+  "hazards": [],
   "decorations": []
 }

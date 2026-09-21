@@ -47,4 +47,27 @@ describe('Effects', () => {
     effects.draw(renderer);
     expect(calls).toHaveLength(3);
   });
+
+  it('spawns, updates, and draws floating texts', () => {
+    const textCalls = [];
+    const renderer = {
+      worldFillRect: () => {},
+      worldText: (...args) => textCalls.push(args),
+    };
+
+    const effects = new Effects();
+    effects.spawnFloatingText(100, 200, '+10 Pontos!', '#5ec26a');
+    expect(effects.count).toBe(1);
+
+    const initialY = effects.floatingTexts[0].y;
+    effects.update(0.1);
+    expect(effects.floatingTexts[0].y).toBeLessThan(initialY);
+
+    effects.draw(renderer);
+    expect(textCalls).toHaveLength(1);
+    expect(textCalls[0][0]).toBe('+10 Pontos!');
+
+    for (let i = 0; i < 15; i += 1) effects.update(0.1);
+    expect(effects.count).toBe(0);
+  });
 });

@@ -29,6 +29,21 @@ export const CHARACTERS: readonly Character[] = Object.freeze([
       celebrate: '/assets/characters/nicolas_gomes/celebrate-pixel-v1.png',
     },
   },
+  {
+    id: 'char-eloa',
+    name: 'Eloá',
+    available: true,
+    color: '#d946ef',
+    accent: '#f472b6',
+    emoji: '🎀',
+    portrait: '/assets/portraits/eloa/portrait-pixel-v1.png',
+    sprites: {
+      idle: '/assets/characters/nicolas_gomes/idle-pixel-v1.png',
+      walk: '/assets/characters/nicolas_gomes/walk-pixel-v1.png',
+      jump: '/assets/characters/nicolas_gomes/jump_cycle-pixel-v1.png',
+      celebrate: '/assets/characters/nicolas_gomes/celebrate-pixel-v1.png',
+    },
+  },
 ]);
 
 export const DEFAULT_CHARACTER_ID = CHARACTERS[0].id;

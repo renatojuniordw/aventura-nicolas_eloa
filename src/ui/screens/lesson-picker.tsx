@@ -1,5 +1,6 @@
 import { mountScreen, blurOnClick } from './mount-screen.js';
 import type { Unit, Lesson } from '../../content/curriculum-model.js';
+import { vibrateTap } from '../../input/haptics.js';
 
 interface LessonPickerOptions {
   units: Unit[];
@@ -11,17 +12,27 @@ interface LessonPickerOptions {
 function UnitGroup({ unit, isUnlocked, onPick }: { unit: Unit; isUnlocked: (id: string) => boolean; onPick: (id: string) => void }) {
   const lessons = unit.lessons.filter((lesson: Lesson) => isUnlocked(lesson.id));
   return (
-    <div>
-      <h2>{unit.title}</h2>
-      <div className="overlay-actions">
+    <div className="lesson-unit-group">
+      <h3 className="lesson-unit-title">{unit.title}</h3>
+      <div className="lesson-picker-grid">
         {lessons.length > 0 ? (
           lessons.map((lesson) => (
-            <button key={lesson.id} type="button" tabIndex={-1} onClick={blurOnClick(() => onPick(lesson.id))}>
-              {lesson.target}
+            <button
+              key={lesson.id}
+              type="button"
+              tabIndex={-1}
+              className="btn-retro lesson-pick-btn"
+              onClick={blurOnClick(() => {
+                vibrateTap();
+                onPick(lesson.id);
+              })}
+            >
+              <span className="lesson-target">{lesson.target}</span>
+              <span className="lesson-badge" aria-hidden="true">⭐</span>
             </button>
           ))
         ) : (
-          <p>Conclua a fase anterior para liberar.</p>
+          <p className="lesson-unit-locked">Conclua a fase anterior para liberar.</p>
         )}
       </div>
     </div>
@@ -30,17 +41,20 @@ function UnitGroup({ unit, isUnlocked, onPick }: { unit: Unit; isUnlocked: (id: 
 
 function LessonPickerScreen({ units, isUnlocked, onPick, onBack }: LessonPickerOptions) {
   return (
-    <div className="overlay">
-      <h2>Escolha uma fase</h2>
-      <div className="overlay-scroll">
-        {units.map((unit) => (
-          <UnitGroup key={unit.id} unit={unit} isUnlocked={isUnlocked} onPick={onPick} />
-        ))}
-      </div>
-      <div className="overlay-actions">
-        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onBack)}>
-          Voltar
-        </button>
+    <div className="menu-modal-screen">
+      <div className="overlay lesson-picker-overlay">
+        <h2>Escolha uma fase</h2>
+        <p className="lesson-picker-subtitle">Selecione uma fase já liberada para jogar!</p>
+        <div className="overlay-scroll lesson-picker-scroll">
+          {units.map((unit) => (
+            <UnitGroup key={unit.id} unit={unit} isUnlocked={isUnlocked} onPick={onPick} />
+          ))}
+        </div>
+        <div className="overlay-actions lesson-picker-actions">
+          <button type="button" tabIndex={-1} className="btn-retro btn-primary-gold" onClick={blurOnClick(onBack)}>
+            Voltar ao Menu
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -21,6 +21,16 @@ interface Particle {
   color: string;
 }
 
+interface FloatingText {
+  text: string;
+  x: number;
+  y: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
 interface EffectsOptions {
   random?: () => number;
   gravity?: number;
@@ -28,6 +38,7 @@ interface EffectsOptions {
 
 export class Effects {
   particles: Particle[] = [];
+  floatingTexts: FloatingText[] = [];
   private _random: () => number;
   private _gravity: number;
 
@@ -37,11 +48,25 @@ export class Effects {
   }
 
   get count(): number {
-    return this.particles.length;
+    return this.particles.length + this.floatingTexts.length;
   }
 
   clear(): void {
     this.particles = [];
+    this.floatingTexts = [];
+  }
+
+  /** Spawns a floating score or praise text that rises smoothly. */
+  spawnFloatingText(x: number, y: number, text: string, color = '#ffd479'): void {
+    this.floatingTexts.push({
+      text,
+      x,
+      y,
+      vy: -55,
+      life: 0.9,
+      maxLife: 0.9,
+      color,
+    });
   }
 
   /** Celebration burst centered on a world position. */
@@ -88,6 +113,12 @@ export class Effects {
       particle.life -= dt;
     }
     this.particles = this.particles.filter((particle) => particle.life > 0);
+
+    for (const text of this.floatingTexts) {
+      text.y += text.vy * dt;
+      text.life -= dt;
+    }
+    this.floatingTexts = this.floatingTexts.filter((text) => text.life > 0);
   }
 
   draw(renderer: CanvasRenderer): void {
@@ -96,6 +127,14 @@ export class Effects {
       const ratio = Math.max(0, Math.min(1, particle.life / particle.maxLife));
       const size = Math.max(2, Math.round(particle.size * (0.4 + ratio * 0.6)));
       renderer.worldFillRect(particle.x, particle.y, size, size, particle.color);
+    }
+
+    for (const text of this.floatingTexts) {
+      renderer.worldText?.(text.text, text.x, text.y, {
+        color: text.color,
+        font: 'bold 15px sans-serif',
+        align: 'center',
+      });
     }
   }
 }

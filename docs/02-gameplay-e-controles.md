@@ -58,7 +58,6 @@ estiver em retrato (ver [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)
 - **Acerto**: confete, mensagem "Muito bem! Você encontrou!" e a fase é concluída.
 - **Erro**: perde 1 coração, uma explosão de partículas vermelhas e a mensagem
   `Ops! Esse era "X". Procure "Y".` — a mensagem **ensina** em vez de só punir.
-- **Perigo (espinhos)**: perde 1 coração, aviso e volta ao checkpoint.
 - **Queda em buraco**: **não** custa coração; volta ao checkpoint.
 - **Sem corações**: tela de "Acabaram os corações", com opções de tentar de novo ou ir ao menu.
 
@@ -91,7 +90,6 @@ Cada fase é um arquivo JSON (ver [04 — Modelo de conteúdo](04-modelo-de-cont
 
 - **Terreno sólido** e **plataformas de mão única** (dá para passar por baixo e pousar em cima).
 - **Itens**: exatamente 1 alvo e até 3 distratores, posicionados em plataformas ou no chão.
-- **Perigos**: espinhos (algumas fases).
 - **Buraco**: em algumas fases, uma fenda no chão (custa só o retorno ao checkpoint).
 - **Checkpoint**: onde o jogador reaparece depois de cair.
 

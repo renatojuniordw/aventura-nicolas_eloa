@@ -1,26 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mountScreen, blurOnClick } from './mount-screen.js';
-import { CHARACTERS, type Character } from '../../content/characters.js';
-import { createPixelLogoSvg } from '../pixel-logo.js';
+import { CHARACTERS } from '../../content/characters.js';
 import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
-
-/** Wraps the framework-agnostic SVG builder in a React lifecycle. */
-function PixelLogo() {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const svg = createPixelLogoSvg();
-    if (svg && ref.current) ref.current.appendChild(svg);
-  }, []);
-
-  return (
-    <div className="pixel-logo-wrapper" ref={ref}>
-      <h1 className="sr-only">Aventura do Nicolas&amp;Eloá</h1>
-    </div>
-  );
-}
+import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from '../fullscreen.js';
+import { isPwaInstallable, onPwaInstallableChange, promptPwaInstall } from '../pwa-install.js';
 
 /**
  * Wraps the framework-agnostic celebration canvas (its own rAF loop, unit
@@ -57,38 +42,7 @@ interface MainMenuOptions {
   onOpenSettings: () => void;
 }
 
-function SelectorCard({ character, isSelected, onSelectCharacter }: { character: Character; isSelected: boolean; onSelectCharacter?: (id: string) => void }) {
-  return (
-    <button
-      className={`selector-card companion-card ${isSelected ? 'selected' : ''}`}
-      type="button"
-      tabIndex={-1}
-      aria-pressed={isSelected}
-      onClick={blurOnClick(() => onSelectCharacter?.(character.id))}
-    >
-      {isSelected ? <div className="selector-cursor-tag">1P</div> : null}
-      {character.portrait ? (
-        <img className="selector-thumb" src={character.portrait} alt={character.name} />
-      ) : (
-        <div className="selector-thumb" style={{ background: character.color, borderRadius: '3px' }} />
-      )}
-      <div className="selector-name">{character.name.split(' ')[0]}</div>
-    </button>
-  );
-}
-
-function SelectorPlaceholder() {
-  return (
-    <div className="selector-card companion-card placeholder" aria-disabled="true">
-      <div className="selector-placeholder-thumb">?</div>
-      <div className="selector-name placeholder">Em breve</div>
-    </div>
-  );
-}
-
-const TOTAL_SLOTS = 4;
-
-/** Home Screen (Aventura do Nicolas&Eloá): pixel art layout matching reference Image 2. */
+/** Home Screen (Aventura do Nicolas&Eloá): clean, focused layout with dedicated character showcase. */
 function MainMenuScreen({
   profiles = [],
   activeProfileId = null,
@@ -99,7 +53,7 @@ function MainMenuScreen({
   speedrunBestTime = null,
   onPlay,
   onSpeedrun,
-  onSelectCharacter,
+  onOpenCharacterPicker,
   onOpenLessonPicker,
   onOpenSettings,
 }: MainMenuOptions) {
@@ -110,49 +64,59 @@ function MainMenuScreen({
   const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
   const speedrunText = bestTimeStr ? `⚡ Speed Run (${bestTimeStr})` : '⚡ Speed Run (A ao Z)';
 
+  const [fullscreen, setFullscreen] = useState(() => isFullscreen());
+  const [installable, setInstallable] = useState(() => isPwaInstallable());
+  const supported = isFullscreenSupported();
+
+  useEffect(() => {
+    return onFullscreenChange((active) => setFullscreen(active));
+  }, []);
+
+  useEffect(() => {
+    return onPwaInstallableChange((canInstall) => setInstallable(canInstall));
+  }, []);
+
   return (
     <div className="overlay home-screen">
+      {supported && (
+        <button
+          className="home-fullscreen-btn"
+          type="button"
+          tabIndex={-1}
+          aria-label={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
+          title={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
+          onClick={blurOnClick(async () => {
+            const active = await toggleFullscreen();
+            setFullscreen(active);
+          })}
+        >
+          {fullscreen ? '🗗' : '⛶'}
+        </button>
+      )}
+      <h1 className="sr-only">Aventura do Nicolas&amp;Eloá</h1>
       <div className="home-board">
-        {/* --- 1. Header (Centered Logo + Tagline) --- */}
-        <div className="home-header">
-          <PixelLogo />
-          <div className="home-tagline">PULE. DESCUBRA. BRINQUE.</div>
-        </div>
-
-        {/* --- 2. Character Selector Strip (KoF Small Thumbnails) --- */}
-        <div className="home-selector-strip">
-          <div className="home-section-title">ESCOLHA SEU PERSONAGEM</div>
-          <div className="selector-grid companion-grid">
-            {Array.from({ length: TOTAL_SLOTS }, (_, i) => {
-              const char = CHARACTERS[i];
-              return char ? (
-                <SelectorCard
-                  key={char.id}
-                  character={char}
-                  isSelected={char.id === currentCharacterId}
-                  onSelectCharacter={onSelectCharacter}
-                />
-              ) : (
-                <SelectorPlaceholder key={`placeholder-${i}`} />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* --- 3. Main Stage --- */}
+        {/* Main Stage */}
         <div className="home-main-stage">
           {/* Left Wing: Hero Showcase Panel */}
           <div className="hero-showcase-panel">
             <div className="hero-showcase-badge">JOGADOR PRONTO</div>
             <div className="hero-visual-stage">
               {selectedChar?.portrait ? (
-                <div className="hero-portrait-frame">
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="hero-portrait-frame hero-portrait-btn"
+                  title="Clique para escolher ou trocar de personagem"
+                  aria-label={`Trocar personagem. Atual: ${selectedChar.name}`}
+                  onClick={blurOnClick(() => onOpenCharacterPicker?.(currentCharacterId))}
+                >
                   <img
                     className="hero-large-portrait companion-avatar"
                     src={selectedChar.portrait}
                     alt={selectedChar.name}
                   />
-                </div>
+                  <span className="hero-portrait-hint">Trocar 🔄</span>
+                </button>
               ) : null}
               {selectedChar?.sprites?.celebrate ? (
                 <div className="hero-animation-stage">
@@ -164,6 +128,16 @@ function MainMenuScreen({
             <div className="hero-showcase-footer">
               <div className="hero-name-plate">⭐ {selectedChar?.name ?? 'Nicolas Gomes'}</div>
               <div className="hero-flavor-text">Pronto para pular, descobrir e brincar!</div>
+              {onOpenCharacterPicker && (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="hero-change-btn"
+                  onClick={blurOnClick(() => onOpenCharacterPicker(currentCharacterId))}
+                >
+                  🔄 Trocar Personagem
+                </button>
+              )}
             </div>
           </div>
 
@@ -198,6 +172,18 @@ function MainMenuScreen({
               >
                 Escolher fase
               </button>
+              {installable && (
+                <button
+                  className="btn-retro btn-secondary-green pwa-install-btn"
+                  type="button"
+                  tabIndex={-1}
+                  onClick={blurOnClick(async () => {
+                    await promptPwaInstall();
+                  })}
+                >
+                  📲 Instalar no Celular
+                </button>
+              )}
               <div className="menu-meta-row home-meta-row">
                 <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onOpenSettings)}>
                   ⚙️ Configurações
