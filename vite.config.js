@@ -29,7 +29,10 @@ export default defineConfig({
   },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' keeps a new service worker waiting until ui/pwa-update.ts decides
+      // it is safe to activate it (never mid-level); 'autoUpdate' would swap it
+      // in immediately and leave the open page running stale code.
+      registerType: 'prompt',
       manifest: {
         name: 'Aventura do Nicolas&Eloá',
         short_name: 'Nicolas&Eloá',

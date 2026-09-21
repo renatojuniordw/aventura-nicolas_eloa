@@ -20,6 +20,7 @@ import { TouchControls } from './ui/touch-controls.js';
 import { AudioManager } from './audio/audio-manager.js';
 import { SpeechNarrator } from './audio/speech-narrator.js';
 import { initPwaInstallListener } from './ui/pwa-install.js';
+import { initPwaUpdates } from './ui/pwa-update.js';
 import { createStorageAdapter } from './persistence/local-storage-adapter.js';
 import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
@@ -310,6 +311,7 @@ if (bootCanvas && bootOverlay) {
     touchControlsRoot: bootTouchControls as HTMLElement | null,
   });
   game.loop.start();
+  void initPwaUpdates(game);
 
   if (typeof window !== 'undefined') {
     setTimeout(dismissSplashScreen, 1400);

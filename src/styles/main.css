@@ -1452,3 +1452,35 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* PWA update banner (ui/pwa-update.ts) */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--color-panel);
+  color: var(--color-cream);
+  border: 3px solid var(--color-gold-border);
+  font-family: var(--font-pixel);
+  font-size: 14px;
+}
+
+.update-banner[hidden] {
+  display: none;
+}
+
+.update-banner button {
+  font-family: inherit;
+  font-size: inherit;
+  padding: 6px 12px;
+  color: var(--color-ink);
+  background: var(--color-gold);
+  border: 2px solid var(--color-gold-dark);
+  cursor: pointer;
+}
