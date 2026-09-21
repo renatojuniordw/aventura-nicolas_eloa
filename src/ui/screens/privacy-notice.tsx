@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 import { vibrateSuccess } from '../../input/haptics.js';
 
 interface PrivacyNoticeOptions {
@@ -50,17 +51,16 @@ function PrivacyNoticeScreen({ onConfirm }: PrivacyNoticeOptions) {
         </details>
 
         <div className="overlay-actions welcome-actions">
-          <button
+          <MenuButton
             className="btn-retro btn-primary-gold"
-            type="button"
-            tabIndex={-1}
-            onClick={blurOnClick(() => {
+
+            onClick={() => {
               vibrateSuccess();
               onConfirm();
-            })}
+            }}
           >
             Entendi, pode começar
-          </button>
+          </MenuButton>
         </div>
         <div className="welcome-storage-note">
           ✓ Sua preferência será lembrada e este aviso não aparecerá de novo.
@@ -71,6 +71,5 @@ function PrivacyNoticeScreen({ onConfirm }: PrivacyNoticeOptions) {
 }
 
 export function buildPrivacyNoticeScreen({ onConfirm }: PrivacyNoticeOptions) {
-  const { node, cleanup } = mountScreen(<PrivacyNoticeScreen onConfirm={onConfirm} />);
-  return { node, primary: onConfirm, back: null, cleanup };
+  return buildScreen(<PrivacyNoticeScreen onConfirm={onConfirm} />, { primary: onConfirm });
 }

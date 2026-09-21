@@ -1,5 +1,7 @@
+import { POSE_FRAMES } from '../../content/atlas-meta.js';
+
 /**
- * Animates a 2x2 sprite sheet (like celebrate pose) on an HTML5 canvas.
+ * Animates the celebrate sprite sheet (grid from `POSE_FRAMES`) on an HTML5 canvas.
  *
  * Stays a plain, synchronous, framework-agnostic function rather than a React
  * component: it is unit-tested (`celebration-canvas.test.js` /
@@ -27,6 +29,7 @@ export function createCelebrationCanvas(
   const img = new Image();
   img.src = imageSrc;
 
+  const { columns, rows } = POSE_FRAMES.celebrate;
   let frame = 0;
   let animId: number | null = null;
   let lastTime = 0;
@@ -36,12 +39,12 @@ export function createCelebrationCanvas(
     if (img.complete && img.naturalWidth > 0) {
       if (!lastTime || time - lastTime >= frameDuration) {
         lastTime = time;
-        frame = (frame + 1) % 4; // 2x2 celebrate frame grid
+        frame = (frame + 1) % (columns * rows);
       }
-      const col = frame % 2;
-      const row = Math.floor(frame / 2);
-      const fw = img.naturalWidth / 2;
-      const fh = img.naturalHeight / 2;
+      const col = frame % columns;
+      const row = Math.floor(frame / columns);
+      const fw = img.naturalWidth / columns;
+      const fh = img.naturalHeight / rows;
 
       ctx!.clearRect(0, 0, canvas.width, canvas.height);
       ctx!.imageSmoothingEnabled = false;

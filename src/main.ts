@@ -1,14 +1,13 @@
 import { DEBUG } from './core/debug-flag.js';
-import { EventBus, Events } from './core/event-bus.js';
+import { EventBus } from './core/event-bus.js';
 import { GameLoop } from './core/game-loop.js';
 import { SceneManager } from './core/scene-manager.js';
 import { InputManager } from './input/input-manager.js';
 import { KeyboardAdapter } from './input/keyboard-adapter.js';
 import { TouchAdapter } from './input/touch-adapter.js';
 import { CompositeAdapter } from './input/composite-adapter.js';
-import { PhoneAdapter } from './input/phone-adapter.js';
-import { AutoRunAdapter } from './input/auto-run-adapter.js';
-import { startPhoneControlSession, type PhoneControlHandle } from './net/phone-control-session.js';
+import { PhoneControlCoordinator } from './net/phone-control-coordinator.js';
+import { registerLifecycleListeners } from './core/lifecycle.js';
 import { CanvasRenderer } from './render/canvas-renderer.js';
 import { SpriteRenderer } from './render/sprites.js';
 import { AssetManager } from './core/asset-manager.js';
@@ -62,15 +61,7 @@ export interface GameContext {
     getLesson: (lessonId: string | null | undefined) => Lesson | null;
   };
   debug: { enabled: boolean; toggle(): void };
-  phoneControl: {
-    readonly isActive: boolean;
-    start(callbacks: PhoneControlUiCallbacks): {
-      session: string;
-      pairingUrl: string;
-      measureLatency(): Promise<number | null>;
-    };
-    stop(): void;
-  };
+  phoneControl: PhoneControlCoordinator;
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
   // `scenes` and `loop` can only be constructed once `game` itself exists
@@ -80,12 +71,6 @@ export interface GameContext {
   // reference. See the `as GameContext` cast below.
   scenes: SceneManager;
   loop: GameLoop;
-}
-
-interface PhoneControlUiCallbacks {
-  onPaired(): void;
-  onDisconnected(): void;
-  onError(message: string): void;
 }
 
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
@@ -134,6 +119,22 @@ export function createGame({
   const narrator = new SpeechNarrator({ isMuted: () => audio.isMuted });
   initPwaInstallListener();
 
+  // The only lines where physical input meets the game's actions. Both stay
+  // attached at once (Composite) so a touch-screen laptop can use either.
+  const useDefaultInput = () => {
+    input.setAdapter(
+      new CompositeAdapter(input.handleAction, [
+        new KeyboardAdapter(input.handleAction),
+        new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
+      ]),
+    );
+  };
+  useDefaultInput();
+
+  // Phone-control mode (docs/12-controle-por-celular.md): the coordinator swaps
+  // the composite above for AutoRun+Phone once the phone pairs, and back on stop.
+  const phoneControl = new PhoneControlCoordinator({ input, bus, restoreDefaultInput: useDefaultInput });
+
   const game = {
     bus,
     input,
@@ -166,13 +167,7 @@ export function createGame({
         DEBUG.enabled = !DEBUG.enabled;
       },
     },
-    phoneControl: {
-      get isActive() {
-        return phoneActive;
-      },
-      start: (callbacks: PhoneControlUiCallbacks) => startPhoneControl(callbacks),
-      stop: () => stopPhoneControl(),
-    },
+    phoneControl,
     /** Jump to a lesson by id (used by menus and the victory screen). */
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
@@ -189,13 +184,13 @@ export function createGame({
     // `GameContext` doc comment) — cast now so those later assignments type-check.
   } as GameContext;
 
-  const scenes = new SceneManager(game as never, bus);
+  const scenes = new SceneManager(game, bus);
   game.scenes = scenes;
 
-  scenes.register('boot', BootScene as never);
-  scenes.register('menu', MenuScene as never);
-  scenes.register('game', GameScene as never);
-  scenes.register('victory', VictoryScene as never);
+  scenes.register('boot', BootScene);
+  scenes.register('menu', MenuScene);
+  scenes.register('game', GameScene);
+  scenes.register('victory', VictoryScene);
 
   const loop = new GameLoop({
     update: (dt) => {
@@ -208,80 +203,7 @@ export function createGame({
   });
   game.loop = loop;
 
-  // The only lines where physical input meets the game's actions. Both stay
-  // attached at once (Composite) so a touch-screen laptop can use either.
-  const useDefaultInput = () => {
-    input.setAdapter(
-      new CompositeAdapter(input.handleAction, [
-        new KeyboardAdapter(input.handleAction),
-        new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
-      ]),
-    );
-  };
-  useDefaultInput();
-
-  // Phone-control mode (docs/12-controle-por-celular.md): once the phone
-  // pairs, the keyboard/touch composite above is replaced by AutoRun+Phone —
-  // production guidance is to never mix them, since InputManager's "held"
-  // state is one shared boolean per action (see auto-run-adapter.ts), not
-  // per source. `net/phone-control-session.ts` only owns the socket; this
-  // closure owns everything gameplay-facing: swapping the adapter in, and
-  // pausing (reusing the existing blur-pause path) if the phone drops mid
-  // session so auto-run never runs the character into an obstacle unwatched.
-  let phoneHandle: PhoneControlHandle | null = null;
-  let phoneActive = false;
-
-  const startPhoneControl = (callbacks: PhoneControlUiCallbacks) => {
-    stopPhoneControl();
-    phoneHandle = startPhoneControlSession({
-      onPaired: () => {
-        if (!phoneActive && phoneHandle) {
-          phoneActive = true;
-          input.setAdapter(
-            new CompositeAdapter(input.handleAction, [
-              new AutoRunAdapter(input.handleAction),
-              new PhoneAdapter(input.handleAction, { transport: phoneHandle.transport }),
-            ]),
-          );
-        }
-        callbacks.onPaired();
-      },
-      onDisconnected: () => {
-        if (phoneActive) bus.emit(Events.APP_BLURRED);
-        callbacks.onDisconnected();
-      },
-      onError: callbacks.onError,
-    });
-    return {
-      session: phoneHandle.session,
-      pairingUrl: phoneHandle.pairingUrl,
-      measureLatency: () => phoneHandle!.measureLatency(),
-    };
-  };
-
-  const stopPhoneControl = () => {
-    phoneHandle?.stop();
-    phoneHandle = null;
-    if (phoneActive) {
-      phoneActive = false;
-      useDefaultInput();
-    }
-  };
-
-  const handleBlur = () => {
-    input.reset();
-    bus.emit(Events.APP_BLURRED);
-  };
-  window.addEventListener('blur', handleBlur);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) handleBlur();
-    else bus.emit(Events.APP_FOCUSED);
-  });
-
-  // Mobile browsers block Audio.play() outside a user gesture. This unlocks
-  // it on the very first tap/click of the session, whichever element it
-  // lands on, so every playMusic/playSfx call afterwards just works.
-  window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
+  registerLifecycleListeners({ bus, input, audio });
 
   scenes.switchTo('boot');
 

@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 
 export type PauseStep = 'menu' | 'confirm-restart' | 'confirm-menu';
 
@@ -29,22 +30,22 @@ function PauseMenuStep({
       <h2>Pausa</h2>
       <p>Respire fundo e continue quando quiser.</p>
       <div className="overlay-actions">
-        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onResume)}>
+        <MenuButton className="primary" onClick={onResume}>
           Continuar
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(() => goTo('confirm-restart'))}>
+        </MenuButton>
+        <MenuButton onClick={() => goTo('confirm-restart')}>
           Recomeçar fase
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(() => goTo('confirm-menu'))}>
+        </MenuButton>
+        <MenuButton onClick={() => goTo('confirm-menu')}>
           Menu
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(onToggleMute)}>
+        </MenuButton>
+        <MenuButton onClick={onToggleMute}>
           {isMuted ? '🔇 Som: Mudo' : '🔈 Som: Ligado'}
-        </button>
+        </MenuButton>
         {isPhoneControlActive ? (
-          <button type="button" tabIndex={-1} onClick={blurOnClick(onDisablePhoneControl)}>
+          <MenuButton onClick={onDisablePhoneControl}>
             📱 Desativar controle por celular
-          </button>
+          </MenuButton>
         ) : null}
       </div>
     </div>
@@ -73,12 +74,12 @@ function PauseConfirmStep({
       <h2>Tem certeza?</h2>
       <p>{message}</p>
       <div className="overlay-actions">
-        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(confirmAction)}>
+        <MenuButton className="primary" onClick={confirmAction}>
           Sim, confirmar
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(() => goTo('menu'))}>
+        </MenuButton>
+        <MenuButton onClick={() => goTo('menu')}>
           Cancelar
-        </button>
+        </MenuButton>
       </div>
     </div>
   );
@@ -110,7 +111,7 @@ export function buildPauseScreen(
   goTo: (step: PauseStep) => void,
 ) {
   if (step === 'menu') {
-    const { node, cleanup } = mountScreen(
+    return buildScreen(
       <PauseMenuStep
         onResume={onResume}
         onRestart={onRestart}
@@ -121,15 +122,15 @@ export function buildPauseScreen(
         onDisablePhoneControl={onDisablePhoneControl}
         goTo={goTo}
       />,
+      { primary: onResume, back: onResume },
     );
-    return { node, primary: onResume, back: onResume, cleanup };
   }
 
   const isRestart = step === 'confirm-restart';
   const confirmAction = isRestart ? onRestart : onMenu;
 
-  const { node, cleanup } = mountScreen(
+  return buildScreen(
     <PauseConfirmStep isRestart={isRestart} isSpeedrun={isSpeedrun} confirmAction={confirmAction} goTo={goTo} />,
+    { primary: confirmAction, back: () => goTo('menu') },
   );
-  return { node, primary: confirmAction, back: () => goTo('menu'), cleanup };
 }

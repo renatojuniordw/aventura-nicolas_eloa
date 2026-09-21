@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 import { CHARACTERS, type Character } from '../../content/characters.js';
 import { speakText } from '../../audio/speech-narrator.js';
 import { vibrateTap, vibrateSuccess } from '../../input/haptics.js';
@@ -27,12 +28,11 @@ function CharacterCard({
   };
 
   return (
-    <button
+    <MenuButton
       className={`companion-card character-picker-card ${selected ? 'selected' : ''}`}
-      type="button"
-      tabIndex={-1}
+
       aria-pressed={selected}
-      onClick={blurOnClick(handleClick)}
+      onClick={handleClick}
     >
       {selected ? <div className="character-picker-tag">1P Ativo</div> : null}
       {character.portrait ? (
@@ -46,7 +46,7 @@ function CharacterCard({
         <span className="companion-name character-picker-name">{character.name}</span>
         <span className="character-picker-status">{selected ? '✓ Selecionado' : 'Toque para escolher'}</span>
       </div>
-    </button>
+    </MenuButton>
   );
 }
 
@@ -69,20 +69,19 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
           ))}
         </div>
         <div className="overlay-actions character-picker-actions">
-          <button
-            type="button"
-            tabIndex={-1}
+          <MenuButton
+
             className="btn-retro btn-primary-gold"
-            onClick={blurOnClick(() => {
+            onClick={() => {
               vibrateSuccess();
               onConfirm();
-            })}
+            }}
           >
             Confirmar Escolha
-          </button>
-          <button type="button" tabIndex={-1} className="btn-util" onClick={blurOnClick(onBack)}>
+          </MenuButton>
+          <MenuButton className="btn-util" onClick={onBack}>
             Voltar ao Menu
-          </button>
+          </MenuButton>
         </div>
       </div>
     </div>
@@ -90,6 +89,5 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
 }
 
 export function buildCharacterPickerScreen(options: CharacterPickerOptions) {
-  const { node, cleanup } = mountScreen(<CharacterPickerScreen {...options} />);
-  return { node, primary: options.onConfirm, back: options.onBack, cleanup };
+  return buildScreen(<CharacterPickerScreen {...options} />, { primary: options.onConfirm, back: options.onBack });
 }

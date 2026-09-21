@@ -5,10 +5,35 @@
  * touching `SpriteRenderer`.
  */
 
-// Exact visual bounds for trimmed pixel art assets.
-export const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 257, sy: 279, sw: 740, sh: 718 });
-export const CHECKPOINT_BOUNDS = Object.freeze({ sx: 334, sy: 116, sw: 636, sh: 1056 });
-export const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 175, sy: 58, sw: 902, sh: 1135 });
+// Exact visual bounds for trimmed pixel art assets, in the pixels of the
+// shipped 504x504 sheets (the 1254x1254 originals scaled by 504/1254, edges
+// rounded outward so no art is clipped).
+export const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 103, sy: 112, sw: 298, sh: 289 });
+export const CHECKPOINT_BOUNDS = Object.freeze({ sx: 134, sy: 46, sw: 256, sh: 426 });
+export const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 70, sy: 23, sw: 363, sh: 457 });
+
+/** On-screen size of the finish portal, in world pixels. */
+export const FINISH_PORTAL_SIZE = Object.freeze({ w: 86, h: 84 });
+
+/** Portal distance from the world's right edge, and from its floor (the ground row). */
+const FINISH_PORTAL_RIGHT_MARGIN = 130;
+const FINISH_PORTAL_FLOOR_MARGIN = 92;
+
+/**
+ * Where the finish portal stands: a level file may place it with an explicit
+ * `finish: { x, y }`, otherwise it sits on the ground near the world's right edge.
+ */
+export function finishPortalPosition(level: {
+  finish?: { x: number; y: number };
+  worldWidth?: number;
+  worldHeight?: number;
+}): { x: number; y: number } {
+  if (level.finish) return { x: level.finish.x, y: level.finish.y };
+  return {
+    x: (level.worldWidth ?? 1920) - FINISH_PORTAL_RIGHT_MARGIN,
+    y: (level.worldHeight ?? 540) - FINISH_PORTAL_FLOOR_MARGIN - FINISH_PORTAL_SIZE.h,
+  };
+}
 
 /**
  * Resolves the panoramic background asset key for a level, from an explicit

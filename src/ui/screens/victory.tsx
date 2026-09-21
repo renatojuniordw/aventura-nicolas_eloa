@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 import { POSE_FRAMES } from '../../content/atlas-meta.js';
 import { formatTime } from '../../content/text-utils.js';
 import type { Character } from '../../content/characters.js';
@@ -51,29 +52,26 @@ function VictoryScreenView({ lesson, character, stars, mistakes, hasNext, onNext
       </p>
       <div className="overlay-actions">
         {hasNext ? (
-          <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onNext)}>
+          <MenuButton className="primary" onClick={onNext}>
             Próxima fase
-          </button>
+          </MenuButton>
         ) : null}
-        <button type="button" tabIndex={-1} onClick={blurOnClick(onReplay)}>
+        <MenuButton onClick={onReplay}>
           Jogar de novo
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(onMenu)}>
+        </MenuButton>
+        <MenuButton onClick={onMenu}>
           Menu
-        </button>
+        </MenuButton>
       </div>
     </div>
   );
 }
 
 export function buildVictoryScreen(options: VictoryOptions) {
-  const { node, cleanup } = mountScreen(<VictoryScreenView {...options} />);
-  return {
-    node,
+  return buildScreen(<VictoryScreenView {...options} />, {
     primary: options.hasNext ? options.onNext : options.onReplay,
     back: options.onMenu,
-    cleanup,
-  };
+  });
 }
 
 interface SpeedrunVictoryOptions {
@@ -111,18 +109,17 @@ function SpeedrunVictoryScreenView({
         Todas as {totalLetters} letras coletadas com {mistakes} erro{mistakes === 1 ? '' : 's'}!
       </p>
       <div className="overlay-actions">
-        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onReplay)}>
+        <MenuButton className="primary" onClick={onReplay}>
           Correr de novo ⚡
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(onMenu)}>
+        </MenuButton>
+        <MenuButton onClick={onMenu}>
           Menu principal
-        </button>
+        </MenuButton>
       </div>
     </div>
   );
 }
 
 export function buildSpeedrunVictoryScreen(options: SpeedrunVictoryOptions) {
-  const { node, cleanup } = mountScreen(<SpeedrunVictoryScreenView {...options} />);
-  return { node, primary: options.onReplay, back: options.onMenu, cleanup };
+  return buildScreen(<SpeedrunVictoryScreenView {...options} />, { primary: options.onReplay, back: options.onMenu });
 }

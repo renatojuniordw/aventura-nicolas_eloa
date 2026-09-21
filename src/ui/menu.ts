@@ -79,21 +79,24 @@ export class MenuOverlay {
     this._visible = true;
   }
 
+  /** Builds a screen from its options and mounts it with the actions it returned. */
+  private _show<Options>(build: (options: Options) => ScreenResult, options: Options): void {
+    const { node, ...actions } = build(options);
+    this._mount(node, actions);
+  }
+
   // --- Screens -------------------------------------------------------------
 
   showMainMenu(options: Parameters<typeof buildMainMenuScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildMainMenuScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildMainMenuScreen, options);
   }
 
   showCharacterPicker(options: Parameters<typeof buildCharacterPickerScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildCharacterPickerScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildCharacterPickerScreen, options);
   }
 
   showLessonPicker(options: Parameters<typeof buildLessonPickerScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildLessonPickerScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildLessonPickerScreen, options);
   }
 
   showPause(options: Parameters<typeof buildPauseScreen>[1]): void {
@@ -102,37 +105,30 @@ export class MenuOverlay {
 
   private _renderPauseScreen(step: PauseStep, options: Parameters<typeof buildPauseScreen>[1]): void {
     const goTo = (nextStep: PauseStep) => this._renderPauseScreen(nextStep, options);
-    const { node, primary, back, cleanup } = buildPauseScreen(step, options, goTo);
-    this._mount(node, { primary, back, cleanup });
+    this._show((screenOptions) => buildPauseScreen(step, screenOptions, goTo), options);
   }
 
   showGameOver(options: Parameters<typeof buildGameOverScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildGameOverScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildGameOverScreen, options);
   }
 
   showVictory(options: Parameters<typeof buildVictoryScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildVictoryScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildVictoryScreen, options);
   }
 
   showSpeedrunVictory(options: Parameters<typeof buildSpeedrunVictoryScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildSpeedrunVictoryScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildSpeedrunVictoryScreen, options);
   }
 
   showPrivacyNotice(options: Parameters<typeof buildPrivacyNoticeScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildPrivacyNoticeScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildPrivacyNoticeScreen, options);
   }
 
   showPhonePairing(options: Parameters<typeof buildPhonePairingScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildPhonePairingScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildPhonePairingScreen, options);
   }
 
   showSettings(options: Parameters<typeof buildSettingsScreen>[0]): void {
-    const { node, primary, back, cleanup } = buildSettingsScreen(options);
-    this._mount(node, { primary, back, cleanup });
+    this._show(buildSettingsScreen, options);
   }
 }

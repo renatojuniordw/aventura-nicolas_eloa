@@ -33,6 +33,18 @@ export function mountScreen(element: ReactNode): { node: HTMLElement; cleanup: (
 }
 
 /**
+ * Mounts a screen and pairs it with its keyboard actions — the `{ node,
+ * primary, back, cleanup }` shape every `buildXScreen` hands to `MenuOverlay`.
+ */
+export function buildScreen(
+  element: ReactNode,
+  { primary = null, back = null }: { primary?: (() => void) | null; back?: (() => void) | null } = {},
+) {
+  const { node, cleanup } = mountScreen(element);
+  return { node, primary, back, cleanup };
+}
+
+/**
  * Wraps a click handler so the button blurs itself first, mirroring the
  * original `ui/dom.js` `el()` helper's `onClick` behavior: keeps focus on the
  * game surface (canvas) instead of on the button, so the keyboard keeps

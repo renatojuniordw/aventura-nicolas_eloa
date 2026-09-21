@@ -81,25 +81,25 @@ recarrega a página durante uma fase:
 
 ### Estratégia de cache offline (Workbox)
 
-O jogo tem dois tipos de asset com necessidades bem diferentes:
+Tudo precacheia no install, num único passo:
 
 | O quê | Tamanho | Estratégia |
 |---|---|---|
-| App shell: JS, CSS, HTML, as ~152 fases (inlined no bundle pelo `level-registry.ts`) | pequeno | **Precache** no install — `globPatterns: ['**/*.{js,css,html,svg,png,woff2}']` |
-| Arte de produção (`public/assets/`: personagens, cenários, itens) | ~22 MB | **CacheFirst sob demanda** — só baixa quando uma fase realmente usa aquele arquivo |
+| App shell: JS, CSS, HTML, as ~152 fases (inlined no bundle pelo `level-registry.ts`) | ~0,9 MB | **Precache** |
+| Arte de produção (`public/assets/`: personagens, cenários, itens; WebP redimensionado) | ~1,5 MB | **Precache** |
 
 ```js
-globIgnores: ['assets/backgrounds/**', 'assets/characters/**', /* ... */],
-runtimeCaching: [{
-  urlPattern: ({ url }) => url.pathname.startsWith('/assets/'),
-  handler: 'CacheFirst',
-  options: { cacheName: 'game-assets', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 90 } },
-}],
+globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
 ```
 
-Resultado prático: o **primeiro install é leve** (não força os 22 MB de arte), e depois
-de **uma sessão normal de jogo**, o suficiente da arte usada já está em cache — o jogo
-fica jogável offline sem downloads pesados forçados.
+Resultado prático: ~2 MB no primeiro install (34 entradas) e o jogo fica **jogável offline
+logo após a primeira visita**, sem depender de ter passado por todas as fases antes. (Antes
+a arte era ~22 MB em PNG e por isso ficava fora do precache, com `CacheFirst` sob demanda;
+depois de redimensionar e converter para WebP não há mais motivo para essa complexidade.)
+
+Na rede, o jogo também não baixa a arte toda de uma vez: o `BootScene` pré-carrega só os
+itens/objetos e o personagem padrão, e cada fase pede o próprio fundo e o personagem
+ativo (`render/asset-plan.ts`). Um `AssetManager` idempotente evita baixar duas vezes.
 
 > Isso não muda a política de privacidade: o cache do service worker é local ao
 > navegador, não é um servidor adicional nem envia nada para fora — ver

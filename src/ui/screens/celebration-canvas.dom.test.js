@@ -52,7 +52,7 @@ afterAll(() => {
 
 describe('createCelebrationCanvas (DOM)', () => {
   it('returns a sized canvas element with a safe stop when no 2D context exists', () => {
-    const { canvas, stop } = createCelebrationCanvas('/assets/celebrate.png', 120, 120);
+    const { canvas, stop } = createCelebrationCanvas('/assets/celebrate.webp', 120, 120);
 
     expect(canvas).not.toBeNull();
     expect(canvas.width).toBe(120);
@@ -66,7 +66,7 @@ describe('createCelebrationCanvas (DOM)', () => {
   });
 
   it('respects custom dimensions', () => {
-    const { canvas } = createCelebrationCanvas('/assets/celebrate.png', 64, 48);
+    const { canvas } = createCelebrationCanvas('/assets/celebrate.webp', 64, 48);
 
     expect(canvas.width).toBe(64);
     expect(canvas.height).toBe(48);
@@ -76,7 +76,7 @@ describe('createCelebrationCanvas (DOM)', () => {
     // Install a working getContext for this test only (reset in beforeEach).
     HTMLCanvasElement.prototype.getContext = () => ({ clearRect: vi.fn(), drawImage: vi.fn() });
 
-    const { canvas, stop } = createCelebrationCanvas('/assets/celebrate.png', 120, 120);
+    const { canvas, stop } = createCelebrationCanvas('/assets/celebrate.webp', 120, 120);
 
     expect(rAFSpy).toHaveBeenCalledTimes(1);
     expect(rAFSpy).toHaveBeenCalledWith(expect.any(Function));
@@ -100,7 +100,7 @@ describe('createCelebrationCanvas (DOM)', () => {
       }
     };
 
-    createCelebrationCanvas('/assets/celebrate.png', 120, 120);
+    createCelebrationCanvas('/assets/celebrate.webp', 120, 120);
     const step = rAFSpy.mock.calls[0][0];
 
     // Each tick is >= frameDuration (180ms), so the frame advances every time.

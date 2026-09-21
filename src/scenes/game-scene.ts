@@ -12,12 +12,15 @@ import { getLevelData } from '../content/level-registry.js';
 import { loadLevel } from '../content/level-loader.js';
 import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
+import { lessonAssets } from '../render/asset-plan.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
+import { FUTURE_HINT_INTERVAL, SpeedrunRun } from '../gameplay/speedrun-run.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
 import { vibrateJump, vibrateCollect, vibrateVictory, vibrateWarning } from '../input/haptics.js';
 import { tryLockLandscape } from '../ui/orientation.js';
+import { pumpMenuKeys, pumpOverlayInput } from '../ui/overlay-input.js';
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -53,9 +56,6 @@ interface EnterParams {
  * It is the only place that connects input -> gameplay -> rules, which keeps
  * every one of those pieces independent and testable.
  */
-/** Minimum seconds between "letter comes later" hints while touching a future letter. */
-const FUTURE_HINT_INTERVAL = 1.2;
-
 export class GameScene extends Scene {
   physics = new PhysicsEngine();
   private _unsubscribers: Array<() => void> = [];
@@ -76,39 +76,46 @@ export class GameScene extends Scene {
   hudModel!: HudModel;
   character: ReturnType<typeof getCharacter> | null = null;
 
-  speedrunCheckpoints?: Point[];
-  alphabet?: string[];
-  currentIndex = 0;
-  speedrunElapsed = 0;
-  private _lastFutureHintAt = -Infinity;
+  /** Progress through the A-to-Z run; null outside speedrun mode. */
+  speedrun: SpeedrunRun | null = null;
+
+  get speedrunCheckpoints(): Point[] | undefined {
+    return this.speedrun?.checkpoints;
+  }
+
+  get alphabet(): string[] | undefined {
+    return this.speedrun?.alphabet;
+  }
+
+  get currentIndex(): number {
+    return this.speedrun?.currentIndex ?? 0;
+  }
+
+  set currentIndex(index: number) {
+    if (this.speedrun) this.speedrun.currentIndex = index;
+  }
+
+  get speedrunElapsed(): number {
+    return this.speedrun?.elapsed ?? 0;
+  }
+
+  set speedrunElapsed(seconds: number) {
+    if (this.speedrun) this.speedrun.elapsed = seconds;
+  }
 
   override enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null }: EnterParams = {}): void {
     this.mode = mode;
     this.mistakes = 0;
     this.status = Status.RUNNING;
     this._winTimer = 0;
+    this.speedrun = null;
 
     if (this.mode === 'speedrun') {
       const course = speedrunCourse ?? (buildSpeedrunCourse() as unknown as GameLevel);
       this.level = course;
-      this.speedrunCheckpoints = course.checkpoints;
-      this.alphabet = course.alphabet;
-      this.currentIndex = 0;
-      this.speedrunElapsed = speedrunState?.elapsed ?? 0;
-      this._lastFutureHintAt = -Infinity;
+      this.speedrun = new SpeedrunRun(course.alphabet ?? [], course.checkpoints, speedrunState?.elapsed ?? 0);
 
-      const firstLetter = this.alphabet![0];
-      this.lesson = this.game.curriculum?.getLesson?.(`alfabeto-${firstLetter.toLowerCase()}`) ?? {
-        id: `alfabeto-${firstLetter.toLowerCase()}`,
-        unitId: 'alfabeto',
-        unitTitle: 'Alfabeto',
-        type: 'letter',
-        target: firstLetter,
-        variants: [firstLetter],
-        objective: `Colete a letra ${firstLetter}`,
-        levelId: `alfabeto-${firstLetter.toLowerCase()}`,
-        index: 0,
-      };
+      this.lesson = this._letterLesson(this.speedrun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
     } else {
       const lesson = this.game.curriculum.getLesson(lessonId);
@@ -138,9 +145,7 @@ export class GameScene extends Scene {
     this.camera.snapTo(this.player.body);
 
     const isSpeedrun = this.mode === 'speedrun';
-    const progressText = isSpeedrun && this.alphabet
-      ? `1/${this.alphabet.length}`
-      : '';
+    const progressText = this.speedrun?.progressText ?? '';
 
     this.hudModel = new HudModel({
       objective: this.lesson.objective,
@@ -148,10 +153,15 @@ export class GameScene extends Scene {
       lives: this.lives.lives,
       maxLives: this.lives.maxLives,
       isSpeedrun,
-      timer: this.speedrunElapsed ?? 0,
+      timer: this.speedrunElapsed,
       speedrunProgress: progressText,
     });
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
+    // Fire-and-forget like the boot preload: until the images land, SpriteRenderer
+    // draws its solid-colour / placeholder fallbacks instead of blocking the level.
+    this.game.assets?.load(lessonAssets(this.level, this.character)).catch((error) => {
+      console.warn('Lesson art failed to load; falling back to placeholder shapes.', error);
+    });
 
     this.game.sprites.setLevel(this.level);
     this._subscribe();
@@ -162,6 +172,24 @@ export class GameScene extends Scene {
     if (this.lesson?.target) {
       this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
+  }
+
+  /** The alphabet lesson for `letter`, or an equivalent stand-in when the curriculum lacks it. */
+  private _letterLesson(letter: string, index: number): Lesson {
+    const id = `alfabeto-${letter.toLowerCase()}`;
+    return (
+      this.game.curriculum?.getLesson?.(id) ?? {
+        id,
+        unitId: 'alfabeto',
+        unitTitle: 'Alfabeto',
+        type: 'letter',
+        target: letter,
+        variants: [letter],
+        objective: `Colete a letra ${letter}`,
+        levelId: id,
+        index,
+      }
+    );
   }
 
   override exit(): void {
@@ -189,12 +217,7 @@ export class GameScene extends Scene {
       // phone's single-jump-confirms / double-jump-back gesture — until now
       // this branch never consumed CONFIRM/BACK at all, so only a mouse
       // click on "Tentar de novo"/"Menu" ever worked here.
-      if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
-      if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
-      if (this.game.input.consumePressed(Actions.JUMP)) {
-        if (this._gameOverJumpGesture.press(performance.now()) === 'back') this.game.menu.triggerBack();
-      }
-      if (this._gameOverJumpGesture.poll(performance.now()) === 'confirm') this.game.menu.triggerPrimary();
+      pumpOverlayInput(this.game, this._gameOverJumpGesture);
       return;
     }
     if (this.status === Status.PAUSED) {
@@ -204,13 +227,12 @@ export class GameScene extends Scene {
       // action (restart/quit, losing progress) sharing the same primary
       // button as its own screen — a stray jump from a phone still strapped
       // on while paused shouldn't be able to trigger that.
-      if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
-      if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
+      pumpMenuKeys(this.game);
       return;
     }
 
     if (this.mode === 'speedrun') {
-      this.speedrunElapsed = (this.speedrunElapsed ?? 0) + dt;
+      this.speedrun?.tick(dt);
       this.hudModel.setTimer(this.speedrunElapsed);
     }
 
@@ -293,11 +315,9 @@ export class GameScene extends Scene {
   }
 
   onItemCollected(item: LevelItem & { segmentIndex?: number; label?: string }): void {
-    if (this.mode === 'speedrun' && item.segmentIndex != null && item.segmentIndex > this.currentIndex) {
+    if (this.speedrun?.isAhead(item)) {
       this.levelManager.collected.delete(item.id);
-      // The item stays overlapped for many frames: hint once per feedback window, not every frame.
-      if (this.speedrunElapsed - this._lastFutureHintAt >= FUTURE_HINT_INTERVAL) {
-        this._lastFutureHintAt = this.speedrunElapsed;
+      if (this.speedrun.claimFutureHint()) {
         this.hudModel.showFeedback(
           FeedbackKind.WRONG,
           `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`,
@@ -333,8 +353,8 @@ export class GameScene extends Scene {
     vibrateCollect();
     this.game.narrator?.speakPraise();
 
-    if (this.mode === 'speedrun' && this.alphabet) {
-      this._advanceSpeedrun();
+    if (this.speedrun) {
+      this._advanceSpeedrun(this.speedrun);
       return;
     }
 
@@ -347,29 +367,17 @@ export class GameScene extends Scene {
   }
 
   /** Speedrun advance: next letter checkpoint, or marathon victory on Z. */
-  private _advanceSpeedrun(): void {
-    if (this.currentIndex < this.alphabet!.length - 1) {
-      this.currentIndex += 1;
-      const nextLetter = this.alphabet![this.currentIndex];
-      const nextLesson = this.game.curriculum?.getLesson?.(`alfabeto-${nextLetter.toLowerCase()}`) ?? {
-        id: `alfabeto-${nextLetter.toLowerCase()}`,
-        unitId: 'alfabeto',
-        unitTitle: 'Alfabeto',
-        type: 'letter',
-        target: nextLetter,
-        variants: [nextLetter],
-        objective: `Colete a letra ${nextLetter}`,
-        levelId: `alfabeto-${nextLetter.toLowerCase()}`,
-        index: this.currentIndex,
-      };
-      this.lesson = nextLesson;
+  private _advanceSpeedrun(run: SpeedrunRun): void {
+    if (run.advance()) {
+      const nextLetter = run.currentLetter;
+      this.lesson = this._letterLesson(nextLetter, run.currentIndex);
       this.validator = new AnswerValidator(this.lesson);
-      if (this.speedrunCheckpoints?.[this.currentIndex]) {
-        this.levelManager.setCheckpoint({ ...this.speedrunCheckpoints[this.currentIndex] });
+      if (run.currentCheckpoint) {
+        this.levelManager.setCheckpoint({ ...run.currentCheckpoint });
       }
 
       this.hudModel.setObjective(this.lesson.objective ?? '');
-      this.hudModel.setSpeedrunProgress(`${this.currentIndex + 1}/${this.alphabet!.length}`);
+      this.hudModel.setSpeedrunProgress(run.progressText);
       this.hudModel.showFeedback(
         FeedbackKind.CORRECT,
         `Boa! Agora letra ${nextLetter}!`,
@@ -445,7 +453,7 @@ export class GameScene extends Scene {
     const profile = this.game.profiles.getActiveProfile();
 
     if (this.mode === 'speedrun') {
-      const elapsed = this.speedrunElapsed ?? 0;
+      const elapsed = this.speedrunElapsed;
       const result = profile
         ? this.game.progress.recordSpeedrunTime(profile.id, elapsed)
         : { bestTime: elapsed, isNewBest: true };
@@ -475,19 +483,20 @@ export class GameScene extends Scene {
   onGameOver(): void {
     this.status = Status.GAME_OVER;
     this._gameOverJumpGesture.reset();
-    if (this.mode === 'speedrun') {
-      this.game.menu.showGameOver({
-        lesson: this.lesson,
-        onRetry: () => this.game.startSpeedrun(),
-        onMenu: () => this.game.scenes.switchTo('menu'),
-      });
-      return;
-    }
     this.game.menu.showGameOver({
       lesson: this.lesson,
-      onRetry: () => this.game.scenes.switchTo('game', { lessonId: this.lesson.id }),
+      onRetry: () => this.restart(),
       onMenu: () => this.game.scenes.switchTo('menu'),
     });
+  }
+
+  /** Starts this run over: a fresh speedrun, or the current lesson from the top. */
+  restart(): void {
+    if (this.mode === 'speedrun') {
+      this.game.startSpeedrun();
+    } else {
+      this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
+    }
   }
 
   // --- Pause ----------------------------------------------------------------
@@ -509,13 +518,7 @@ export class GameScene extends Scene {
       isSpeedrun: this.mode === 'speedrun',
       isMuted: this.game.audio.isMuted,
       onResume: () => this.resume(),
-      onRestart: () => {
-        if (this.mode === 'speedrun') {
-          this.game.startSpeedrun();
-        } else {
-          this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
-        }
-      },
+      onRestart: () => this.restart(),
       onMenu: () => this.game.scenes.switchTo('menu'),
       onToggleMute: () => {
         this.game.audio.toggleMuted();

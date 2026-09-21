@@ -5,11 +5,13 @@
 Parte dos assets em `public/assets/` foi copiada do projeto
 [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras):
 
-- `public/assets/manifest.json`
+- `tools/asset-generation-log.json` (log de geração; fora de `public/`, não vai para o build)
 - `public/assets/backgrounds/` (todos os fundos)
-- `public/assets/items/` (`letter-carrier-pixel-v1.png`, `speed-item-pixel-v1.png`)
-- `public/assets/objects/` (`checkpoint-pixel-v1.png`, `finish-portal-pixel-v1.png`)
-- `public/assets/terrain/` (todos os tiles de terreno)
+- `public/assets/items/` (`letter-carrier-pixel-v1.webp`)
+- `public/assets/objects/` (`checkpoint-pixel-v1.webp`, `finish-portal-pixel-v1.webp`)
+
+Os arquivos distribuídos são versões redimensionadas e convertidas para WebP dos
+originais; o conteúdo e a licença são os mesmos.
 
 Esses arquivos estão sob a licença MIT abaixo. Os personagens e retratos
 (`public/assets/characters/` e `public/assets/portraits/`) são arte própria deste

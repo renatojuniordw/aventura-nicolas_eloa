@@ -10,21 +10,34 @@ export type ImageLoader = (src: string) => Promise<unknown>;
 export class AssetManager {
   private _loadImage: ImageLoader;
   private _cache = new Map<string, unknown>();
+  private _pending = new Map<string, Promise<void>>();
 
   constructor(loadImage: ImageLoader = defaultLoadImage) {
     this._loadImage = loadImage;
   }
 
-  /** @param manifest name -> source URL */
+  /**
+   * Loads whatever `manifest` names that is not cached yet; safe to call again
+   * for the same names (in flight or done) — lessons request their art on demand.
+   *
+   * @param manifest name -> source URL
+   */
   async load(manifest: Record<string, string>): Promise<Map<string, unknown>> {
-    const entries = Object.entries(manifest);
-    await Promise.all(
-      entries.map(async ([name, src]) => {
-        const image = await this._loadImage(src);
-        this._cache.set(name, image);
-      }),
-    );
+    const entries = Object.entries(manifest).filter(([name]) => !this._cache.has(name));
+    await Promise.all(entries.map(([name, src]) => this._loadOnce(name, src)));
     return this._cache;
+  }
+
+  private _loadOnce(name: string, src: string): Promise<void> {
+    const inFlight = this._pending.get(name);
+    if (inFlight) return inFlight;
+    const request = this._loadImage(src)
+      .then((image) => {
+        this._cache.set(name, image);
+      })
+      .finally(() => this._pending.delete(name));
+    this._pending.set(name, request);
+    return request;
   }
 
   get(name: string): unknown {

@@ -59,36 +59,11 @@ export default defineConfig({
         // instead of the control page (index.html), no matter the URL.
         navigateFallbackDenylist: [/^\/controle/],
         // The app shell (code, styles, the ~150 level JSONs — inlined into
-        // the JS bundle by content/level-registry.js) precaches on install.
-        // Pixel-art backgrounds/characters/portraits under /assets/ are 22MB
-        // total: too much to force on every install, so those cache on
-        // demand instead (CacheFirst below), the first time a level actually
-        // uses them. Both together mean the whole game works offline after
-        // one normal play session, without a heavy first install.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // Vite's own JS/CSS chunks and the copied public/assets pixel art
-        // both land under dist/assets/ — these globIgnores are what keeps
-        // the 22MB of art out of the precache (see runtimeCaching below)
-        // while still precaching the bundle itself.
-        globIgnores: [
-          'assets/backgrounds/**',
-          'assets/characters/**',
-          'assets/items/**',
-          'assets/objects/**',
-          'assets/portraits/**',
-          'assets/terrain/**',
-        ],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/assets/'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'game-assets',
-              expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 90 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // the JS bundle by content/level-registry.ts) and all the pixel art
+        // (~1.5MB of WebP under /assets/) precache on install, so the whole
+        // game works offline after the first visit. Vite's own JS/CSS chunks
+        // and the copied public/assets art both land under dist/assets/.
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
       },
     }),
   ],

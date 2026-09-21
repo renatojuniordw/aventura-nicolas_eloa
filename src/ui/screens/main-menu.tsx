@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { useEffect, useRef } from 'react';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 import { CHARACTERS } from '../../content/characters.js';
 import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
-import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from '../fullscreen.js';
-import { isPwaInstallable, onPwaInstallableChange, promptPwaInstall } from '../pwa-install.js';
+import { promptPwaInstall } from '../pwa-install.js';
+import { useFullscreen, usePwaInstallable } from '../hooks.js';
 
 /**
  * Wraps the framework-agnostic celebration canvas (its own rAF loop, unit
@@ -64,34 +65,21 @@ function MainMenuScreen({
   const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
   const speedrunText = bestTimeStr ? `⚡ Speed Run (${bestTimeStr})` : '⚡ Speed Run (A ao Z)';
 
-  const [fullscreen, setFullscreen] = useState(() => isFullscreen());
-  const [installable, setInstallable] = useState(() => isPwaInstallable());
-  const supported = isFullscreenSupported();
-
-  useEffect(() => {
-    return onFullscreenChange((active) => setFullscreen(active));
-  }, []);
-
-  useEffect(() => {
-    return onPwaInstallableChange((canInstall) => setInstallable(canInstall));
-  }, []);
+  const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
+  const installable = usePwaInstallable();
 
   return (
     <div className="overlay home-screen">
       {supported && (
-        <button
+        <MenuButton
           className="home-fullscreen-btn"
-          type="button"
-          tabIndex={-1}
+
           aria-label={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
           title={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
-          onClick={blurOnClick(async () => {
-            const active = await toggleFullscreen();
-            setFullscreen(active);
-          })}
+          onClick={toggleFullscreen}
         >
           {fullscreen ? '🗗' : '⛶'}
-        </button>
+        </MenuButton>
       )}
       <h1 className="sr-only">Aventura do Nicolas&amp;Eloá</h1>
       <div className="home-board">
@@ -102,13 +90,12 @@ function MainMenuScreen({
             <div className="hero-showcase-badge">JOGADOR PRONTO</div>
             <div className="hero-visual-stage">
               {selectedChar?.portrait ? (
-                <button
-                  type="button"
-                  tabIndex={-1}
+                <MenuButton
+
                   className="hero-portrait-frame hero-portrait-btn"
                   title="Clique para escolher ou trocar de personagem"
                   aria-label={`Trocar personagem. Atual: ${selectedChar.name}`}
-                  onClick={blurOnClick(() => onOpenCharacterPicker?.(currentCharacterId))}
+                  onClick={() => onOpenCharacterPicker?.(currentCharacterId)}
                 >
                   <img
                     className="hero-large-portrait companion-avatar"
@@ -116,7 +103,7 @@ function MainMenuScreen({
                     alt={selectedChar.name}
                   />
                   <span className="hero-portrait-hint">Trocar 🔄</span>
-                </button>
+                </MenuButton>
               ) : null}
               {selectedChar?.sprites?.celebrate ? (
                 <div className="hero-animation-stage">
@@ -129,14 +116,13 @@ function MainMenuScreen({
               <div className="hero-name-plate">⭐ {selectedChar?.name ?? 'Nicolas Gomes'}</div>
               <div className="hero-flavor-text">Pronto para pular, descobrir e brincar!</div>
               {onOpenCharacterPicker && (
-                <button
-                  type="button"
-                  tabIndex={-1}
+                <MenuButton
+
                   className="hero-change-btn"
-                  onClick={blurOnClick(() => onOpenCharacterPicker(currentCharacterId))}
+                  onClick={() => onOpenCharacterPicker(currentCharacterId)}
                 >
                   🔄 Trocar Personagem
-                </button>
+                </MenuButton>
               )}
             </div>
           </div>
@@ -148,46 +134,42 @@ function MainMenuScreen({
               <div className="discovery-target">{currentLessonTitle}</div>
             </div>
             <div className="menu-buttons-group home-btn-group">
-              <button
+              <MenuButton
                 className="btn-retro btn-primary-gold"
-                type="button"
-                tabIndex={-1}
-                onClick={blurOnClick(onPlay)}
+
+                onClick={onPlay}
               >
                 {active && completedCount > 0 ? 'Continuar aventura' : 'Começar aventura'}
-              </button>
-              <button
+              </MenuButton>
+              <MenuButton
                 className="btn-retro btn-secondary-green"
-                type="button"
-                tabIndex={-1}
-                onClick={blurOnClick(onSpeedrun)}
+
+                onClick={onSpeedrun}
               >
                 {speedrunText}
-              </button>
-              <button
+              </MenuButton>
+              <MenuButton
                 className="btn-retro btn-secondary-green"
-                type="button"
-                tabIndex={-1}
-                onClick={blurOnClick(onOpenLessonPicker)}
+
+                onClick={onOpenLessonPicker}
               >
                 Escolher fase
-              </button>
+              </MenuButton>
               {installable && (
-                <button
+                <MenuButton
                   className="btn-retro btn-secondary-green pwa-install-btn"
-                  type="button"
-                  tabIndex={-1}
-                  onClick={blurOnClick(async () => {
+
+                  onClick={async () => {
                     await promptPwaInstall();
-                  })}
+                  }}
                 >
                   📲 Instalar no Celular
-                </button>
+                </MenuButton>
               )}
               <div className="menu-meta-row home-meta-row">
-                <button className="btn-util" type="button" tabIndex={-1} onClick={blurOnClick(onOpenSettings)}>
+                <MenuButton className="btn-util" onClick={onOpenSettings}>
                   ⚙️ Configurações
-                </button>
+                </MenuButton>
                 <div className="home-substatus">
                   A aventura continua · {completedCount} de {totalLessons} fases
                 </div>
@@ -207,11 +189,5 @@ function MainMenuScreen({
 }
 
 export function buildMainMenuScreen(options: MainMenuOptions) {
-  const { node, cleanup } = mountScreen(<MainMenuScreen {...options} />);
-  return {
-    node,
-    primary: options.onPlay,
-    back: null,
-    cleanup,
-  };
+  return buildScreen(<MainMenuScreen {...options} />, { primary: options.onPlay });
 }

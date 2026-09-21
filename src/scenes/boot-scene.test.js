@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { BootScene, GAME_ASSETS } from './boot-scene.js';
-import { CHARACTERS } from '../content/characters.js';
+import { BootScene } from './boot-scene.js';
+import { CHARACTERS, DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
+import { WORLD_ASSETS, characterAssets } from '../render/asset-plan.js';
 
 /**
  * Covers the boot scene: preload manifest assembly, fallback on asset-load
@@ -20,26 +21,7 @@ function makeFakeGame(overrides = {}) {
 }
 
 describe('BootScene', () => {
-  it('exposes a frozen asset manifest with all standard background/base assets', () => {
-    expect(Object.isFrozen(GAME_ASSETS)).toBe(true);
-    // Standard backgrounds
-    expect(GAME_ASSETS['bg:primavera-lago']).toContain('.png');
-    expect(GAME_ASSETS['bg:primavera-pomar']).toContain('.png');
-    expect(GAME_ASSETS['bg:outono-bosque']).toContain('.png');
-    expect(GAME_ASSETS['bg:outono-vale']).toContain('.png');
-    expect(GAME_ASSETS['bg:garden-pixel']).toContain('.png');
-    // Items
-    expect(GAME_ASSETS['item:letter-carrier']).toContain('.png');
-    expect(GAME_ASSETS['item:speed']).toContain('.png');
-    // Objects
-    expect(GAME_ASSETS['object:checkpoint']).toContain('.png');
-    expect(GAME_ASSETS['object:finish-portal']).toContain('.png');
-    // Terrain
-    expect(GAME_ASSETS['terrain:grass-tile']).toContain('.png');
-    expect(Object.keys(GAME_ASSETS).length).toBeGreaterThanOrEqual(10);
-  });
-
-  it('merges character sprites and portraits into the preload manifest on enter', () => {
+  it('preloads only the world art and the default character, not every background or portrait', () => {
     const game = makeFakeGame();
     const scene = new BootScene(game);
     scene.enter();
@@ -49,24 +31,13 @@ describe('BootScene', () => {
     expect(game.assets.load).toHaveBeenCalledTimes(1);
     const manifest = game.assets.load.mock.calls[0][0];
 
-    // Every base asset survives the merge...
-    expect(manifest).toMatchObject(GAME_ASSETS);
-
-    // ...and each character contributes its poses and portrait, by value.
-    for (const character of CHARACTERS) {
-      for (const [pose, src] of Object.entries(character.sprites ?? {})) {
-        expect(manifest[`${character.id}:${pose}`]).toBe(src);
-      }
-      if (character.portrait) {
-        expect(manifest[`${character.id}:portrait`]).toBe(character.portrait);
-      }
-    }
-
-    // The merge must actually add keys: dropping the character loop in
-    // `_preload` would leave the base manifest and fail this assertion.
-    expect(Object.keys(manifest).length).toBeGreaterThan(Object.keys(GAME_ASSETS).length);
-    // The bare constant itself never carries character keys.
-    expect(GAME_ASSETS[`${CHARACTERS[0].id}:portrait`]).toBeUndefined();
+    expect(manifest).toMatchObject(WORLD_ASSETS);
+    expect(manifest).toMatchObject(characterAssets(getCharacter(DEFAULT_CHARACTER_ID)));
+    // Lesson-specific art (backgrounds, the other character) waits for its lesson.
+    expect(Object.keys(manifest).some((key) => key.startsWith('bg:'))).toBe(false);
+    const other = CHARACTERS.find((character) => character.id !== DEFAULT_CHARACTER_ID);
+    expect(Object.keys(manifest).some((key) => key.startsWith(`${other.id}:`))).toBe(false);
+    expect(Object.keys(manifest).some((key) => key.endsWith(':portrait'))).toBe(false);
   });
 
   it('calls assets.load on the first frame (via fire-and-forget preload) and tolerates failure', async () => {

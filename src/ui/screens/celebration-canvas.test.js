@@ -8,7 +8,7 @@ import { createCelebrationCanvas } from './celebration-canvas.js';
  */
 describe('createCelebrationCanvas (no DOM)', () => {
   it('returns a null canvas and a safe no-op stop when document is absent', () => {
-    const result = createCelebrationCanvas('/assets/characters/x/celebrate.png');
+    const result = createCelebrationCanvas('/assets/characters/x/celebrate.webp');
 
     expect(result.canvas).toBeNull();
     expect(typeof result.stop).toBe('function');

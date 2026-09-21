@@ -155,7 +155,7 @@ boot  ──►  menu  ──►  game  ──►  victory
 
 | Cena | Papel |
 |---|---|
-| `boot-scene.ts` | Primeira cena. Carrega o manifesto de assets e troca para o menu |
+| `boot-scene.ts` | Primeira cena. Pré-carrega só a arte comum (itens/objetos + personagem padrão) e troca para o menu; fundos e o outro personagem carregam quando a fase pede (`render/asset-plan.ts`) |
 | `menu-scene.ts` | Menu principal, escolha de jogador, personagem e fase |
 | `game-scene.ts` | Orquestra uma lição: input → jogador → física → regras → desenho |
 | `victory-scene.ts` | Tela de fase concluída, com estrelas e atalho para a próxima |
@@ -205,7 +205,8 @@ src/
 │   ├── game-loop.ts             # timestep fixo com acumulador
 │   ├── scene.ts                 # classe base de cena
 │   ├── scene-manager.ts         # registro e troca de cenas
-│   └── asset-manager.ts         # carregamento de imagens (arte de produção)
+│   ├── asset-manager.ts         # carregamento de imagens (idempotente: não recarrega o que já tem)
+│   └── lifecycle.ts             # blur / aba oculta / primeiro toque → input, pausa e áudio
 ├── input/
 │   ├── actions.ts               # enum de ações semânticas (sem teclas!)
 │   ├── input-adapter.ts         # contrato (Strategy)
@@ -224,12 +225,14 @@ src/
 │   │   └── states/                # idle, walk, jump, fall
 │   ├── lives-manager.ts         # corações
 │   ├── level-manager.ts         # itens, perigos, queda dentro da fase
-│   └── speedrun-course.ts       # curso contínuo A→Z do modo Speed Run
+│   ├── speedrun-course.ts       # curso contínuo A→Z do modo Speed Run
+│   └── speedrun-run.ts          # progresso de uma corrida (letra atual, relógio, dica)
 ├── render/
 │   ├── canvas-renderer.ts       # única classe que fala com o Canvas 2D
 │   ├── camera.ts                # câmera horizontal (matemática pura)
 │   ├── sprites.ts               # desenho do mundo com a arte de produção
-│   ├── sprite-assets.ts         # recortes/atlas da sprite sheet
+│   ├── sprite-assets.ts         # recortes, chave de fundo e posição do portal
+│   ├── asset-plan.ts            # que arte carregar, e quando (fase / personagem)
 │   ├── hud.ts / hud-model.ts    # interface (modelo puro + desenho)
 │   └── effects.ts               # partículas (confete)
 ├── content/
@@ -250,17 +253,23 @@ src/
 │   ├── migration.ts             # escada de migração de saves
 │   ├── save-store.ts            # leitura/escrita do documento único
 │   ├── profile-store.ts         # perfis de jogador
+│   ├── active-profile.ts        # política "quem joga" (consentimento, perfil padrão)
 │   ├── progress-store.ts        # progresso por perfil
 │   └── audio-settings-store.ts  # preferência de volume/mudo
+├── net/
+│   └── phone-control-coordinator.ts  # controle por celular: adaptador de input + pausa ao cair
 ├── audio/
 │   └── audio-manager.ts         # mute/volume + registro de música e efeitos
 ├── ui/
 │   ├── dom.ts                   # helpers de DOM (textContent, nunca innerHTML)
 │   ├── menu.ts                  # orquestra qual tela React está montada (sem React)
+│   ├── overlay-input.ts         # CONFIRM/BACK e gesto de pulo → tela de overlay
+│   ├── hooks.ts                 # useFullscreen / usePwaInstallable
 │   ├── touch-controls.ts        # D-pad + botão de pulo em DOM (deliberadamente sem React)
 │   ├── pixel-logo.ts            # logo em SVG
 │   └── screens/                 # telas de menu em React/TSX
-│       ├── mount-screen.ts      # monta um <ReactNode> num container DOM
+│       ├── mount-screen.ts      # monta um <ReactNode> num container DOM (+ buildScreen)
+│       ├── menu-button.tsx      # botão padrão dos overlays
 │       ├── main-menu.tsx / character-picker.tsx / lesson-picker.tsx
 │       ├── pause.tsx / game-over.tsx / victory.tsx
 │       └── privacy-notice.tsx   # aviso parental (LGPD)
@@ -272,9 +281,10 @@ src/
 
 tools/
 ├── generate-levels.mts          # gera as fases a partir do currículo
+├── asset-generation-log.json    # log de geração da arte (fora de public/: não vai para o build)
 └── generate-pwa-icons.mjs       # gera os ícones do PWA
 
-public/assets/    arte de produção (pixel art): personagens, cenários, itens
+public/assets/    arte de produção (pixel art, WebP ~1,5 MB): personagens, cenários, itens
 public/fonts/     fonte self-hosted (OFL 1.1)
 public/icons/     ícones do PWA
 docker/           Nginx do contêiner + Nginx de proxy reverso da VPS

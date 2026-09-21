@@ -1,8 +1,8 @@
 import { Scene } from '../core/scene.js';
-import { Actions } from '../input/actions.js';
 import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
 import { COLORS } from '../core/config.js';
 import { getCharacter } from '../content/characters.js';
+import { pumpOverlayInput } from '../ui/overlay-input.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
 
@@ -82,14 +82,8 @@ export class VictoryScene extends Scene {
 
   override update(dt: number): void {
     this.game.effects.update(dt);
-    if (this.game.input.consumePressed(Actions.CONFIRM)) this.game.menu.triggerPrimary();
-    if (this.game.input.consumePressed(Actions.BACK)) this.game.menu.triggerBack();
-
     // One phone jump confirms (advance/replay), two in quick succession go back.
-    if (this.game.input.consumePressed(Actions.JUMP)) {
-      if (this._jumpGesture.press(performance.now()) === 'back') this.game.menu.triggerBack();
-    }
-    if (this._jumpGesture.poll(performance.now()) === 'confirm') this.game.menu.triggerPrimary();
+    pumpOverlayInput(this.game, this._jumpGesture);
   }
 
   override draw(renderer: CanvasRenderer): void {

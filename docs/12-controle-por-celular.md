@@ -259,7 +259,7 @@ export class AutoRunAdapter extends InputAdapter {
 }
 ```
 
-**Montagem no modo celular** (`main.ts`, quando a sessão é iniciada via QR code):
+**Montagem no modo celular** (`PhoneControlCoordinator`, em `src/net/phone-control-coordinator.ts`, quando a sessão é iniciada via QR code):
 
 ```js
 input.setAdapter(
@@ -285,7 +285,7 @@ Todos os itens desta seção — críticos e de segunda iteração — foram imp
 
 ### Críticas — antes da primeira versão jogável
 
-**Detecção de desconexão do celular durante a partida.** ✅ Feito. `RoomManager` avisa a TV (`peer-left`) assim que o `controller` cai; `main.ts` reaproveita o caminho de pausa já existente (`Events.APP_BLURRED` → `GameScene.pause()`) em vez de inventar um novo, então o personagem para em vez de bater no primeiro obstáculo sozinho.
+**Detecção de desconexão do celular durante a partida.** ✅ Feito. `RoomManager` avisa a TV (`peer-left`) assim que o `controller` cai; o `PhoneControlCoordinator` reaproveita o caminho de pausa já existente (`Events.APP_BLURRED` → `GameScene.pause()`) em vez de inventar um novo, então o personagem para em vez de bater no primeiro obstáculo sozinho.
 
 **Screen Wake Lock no celular.** ✅ Feito, com um cuidado extra: a Wake Lock API se libera sozinha sempre que a aba vai para segundo plano e **não se readquire sozinha**. `WakeLockKeeper` (`src/controle/main.ts`) reescuta `visibilitychange` e pede o lock de novo sempre que a página volta a ficar visível — sem isso, uma única distração no celular desligava a proteção pro resto da partida, sem aviso nenhum.
 

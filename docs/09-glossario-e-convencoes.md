@@ -144,7 +144,7 @@ Comentários em inglês (é código). Documentação em português.
 |---|---|
 | Código do projeto | Próprio do projeto |
 | `imgs_referencia/mario_graphics1.png` | **Referência apenas.** É arte estilo Mario (IP da Nintendo). **Não distribuir.** Usada só para medir proporções |
-| Cenários, itens, objetos, terreno e `manifest.json` (`public/assets/`) | **MIT**, de [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras). Ver `THIRD_PARTY_NOTICES.md` |
+| Cenários, itens e objetos (`public/assets/`) e o log de geração (`tools/asset-generation-log.json`) | **MIT**, de [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras). Ver `THIRD_PARTY_NOTICES.md` |
 | Personagens e retratos (`public/assets/characters/`, `portraits/`) | **Proprietária, não distribuível fora do projeto.** Ver detalhes abaixo |
 | Fonte Silkscreen (`public/fonts/`) | SIL Open Font License 1.1 (texto em `public/fonts/OFL.txt`) |
 
@@ -157,15 +157,17 @@ A arte que está hoje em `public/assets/` (personagens, cenários, itens e objet
 art) foi **gerada por IA** (ferramenta de geração de imagem) a partir de **referências
 fotográficas privadas de crianças da família**, para preservar a semelhança dos quatro
 personagens. A proveniência de cada arquivo está registrada em
-`public/assets/manifest.json` (`source: "private generation source (not distributed)"`).
+`tools/asset-generation-log.json` (`source: "private generation source (not distributed)"`).
 
 Consequências práticas:
 
 - **Não é CC0 nem de terceiros licenciados.** É proprietária do projeto.
 - **Não deve ser redistribuída, reaproveitada ou publicada fora deste projeto** — as
   imagens de origem são fotos privadas de crianças reais.
-- `public/assets/manifest.json` **não deve ser tratado como documentação pública**: é um
-  log operacional de geração, mantido versionado só para rastreabilidade interna.
+- `tools/asset-generation-log.json` **não deve ser tratado como documentação pública**: é um
+  log operacional de geração, mantido versionado só para rastreabilidade interna. Ele vive
+  fora de `public/` de propósito — o Vite copia `public/` inteiro para o build, e os
+  prompts ali descrevem fotos de referência de crianças.
 - Se o projeto algum dia for aberto/publicado, a arte de produção precisa ser revisada
   separadamente (trocar por arte original sem referência de identidade, ou manter privada).
 
@@ -203,11 +205,18 @@ marca do jogo, não um dos quatro personagens.)
 | `content/curriculum.json` | O conteúdo pedagógico |
 | `content/levels/*.json` | As fases |
 | `render/sprites.ts` | Desenho do mundo com a arte de produção |
+| `render/asset-plan.ts` | Que arte cada fase precisa (fundo + personagem ativo) e quando carregar |
 | `render/hud.ts` | Corações, objetivo e mensagens |
 | `ui/menu.ts` | Orquestra qual tela React está montada |
 | `ui/screens/*.tsx` | As telas de menu em si (React) |
+| `ui/screens/menu-button.tsx` | O botão padrão dos overlays (fora do Tab, tira o foco ao clicar) |
+| `ui/overlay-input.ts` | CONFIRM/BACK (e o gesto de pulo do celular) → tela de overlay montada |
 | `ui/touch-controls.ts` | D-pad e botão de pulo em tela |
 | `persistence/progress-store.ts` | Progresso por jogador |
 | `scenes/game-scene.ts` | Orquestra uma lição |
+| `gameplay/speedrun-run.ts` | Estado e regras de uma corrida A→Z (letra atual, relógio, dica de letra futura) |
+| `persistence/active-profile.ts` | Quem está jogando: adota/cria perfil respeitando o consentimento parental |
+| `net/phone-control-coordinator.ts` | Liga/desliga o controle por celular: troca o adaptador de input e pausa se o celular cai |
+| `core/lifecycle.ts` | `blur`/aba oculta/primeiro toque → limpa input, pausa e destrava o áudio |
 | `vite.config.js` | Build, dev server e configuração do PWA (`vite-plugin-pwa`) |
 | `Dockerfile` / `docker-compose.yml` / `docker/` | Build e deploy em produção — ver [11](11-mobile-pwa-e-deploy.md) |

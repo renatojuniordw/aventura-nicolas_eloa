@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 
 interface GameOverOptions {
   lesson?: { objective?: string } | null;
@@ -12,18 +13,17 @@ function GameOverScreen({ lesson, onRetry, onMenu }: GameOverOptions) {
       <h2>Acabaram os corações</h2>
       <p>Vamos tentar de novo: {lesson?.objective ?? ''}</p>
       <div className="overlay-actions">
-        <button type="button" tabIndex={-1} className="primary" onClick={blurOnClick(onRetry)}>
+        <MenuButton className="primary" onClick={onRetry}>
           Tentar de novo
-        </button>
-        <button type="button" tabIndex={-1} onClick={blurOnClick(onMenu)}>
+        </MenuButton>
+        <MenuButton onClick={onMenu}>
           Menu
-        </button>
+        </MenuButton>
       </div>
     </div>
   );
 }
 
 export function buildGameOverScreen(options: GameOverOptions) {
-  const { node, cleanup } = mountScreen(<GameOverScreen {...options} />);
-  return { node, primary: options.onRetry, back: options.onMenu, cleanup };
+  return buildScreen(<GameOverScreen {...options} />, { primary: options.onRetry, back: options.onMenu });
 }

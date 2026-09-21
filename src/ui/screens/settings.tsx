@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { mountScreen, blurOnClick } from './mount-screen.js';
-import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from '../fullscreen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
+import { useFullscreen } from '../hooks.js';
 import { vibrateTap } from '../../input/haptics.js';
 
 interface SettingsOptions {
@@ -10,12 +10,7 @@ interface SettingsOptions {
 }
 
 function SettingsScreen({ onOpenPhonePairing, onResetProgress, onBack }: SettingsOptions) {
-  const [fullscreen, setFullscreen] = useState(() => isFullscreen());
-  const supported = isFullscreenSupported();
-
-  useEffect(() => {
-    return onFullscreenChange((active) => setFullscreen(active));
-  }, []);
+  const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   return (
     <div className="menu-modal-screen">
@@ -23,52 +18,47 @@ function SettingsScreen({ onOpenPhonePairing, onResetProgress, onBack }: Setting
         <h2>Configurações</h2>
         <div className="overlay-actions settings-actions">
           {supported && (
-            <button
-              type="button"
-              tabIndex={-1}
+            <MenuButton
+
               className="btn-util"
-              onClick={blurOnClick(async () => {
+              onClick={() => {
                 vibrateTap();
-                const active = await toggleFullscreen();
-                setFullscreen(active);
-              })}
+                return toggleFullscreen();
+              }}
             >
               {fullscreen ? '🗗 Sair da tela cheia' : '⛶ Modo tela cheia'}
-            </button>
+            </MenuButton>
           )}
-          <button
-            type="button"
-            tabIndex={-1}
+          <MenuButton
+
             className="btn-util"
-            onClick={blurOnClick(() => {
+            onClick={() => {
               vibrateTap();
               onOpenPhonePairing();
-            })}
+            }}
           >
             📱 Controle por celular
-          </button>
-          <button
-            type="button"
-            tabIndex={-1}
+          </MenuButton>
+          <MenuButton
+
             className="btn-util"
-            onClick={blurOnClick(() => {
+            onClick={() => {
               vibrateTap();
               onResetProgress();
-            })}
+            }}
           >
             🗑️ Zerar progresso
-          </button>
-          <button
-            type="button"
-            tabIndex={-1}
+          </MenuButton>
+          <MenuButton
+
             className="btn-retro btn-primary-gold"
-            onClick={blurOnClick(() => {
+            onClick={() => {
               vibrateTap();
               onBack();
-            })}
+            }}
           >
             Voltar
-          </button>
+          </MenuButton>
         </div>
       </div>
     </div>
@@ -76,11 +66,5 @@ function SettingsScreen({ onOpenPhonePairing, onResetProgress, onBack }: Setting
 }
 
 export function buildSettingsScreen(options: SettingsOptions) {
-  const { node, cleanup } = mountScreen(<SettingsScreen {...options} />);
-  return {
-    node,
-    primary: options.onBack,
-    back: options.onBack,
-    cleanup,
-  };
+  return buildScreen(<SettingsScreen {...options} />, { primary: options.onBack, back: options.onBack });
 }

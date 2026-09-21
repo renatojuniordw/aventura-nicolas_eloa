@@ -1,30 +1,13 @@
 import { Scene } from '../core/scene.js';
 import { COLORS } from '../core/config.js';
-import { CHARACTERS } from '../content/characters.js';
+import { DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
+import { WORLD_ASSETS, characterAssets } from '../render/asset-plan.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 
-export const GAME_ASSETS = Object.freeze({
-  // Backgrounds
-  'bg:primavera-lago': '/assets/backgrounds/primavera-lago-pixel-v1.png',
-  'bg:primavera-pomar': '/assets/backgrounds/primavera-pomar-pixel-v1.png',
-  'bg:outono-bosque': '/assets/backgrounds/outono-bosque-pixel-v1.png',
-  'bg:outono-vale': '/assets/backgrounds/outono-vale-pixel-v1.png',
-  'bg:garden-pixel': '/assets/backgrounds/garden-pixel-v1.png',
-
-  // Items
-  'item:letter-carrier': '/assets/items/letter-carrier-pixel-v1.png',
-  'item:speed': '/assets/items/speed-item-pixel-v1.png',
-
-  // Objects
-  'object:checkpoint': '/assets/objects/checkpoint-pixel-v1.png',
-  'object:finish-portal': '/assets/objects/finish-portal-pixel-v1.png',
-
-  // Terrain
-  'terrain:grass-tile': '/assets/terrain/grass-tile-pixel-v1.png',
-});
-
 /**
- * First scene: kicks off character and game art preload, then hands over to the menu.
+ * First scene: kicks off the preload of the art every lesson needs (world items
+ * plus the default character), then hands over to the menu. Backgrounds and the
+ * other character's poses load when a lesson asks for them (see `lessonAssets`).
  *
  * The switch happens on the first update (not in `enter`) so the scene manager
  * is never re-entered while it is still switching. Preload is fire-and-forget:
@@ -40,13 +23,7 @@ export class BootScene extends Scene {
   }
 
   private async _preload(): Promise<void> {
-    const manifest: Record<string, string> = { ...GAME_ASSETS };
-    for (const character of CHARACTERS) {
-      for (const [pose, src] of Object.entries(character.sprites ?? {})) {
-        manifest[`${character.id}:${pose}`] = src as string;
-      }
-      if (character.portrait) manifest[`${character.id}:portrait`] = character.portrait;
-    }
+    const manifest = { ...WORLD_ASSETS, ...characterAssets(getCharacter(DEFAULT_CHARACTER_ID)) };
     try {
       await this.game.assets.load(manifest);
     } catch (error) {

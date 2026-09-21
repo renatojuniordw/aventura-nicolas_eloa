@@ -1,7 +1,8 @@
 import { Scene } from '../core/scene.js';
-import { Actions } from '../input/actions.js';
 import { COLORS } from '../core/config.js';
-import { getCharacter } from '../content/characters.js';
+import { DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
+import { pumpMenuKeys } from '../ui/overlay-input.js';
+import { DEFAULT_PLAYER_NAME, resolveActiveProfile } from '../persistence/active-profile.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 
 /** How long the QR pairing screen waits before nudging toward "Voltar" (docs/12 §10). */
@@ -51,30 +52,19 @@ export class MenuScene extends Scene {
 
   render(): void {
     const { profiles, progress, menu } = this.game;
-    let activeProfile = profiles.getActiveProfile();
-    if (!activeProfile) {
-      const existing = profiles.listProfiles()[0];
-      if (existing) {
-        profiles.setActiveProfile(existing.id);
-        activeProfile = existing;
-      } else if (!profiles.hasParentalConsent()) {
-        // First run: the responsible adult must confirm the privacy notice
-        // before any child profile is created.
-        menu.showPrivacyNotice({
-          onConfirm: () => {
-            profiles.recordParentalConsent();
-            this.render();
-          },
-        });
-        return;
-      } else {
-        activeProfile = profiles.createProfile('Nicolas', 'char-nicolas');
-      }
+    const resolved = resolveActiveProfile(profiles);
+    if (resolved.status === 'needs-consent') {
+      // First run: the responsible adult must confirm the privacy notice
+      // before any child profile is created.
+      menu.showPrivacyNotice({
+        onConfirm: () => {
+          profiles.recordParentalConsent();
+          this.render();
+        },
+      });
+      return;
     }
-    if (activeProfile && (activeProfile.name === 'Jogador' || !activeProfile.name)) {
-      profiles.renameProfile(activeProfile.id, 'Nicolas');
-      activeProfile = profiles.getActiveProfile();
-    }
+    const activeProfile = resolved.profile;
 
     const { lessonOrder, getLesson } = this.game.curriculum;
     const nextLessonId = activeProfile
@@ -86,7 +76,7 @@ export class MenuScene extends Scene {
     menu.showMainMenu({
       profiles: profiles.listProfiles(),
       activeProfileId: activeProfile?.id ?? null,
-      selectedCharacterId: activeProfile?.characterId ?? 'char-nicolas',
+      selectedCharacterId: activeProfile?.characterId ?? DEFAULT_CHARACTER_ID,
       completedCount: activeProfile ? progress.completedCount(activeProfile.id) : 0,
       totalLessons: this.game.curriculum.lessons.length,
       currentLessonTitle: discoveryTitle,
@@ -116,7 +106,7 @@ export class MenuScene extends Scene {
   playNext(): void {
     const profile =
       this.game.profiles.getActiveProfile() ??
-      this.game.profiles.createProfile('Nicolas', 'char-nicolas');
+      this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
     const { lessonOrder } = this.game.curriculum;
     const nextLessonId =
       this.game.progress.getNextLesson(profile.id, lessonOrder) ?? lessonOrder[0];
@@ -261,12 +251,7 @@ export class MenuScene extends Scene {
       this.render();
       return;
     }
-    if (this.game.input.consumePressed(Actions.CONFIRM)) {
-      this.game.menu.triggerPrimary();
-    }
-    if (this.game.input.consumePressed(Actions.BACK)) {
-      this.game.menu.triggerBack();
-    }
+    pumpMenuKeys(this.game);
   }
 
   override draw(renderer: CanvasRenderer): void {

@@ -1,6 +1,6 @@
 # 06 — Estratégia de testes
 
-**298 testes** em **40 arquivos**, rodando em cerca de 1 segundo.
+**470 testes** em **67 arquivos**, rodando em cerca de 1 segundo.
 
 A estratégia é simples e deliberada: **testar lógica pura sem DOM** e ter **um** teste de
 integração que prova que as peças se conectam. O DOM aparece só onde o DOM *é* o
@@ -50,6 +50,8 @@ contam chamadas, não pegariam.
 | `input/composite-adapter.test.js`       |      3 | Anexa/destaca todos os filhos, qualquer fonte filha comanda o mesmo `InputManager` |
 | `ui/touch-controls.test.js`             |      3 | Botões esquerda/direita/pulo mapeados às ações certas, `show()`/`hide()` preservam os elementos |
 | `app-lifecycle.test.js`                 |      3 | `blur`/`visibilitychange` limpam o input e pausam; grafo montado (jsdom)   |
+| `core/lifecycle.test.js`                |      3 | `blur` limpa input e avisa; aba visível avisa; o áudio destrava só no primeiro toque (jsdom) |
+| `core/asset-manager.test.js`            |      4 | Cache por nome, não recarrega o que já tem, requisições simultâneas compartilhadas, retenta após falha |
 
 ### 2.2 Física e regras de jogo
 
@@ -87,6 +89,7 @@ contam chamadas, não pegariam.
 | `render/canvas-renderer.test.js`|      9 | Offset da câmera, inset de meio pixel, espelhamento (`flipX`), espaço de tela    |
 | `render/sprite-assets.test.js`  |      7 | Recortes por número, `resolveBackgroundKey` e seus ramos de fallback             |
 | `render/sprites.test.js`        |      4 | Parallax, token da letra, checkpoint e portal do fim                             |
+| `render/asset-plan.test.js`     |      4 | Todo asset planejado existe em `public/`, cobertura de todas as chaves de fundo, só as poses jogáveis, uma fase pede só o seu fundo |
 | `render/effects.test.js`        |      5 | Partículas nascem, caem, morrem; desenho sem canvas real                         |
 | `render/hud-model.test.js`      |      6 | Corações, mensagem que aparece e desaparece, cronômetro do Speed Run             |
 
@@ -100,7 +103,11 @@ contam chamadas, não pegariam.
 
 | Arquivo                                   | Testes | O que garante                                                                   |
 | ----------------------------------------- | -----: | ------------------------------------------------------------------------------- |
-| `scenes/boot-scene.test.js`               |      5 | Manifesto de assets, **merge dos sprites de personagem**, tolerância a falha de carga, transição única |
+| `scenes/boot-scene.test.js`               |      4 | Pré-carrega só itens/objetos + personagem padrão (**sem** fundos, retratos ou o outro personagem), tolerância a falha de carga, transição única |
+| `gameplay/speedrun-run.test.js`           |      6 | Letra atual, avanço até a última, relógio, letra "à frente", ritmo da dica |
+| `persistence/active-profile.test.js`      |      5 | Perfil ativo, adoção do primeiro perfil, **consentimento antes de criar**, renomear "Jogador" |
+| `net/phone-control-coordinator.test.js`   |      7 | Troca de adaptador ao parear, pausa se o celular cai, restaura teclado/toque no `stop` |
+| `ui/overlay-input.test.js`                |      4 | CONFIRM/BACK, um pulo confirma, dois pulos voltam |
 | `scenes/menu-scene.test.js`               |     16 | **Fluxo de consentimento parental**, criação/renomeação de perfil, Speed Run, rótulo da próxima descoberta |
 | `scenes/game-scene.test.js`               |     14 | Acerto/erro, ordem do Speed Run, perigo, fim de maratona, pausa e game over      |
 | `scenes/victory-scene.test.js`            |     11 | Vitória normal e do Speed Run, `hasNext`, ações de cada botão                    |
@@ -115,6 +122,7 @@ contam chamadas, não pegariam.
 | Arquivo                | Testes | O que garante                              |
 | ---------------------- | -----: | ------------------------------------------ |
 | `architecture.test.js` |      5 | **As regras de arquitetura** (ver seção 3) |
+| `public-assets.test.js` |      1 | Todo caminho `/assets`, `/icons` ou `/fonts` usado em CSS, HTML e código existe em `public/` |
 | `integration.test.js`  |     11 | **O jogo inteiro**, em jsdom (ver seção 4) |
 
 ---

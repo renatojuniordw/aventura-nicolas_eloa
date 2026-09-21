@@ -3,6 +3,8 @@ import {
   CHECKPOINT_BOUNDS,
   FINISH_PORTAL_BOUNDS,
   LETTER_CARRIER_BOUNDS,
+  FINISH_PORTAL_SIZE,
+  finishPortalPosition,
   resolveBackgroundKey,
 } from './sprite-assets.js';
 
@@ -48,24 +50,24 @@ describe('asset bounds', () => {
   it('are frozen constants with exactly known crop rectangles for each trimmed asset', () => {
     // LETTER_CARRIER_BOUNDS
     expect(Object.isFrozen(LETTER_CARRIER_BOUNDS)).toBe(true);
-    expect(LETTER_CARRIER_BOUNDS.sx).toBe(257);
-    expect(LETTER_CARRIER_BOUNDS.sy).toBe(279);
-    expect(LETTER_CARRIER_BOUNDS.sw).toBe(740);
-    expect(LETTER_CARRIER_BOUNDS.sh).toBe(718);
+    expect(LETTER_CARRIER_BOUNDS.sx).toBe(103);
+    expect(LETTER_CARRIER_BOUNDS.sy).toBe(112);
+    expect(LETTER_CARRIER_BOUNDS.sw).toBe(298);
+    expect(LETTER_CARRIER_BOUNDS.sh).toBe(289);
 
     // CHECKPOINT_BOUNDS
     expect(Object.isFrozen(CHECKPOINT_BOUNDS)).toBe(true);
-    expect(CHECKPOINT_BOUNDS.sx).toBe(334);
-    expect(CHECKPOINT_BOUNDS.sy).toBe(116);
-    expect(CHECKPOINT_BOUNDS.sw).toBe(636);
-    expect(CHECKPOINT_BOUNDS.sh).toBe(1056);
+    expect(CHECKPOINT_BOUNDS.sx).toBe(134);
+    expect(CHECKPOINT_BOUNDS.sy).toBe(46);
+    expect(CHECKPOINT_BOUNDS.sw).toBe(256);
+    expect(CHECKPOINT_BOUNDS.sh).toBe(426);
 
     // FINISH_PORTAL_BOUNDS
     expect(Object.isFrozen(FINISH_PORTAL_BOUNDS)).toBe(true);
-    expect(FINISH_PORTAL_BOUNDS.sx).toBe(175);
-    expect(FINISH_PORTAL_BOUNDS.sy).toBe(58);
-    expect(FINISH_PORTAL_BOUNDS.sw).toBe(902);
-    expect(FINISH_PORTAL_BOUNDS.sh).toBe(1135);
+    expect(FINISH_PORTAL_BOUNDS.sx).toBe(70);
+    expect(FINISH_PORTAL_BOUNDS.sy).toBe(23);
+    expect(FINISH_PORTAL_BOUNDS.sw).toBe(363);
+    expect(FINISH_PORTAL_BOUNDS.sh).toBe(457);
 
     // All dimensions must be positive (every crop rectangle has non-zero area)
     for (const bounds of [LETTER_CARRIER_BOUNDS, CHECKPOINT_BOUNDS, FINISH_PORTAL_BOUNDS]) {
@@ -80,5 +82,21 @@ describe('asset bounds', () => {
     // Each constant has a distinct origin point, so swapping them would fail
     expect(LETTER_CARRIER_BOUNDS.sx).not.toBe(CHECKPOINT_BOUNDS.sx);
     expect(FINISH_PORTAL_BOUNDS.sx).not.toBe(LETTER_CARRIER_BOUNDS.sx);
+  });
+});
+describe('finishPortalPosition', () => {
+  it('stands on the ground near the right edge by default', () => {
+    expect(finishPortalPosition({ worldWidth: 1920, worldHeight: 540 })).toEqual({
+      x: 1790,
+      y: 540 - 92 - FINISH_PORTAL_SIZE.h,
+    });
+  });
+
+  it('falls back to a default world size when the level has none', () => {
+    expect(finishPortalPosition({})).toEqual(finishPortalPosition({ worldWidth: 1920, worldHeight: 540 }));
+  });
+
+  it('honours an explicit position from the level file', () => {
+    expect(finishPortalPosition({ finish: { x: 300, y: 200 }, worldWidth: 1920 })).toEqual({ x: 300, y: 200 });
   });
 });

@@ -1,4 +1,5 @@
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 import type { Unit, Lesson } from '../../content/curriculum-model.js';
 import { vibrateTap } from '../../input/haptics.js';
 
@@ -17,19 +18,18 @@ function UnitGroup({ unit, isUnlocked, onPick }: { unit: Unit; isUnlocked: (id: 
       <div className="lesson-picker-grid">
         {lessons.length > 0 ? (
           lessons.map((lesson) => (
-            <button
+            <MenuButton
               key={lesson.id}
-              type="button"
-              tabIndex={-1}
+
               className="btn-retro lesson-pick-btn"
-              onClick={blurOnClick(() => {
+              onClick={() => {
                 vibrateTap();
                 onPick(lesson.id);
-              })}
+              }}
             >
               <span className="lesson-target">{lesson.target}</span>
               <span className="lesson-badge" aria-hidden="true">⭐</span>
-            </button>
+            </MenuButton>
           ))
         ) : (
           <p className="lesson-unit-locked">Conclua a fase anterior para liberar.</p>
@@ -51,9 +51,9 @@ function LessonPickerScreen({ units, isUnlocked, onPick, onBack }: LessonPickerO
           ))}
         </div>
         <div className="overlay-actions lesson-picker-actions">
-          <button type="button" tabIndex={-1} className="btn-retro btn-primary-gold" onClick={blurOnClick(onBack)}>
+          <MenuButton className="btn-retro btn-primary-gold" onClick={onBack}>
             Voltar ao Menu
-          </button>
+          </MenuButton>
         </div>
       </div>
     </div>
@@ -61,6 +61,5 @@ function LessonPickerScreen({ units, isUnlocked, onPick, onBack }: LessonPickerO
 }
 
 export function buildLessonPickerScreen(options: LessonPickerOptions) {
-  const { node, cleanup } = mountScreen(<LessonPickerScreen {...options} />);
-  return { node, primary: options.onBack, back: options.onBack, cleanup };
+  return buildScreen(<LessonPickerScreen {...options} />, { primary: options.onBack, back: options.onBack });
 }

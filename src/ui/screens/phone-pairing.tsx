@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { mountScreen, blurOnClick } from './mount-screen.js';
+import { buildScreen } from './mount-screen.js';
+import { MenuButton } from './menu-button.js';
 
 export type PairingStatus = 'waiting' | 'paired' | 'disconnected' | 'error';
 
@@ -117,28 +118,25 @@ function PhonePairingScreen({
       <div className="overlay-actions">
         {status === 'paired' ? (
           <>
-            <button className="btn-retro btn-primary-gold" type="button" tabIndex={-1} onClick={blurOnClick(onPlay)}>
+            <MenuButton className="btn-retro btn-primary-gold" onClick={onPlay}>
               Jogar fases
-            </button>
-            <button className="btn-retro btn-secondary-green" type="button" tabIndex={-1} onClick={blurOnClick(onSpeedrun)}>
+            </MenuButton>
+            <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>
               ⚡ Speed Run
-            </button>
+            </MenuButton>
           </>
         ) : null}
-        <button className="btn-retro btn-secondary-green" type="button" tabIndex={-1} onClick={blurOnClick(onBack)}>
+        <MenuButton className="btn-retro btn-secondary-green" onClick={onBack}>
           Voltar
-        </button>
+        </MenuButton>
       </div>
     </div>
   );
 }
 
 export function buildPhonePairingScreen(options: PhonePairingOptions) {
-  const { node, cleanup } = mountScreen(<PhonePairingScreen {...options} />);
-  return {
-    node,
+  return buildScreen(<PhonePairingScreen {...options} />, {
     primary: options.status === 'paired' ? options.onPlay : null,
     back: options.onBack,
-    cleanup,
-  };
+  });
 }

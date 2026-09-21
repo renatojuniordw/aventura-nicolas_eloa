@@ -148,7 +148,7 @@ src/
 └── scenes/       boot, menu, game, victory
 
 docs/             documentação completa em português
-public/assets/    arte de produção (pixel art) — personagens, cenários, itens
+public/assets/    arte de produção (pixel art, WebP) — personagens, cenários, itens
 public/fonts/     fonte pixel art self-hosted (OFL 1.1) + licença
 public/icons/     ícones do PWA (gerados por tools/generate-pwa-icons.mjs)
 tools/            gerador de fases e de ícones do PWA
@@ -173,7 +173,7 @@ Nginx na VPS (`docker/nginx-vps.conf`) faz proxy reverso com rate limiting e TLS
 Este projeto foi inspirado em
 [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras), de Samara
 Meneses (licença MIT). Daí em diante seguiu um caminho próprio, com outra proposta e
-outras mecânicas. Os cenários, itens, objetos e tiles de terreno em `public/assets/` vêm
+outras mecânicas. Os cenários, itens e objetos em `public/assets/` vêm
 desse projeto e estão sob a licença MIT dela — ver
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
