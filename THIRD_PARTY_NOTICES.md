@@ -3,8 +3,7 @@
 ## Aventura das Letras
 
 Parte dos assets em `public/assets/` foi copiada do projeto
-[Aventura das Letras](https://github.com/samarameneses/aventura-das-letras)
-(importada por `tools/import-remote-assets.mjs`):
+[Aventura das Letras](https://github.com/samarameneses/aventura-das-letras):
 
 - `public/assets/manifest.json`
 - `public/assets/backgrounds/` (todos os fundos)
