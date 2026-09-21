@@ -1,9 +1,12 @@
 import { getLevelData } from '../content/level-registry.js';
 import { loadLevel, deepFreeze } from '../content/level-loader.js';
 import type { Box } from '../physics/aabb.js';
+import { GAMEPLAY } from '../core/config.js';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const SEGMENT_WIDTH = 1920; // 60 tiles * 32px
+/** The target is preferably placed within this segment-local x (first ~60%). */
+const EARLY_TARGET_MAX_X = 1150;
 
 const TEMPLATE_IDS = [
   'fase-alfabeto-a', // 0: Planície
@@ -55,52 +58,81 @@ interface Spot {
   y: number;
 }
 
+interface SupportBox {
+  x: number;
+  y: number;
+  w: number;
+}
+
+const ITEM_SIZE = 32;
+const PLAYER_HEIGHT = 42;
+/** Rise of the shortest possible jump (a quick tap): (v * cut)^2 / 2g ~= 26px. */
+const TAP_JUMP_RISE = 26;
+
+/**
+ * True when a quick tap of the jump button is enough to touch an item at `spot`:
+ * a player standing on the surface below it must reach the item's (pickup-margin
+ * inflated) bottom edge, yet never touch it just by walking.
+ */
+export function isTapReachable(spot: Spot, supports: SupportBox[]): boolean {
+  let top = Infinity;
+  for (const box of supports) {
+    const below = box.y >= spot.y + ITEM_SIZE;
+    const under = spot.x < box.x + box.w && spot.x + ITEM_SIZE > box.x;
+    if (below && under && box.y < top) top = box.y;
+  }
+  if (top === Infinity) return false;
+  const standingTop = top - PLAYER_HEIGHT;
+  const reachBottom = spot.y + ITEM_SIZE + GAMEPLAY.itemPickupMargin;
+  return standingTop - TAP_JUMP_RISE < reachBottom && reachBottom < standingTop;
+}
+
 /**
  * Candidate item spots for each template (relative to segment start X).
  * Heights (y) vary from ground jumps (~310..320) to elevated platforms (~200..250).
  * All spots are positioned away from hazards (such as spikes) and pit gaps.
  */
 const CANDIDATE_SPOTS: Spot[][] = [
-  // 0: Planície (ground jumps at y: 310..320; platform jumps at y: 220..250)
+  // 0: Planície (ground jumps at y: 340; platform jumps at y: 220..250)
   [
-    { x: 340, y: 320 },
-    { x: 580, y: 310 },
+    { x: 340, y: 340 },
+    { x: 580, y: 340 },
     { x: 880, y: 250 },
     { x: 960, y: 220 },
     { x: 1040, y: 250 },
-    { x: 1320, y: 320 },
-    { x: 1620, y: 310 },
+    { x: 1320, y: 340 },
+    { x: 1620, y: 340 },
   ],
   // 1: Degraus (all items positioned above walking height)
   [
-    { x: 320, y: 320 },
+    { x: 320, y: 340 },
     { x: 680, y: 260 },
     { x: 880, y: 250 },
     { x: 1280, y: 200 },
     { x: 1440, y: 190 },
     { x: 1580, y: 240 },
-    { x: 1740, y: 320 },
+    { x: 1740, y: 340 },
   ],
   // 2: Plataformas (floating platforms and safe ground jumps, safely away from spikes at x:1152..1216)
   [
-    { x: 260, y: 320 },
+    { x: 260, y: 340 },
     { x: 420, y: 240 },
     { x: 500, y: 230 },
-    { x: 740, y: 320 },
+    { x: 740, y: 340 },
     { x: 940, y: 220 },
     { x: 1420, y: 230 },
     { x: 1520, y: 220 },
-    { x: 1700, y: 320 },
+    { x: 1700, y: 340 },
   ],
   // 3: Rio (elevated jumps over solid ground, safely away from river gap at x:832..960)
   [
-    { x: 320, y: 320 },
-    { x: 600, y: 310 },
-    { x: 740, y: 290 },
-    { x: 1040, y: 290 },
-    { x: 1160, y: 320 },
-    { x: 1400, y: 310 },
-    { x: 1680, y: 320 },
+    { x: 320, y: 340 },
+    { x: 600, y: 340 },
+    { x: 740, y: 340 },
+    { x: 1040, y: 340 },
+    { x: 1160, y: 340 },
+    { x: 1400, y: 340 },
+    { x: 1680, y: 340 },
   ],
 ];
 
@@ -210,8 +242,18 @@ export function buildSpeedrunCourse({ random = Math.random }: BuildSpeedrunCours
     const spotCandidates = safeSpots.length >= 4 ? safeSpots : rawSpots;
     const shuffledSpots = shuffle(spotCandidates, random);
 
-    // Pick 3 distractors from alphabet excluding current target letter
-    const distractorCandidates = ALPHABET.filter((l) => l !== letter);
+    // The target must be grabbable with a quick tap (kids tap, they don't hold) and
+    // sit in the first part of the segment so the next letter never takes minutes.
+    const supports: SupportBox[] = [...template.solids, ...template.oneWayPlatforms];
+    const reachable = shuffledSpots.filter((s) => isTapReachable(s, supports));
+    const targetSpot =
+      reachable.find((s) => s.x <= EARLY_TARGET_MAX_X) ?? reachable[0] ?? shuffledSpots[0];
+    const orderedSpots = [targetSpot, ...shuffledSpots.filter((s) => s !== targetSpot)];
+
+    // Pick 3 distractors excluding this letter and its neighbours, so a look-alike
+    // of the current target never sits next to the real one (or the next segment's).
+    const neighbours = new Set([letter, ALPHABET[i - 1], ALPHABET[i + 1]]);
+    const distractorCandidates = ALPHABET.filter((l) => !neighbours.has(l));
     const chosenDistractors = shuffle(distractorCandidates, random).slice(0, 3);
 
     // 1 Target + 3 Distractors
@@ -224,7 +266,7 @@ export function buildSpeedrunCourse({ random = Math.random }: BuildSpeedrunCours
 
     // Distribute among the shuffled spots
     for (let k = 0; k < itemConfigs.length; k += 1) {
-      const spot = shuffledSpots[k % shuffledSpots.length];
+      const spot = orderedSpots[k % orderedSpots.length];
       const jitterX = Math.floor((random() - 0.5) * 20);
       let localX = spot.x + jitterX;
       // If jitter moved the item too close to a hazard, discard jitter

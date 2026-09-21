@@ -53,6 +53,9 @@ interface EnterParams {
  * It is the only place that connects input -> gameplay -> rules, which keeps
  * every one of those pieces independent and testable.
  */
+/** Minimum seconds between "letter comes later" hints while touching a future letter. */
+const FUTURE_HINT_INTERVAL = 1.2;
+
 export class GameScene extends Scene {
   physics = new PhysicsEngine();
   private _unsubscribers: Array<() => void> = [];
@@ -77,6 +80,7 @@ export class GameScene extends Scene {
   alphabet?: string[];
   currentIndex = 0;
   speedrunElapsed = 0;
+  private _lastFutureHintAt = -Infinity;
 
   override enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null }: EnterParams = {}): void {
     this.mode = mode;
@@ -91,6 +95,7 @@ export class GameScene extends Scene {
       this.alphabet = course.alphabet;
       this.currentIndex = 0;
       this.speedrunElapsed = speedrunState?.elapsed ?? 0;
+      this._lastFutureHintAt = -Infinity;
 
       const firstLetter = this.alphabet![0];
       this.lesson = this.game.curriculum?.getLesson?.(`alfabeto-${firstLetter.toLowerCase()}`) ?? {
@@ -290,11 +295,15 @@ export class GameScene extends Scene {
   onItemCollected(item: LevelItem & { segmentIndex?: number; label?: string }): void {
     if (this.mode === 'speedrun' && item.segmentIndex != null && item.segmentIndex > this.currentIndex) {
       this.levelManager.collected.delete(item.id);
-      this.hudModel.showFeedback(
-        FeedbackKind.WRONG,
-        `Ops! Colete a letra "${this.lesson.target}" primeiro!`,
-        1.2,
-      );
+      // The item stays overlapped for many frames: hint once per feedback window, not every frame.
+      if (this.speedrunElapsed - this._lastFutureHintAt >= FUTURE_HINT_INTERVAL) {
+        this._lastFutureHintAt = this.speedrunElapsed;
+        this.hudModel.showFeedback(
+          FeedbackKind.WRONG,
+          `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`,
+          FUTURE_HINT_INTERVAL,
+        );
+      }
       return;
     }
 

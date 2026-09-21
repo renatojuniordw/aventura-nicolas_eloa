@@ -1,6 +1,11 @@
 import { overlap, type Box } from '../physics/aabb.js';
+import { GAMEPLAY } from '../core/config.js';
 import { Events, type EventBus } from '../core/event-bus.js';
 import type { Body } from '../physics/physics-engine.js';
+
+function inflate(box: Box, margin: number): Box {
+  return { x: box.x - margin, y: box.y - margin, w: box.w + margin * 2, h: box.h + margin * 2 };
+}
 
 export interface Point {
   x: number;
@@ -94,7 +99,7 @@ export class LevelManager {
   private _checkItems(body: Body): void {
     for (const item of this.level.items) {
       if (this.collected.has(item.id)) continue;
-      if (overlap(body, item)) {
+      if (overlap(body, inflate(item, GAMEPLAY.itemPickupMargin))) {
         this.collected.add(item.id);
         this._bus?.emit(Events.ITEM_COLLECTED, { item });
       }

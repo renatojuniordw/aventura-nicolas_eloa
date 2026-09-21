@@ -57,6 +57,8 @@ export const GAMEPLAY = Object.freeze({
   wrongFeedbackDuration: 1.2,
   /** Seconds a completed level celebrates before advancing. */
   celebrationDuration: 2.2,
+  /** Extra pixels around each item that still count as touching it (forgiving for tap jumps). */
+  itemPickupMargin: 12,
 });
 
 export const COLORS = Object.freeze({

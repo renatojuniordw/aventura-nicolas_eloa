@@ -16,6 +16,13 @@ const LEVEL = {
 const body = (x, y) => ({ x, y, w: 30, h: 42 });
 
 describe('LevelManager', () => {
+  it('collects an item the body only barely misses (forgiving pickup margin)', () => {
+    const manager = new LevelManager({ level: LEVEL });
+    // Body bottom is 8px above the item's top edge: a plain overlap would miss.
+    manager.update({ body: body(100, 100 - 42 - 8) });
+    expect(manager.collected.has('target')).toBe(true);
+  });
+
   it('emits ITEM_COLLECTED once per item', () => {
     const bus = new EventBus();
     const onCollected = vi.fn();

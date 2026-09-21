@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildSpeedrunCourse,
   isSafeFromHazards,
+  isTapReachable,
   MIN_HAZARD_DISTANCE,
 } from './speedrun-course.js';
 
@@ -44,7 +45,6 @@ describe('SpeedrunCourse', () => {
 
     // Positions should differ based on random generator
     expect(target1.x).not.toBe(target2.x);
-    expect(target1.y).not.toBe(target2.y);
   });
 
   it('places all items high enough so that a walking player cannot reach them without jumping', () => {
@@ -106,5 +106,29 @@ describe('SpeedrunCourse', () => {
       }
     }
   });
-});
 
+  it('places every target where a quick jump tap can reach it, for any random seed', () => {
+    for (let seed = 1; seed <= 100; seed += 1) {
+      let state = seed;
+      const random = () => {
+        state = (state * 16807) % 2147483647;
+        return state / 2147483647;
+      };
+      const course = buildSpeedrunCourse({ random });
+      const supports = [...course.solids, ...course.oneWayPlatforms];
+      for (const t of course.items.filter((item) => item.type === 'target')) {
+        expect(isTapReachable(t, supports)).toBe(true);
+      }
+    }
+  });
+
+  it('never repeats the target letter of a neighbouring segment as a distractor', () => {
+    const course = buildSpeedrunCourse();
+    for (const d of course.items.filter((item) => item.type === 'distractor')) {
+      const neighbours = [d.segmentIndex - 1, d.segmentIndex, d.segmentIndex + 1].map(
+        (i) => course.alphabet[i],
+      );
+      expect(neighbours).not.toContain(d.label);
+    }
+  });
+});

@@ -304,7 +304,23 @@ describe('GameScene (unit)', () => {
     // Should stay in current segment and show WRONG feedback
     expect(scene.currentIndex).toBe(0);
     expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.WRONG);
-    expect(scene.hudModel.feedback.message).toContain('primeiro');
+    expect(scene.hudModel.feedback.message).toContain('mais à frente');
+  });
+
+  it('shows the future-letter hint once per window, not on every overlapping frame', () => {
+    const game = makeFakeGame();
+    const scene = enterSpeedrun(game);
+    const futureItem = scene.level.items.find(
+      (item) => item.type === 'target' && item.segmentIndex === 3,
+    );
+
+    scene.onItemCollected(futureItem);
+    scene.hudModel.showFeedback(FeedbackKind.CORRECT, 'marker', 1);
+    scene.speedrunElapsed += 0.1;
+    scene.onItemCollected(futureItem);
+
+    expect(scene.hudModel.feedback.message).toBe('marker');
+    expect(scene.levelManager.collected.has(futureItem.id)).toBe(false);
   });
 
   it('wires pause menu restart for normal mode and speedrun mode', () => {
