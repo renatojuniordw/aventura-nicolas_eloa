@@ -50,4 +50,25 @@ describe('HudModel', () => {
     expect(model.timer).toBe(15.2);
     expect(model.speedrunProgress).toBe('6/26');
   });
+
+  it('exposes word board slots that fill in as letters are found', () => {
+    const model = new HudModel();
+    expect(model.boardSlots).toEqual([]);
+
+    const letters = Array.from('REGADOR');
+    model.setWordBoard(letters, 0);
+    expect(model.boardSlots).toHaveLength(7);
+    expect(model.boardSlots.every((slot) => !slot.revealed)).toBe(true);
+    expect(model.boardSlots[0].isNext).toBe(true);
+
+    model.setWordBoard(letters, 2);
+    expect(model.boardSlots.map((slot) => slot.revealed)).toEqual([
+      true, true, false, false, false, false, false,
+    ]);
+    expect(model.boardSlots[2].isNext).toBe(true);
+
+    model.setWordBoard(letters, 99);
+    expect(model.boardSlots.every((slot) => slot.revealed)).toBe(true);
+    expect(model.boardSlots.some((slot) => slot.isNext)).toBe(false);
+  });
 });

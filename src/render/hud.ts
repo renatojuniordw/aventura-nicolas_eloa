@@ -28,7 +28,38 @@ export class Hud {
     if (model.isSpeedrun) {
       this._drawSpeedrun(model);
     }
+    this._drawWordBoard(model);
     this._drawFeedback(model);
+  }
+
+  /** Show-do-Milhão style letter slots: blanks that fill in as letters are found. */
+  private _drawWordBoard(model: HudModel): void {
+    const slots = model.boardSlots;
+    if (slots.length === 0) return;
+    const { size, gap, y } = this._boardLayout(slots.length);
+    const total = size * slots.length + gap * (slots.length - 1);
+    const startX = this.viewport.width / 2 - total / 2;
+    const border = 2;
+    const height = size * 1.15;
+
+    slots.forEach((slot, index) => {
+      const x = startX + index * (size + gap);
+      const gold = slot.revealed || slot.isNext ? '#ffd166' : 'rgba(255, 209, 102, 0.55)';
+      this.renderer.screenRoundRect(x - border, y - border, size + border * 2, height + border * 2, 9, gold);
+      this.renderer.screenRoundRect(x, y, size, height, 8, 'rgba(18, 30, 74, 0.82)');
+      this.renderer.screenText(slot.revealed ? slot.char : '_', x + size / 2, y + height / 2, {
+        color: slot.revealed ? '#ffd166' : 'rgba(255, 255, 255, 0.7)',
+        font: `bold ${Math.round(size * 0.6)}px "Trebuchet MS", sans-serif`,
+      });
+    });
+  }
+
+  /** Board sits right under the objective banner, above the player's jump arc. */
+  private _boardLayout(count: number): { size: number; gap: number; y: number; bottom: number } {
+    const gap = 5;
+    const size = Math.min(40, (this.viewport.width - 320 - gap * (count - 1)) / count);
+    const y = 64;
+    return { size, gap, y, bottom: y + size * 1.15 + 2 };
   }
 
   private _drawLevelName(model: HudModel): void {
@@ -93,7 +124,8 @@ export class Hud {
     const color = isCorrect ? 'rgba(46, 125, 50, 0.92)' : 'rgba(163, 46, 46, 0.92)';
     const width = Math.max(240, model.feedback.message.length * 10 + 40);
     const x = this.viewport.width / 2 - width / 2;
-    const y = 74;
+    const boardCount = model.wordLetters.length;
+    const y = boardCount > 0 ? this._boardLayout(boardCount).bottom + 10 : 74;
     this.renderer.screenRoundRect(x, y, width, 40, 10, color);
     this.renderer.screenText(model.feedback.message, this.viewport.width / 2, y + 20, {
       color: '#ffffff',

@@ -41,6 +41,9 @@ export class HudModel {
   speedrunProgress: string;
   showTimer: boolean;
   feedback: Feedback;
+  /** Letters of the word being spelled (Explorar); empty hides the board. */
+  wordLetters: string[];
+  revealedCount: number;
 
   constructor({
     objective = '',
@@ -61,6 +64,22 @@ export class HudModel {
     this.speedrunProgress = speedrunProgress;
     this.showTimer = showTimer;
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
+    this.wordLetters = [];
+    this.revealedCount = 0;
+  }
+
+  setWordBoard(letters: readonly string[], revealedCount: number): void {
+    this.wordLetters = [...letters];
+    this.revealedCount = Math.max(0, Math.min(revealedCount, letters.length));
+  }
+
+  /** Word board slots left to right; `isNext` marks the letter to find now. */
+  get boardSlots(): { char: string; revealed: boolean; isNext: boolean }[] {
+    return this.wordLetters.map((char, index) => ({
+      char,
+      revealed: index < this.revealedCount,
+      isNext: index === this.revealedCount,
+    }));
   }
 
   setTimer(timer: number): void {

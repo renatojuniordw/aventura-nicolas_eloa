@@ -186,6 +186,7 @@ export class GameScene extends Scene {
       timer: this.speedrunElapsed,
       speedrunProgress: progressText,
     });
+    if (this.exploreRun) this._syncExploreBoard(this.exploreRun);
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
     // Fire-and-forget like the boot preload: until the images land, SpriteRenderer
     // draws its solid-colour / placeholder fallbacks instead of blocking the level.
@@ -463,9 +464,14 @@ export class GameScene extends Scene {
     this.winLevel();
   }
 
+  private _syncExploreBoard(run: ExploreRun): void {
+    this.hudModel.setWordBoard(run.currentWordLetters, run.currentLetterIndex);
+  }
+
   /** Explore advance: next letter of the same word, the next word, or session victory. */
   private _advanceExplore(run: ExploreRun): void {
     const wordComplete = run.collectLetter();
+    this._syncExploreBoard(run);
 
     if (!wordComplete) {
       const nextLetter = run.currentLetter;
@@ -489,6 +495,7 @@ export class GameScene extends Scene {
 
       this.hudModel.setObjective(`Monte a palavra: ${run.currentWord.label}`);
       this.hudModel.setSpeedrunProgress(run.progressText);
+      this._syncExploreBoard(run);
       this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você descobriu ${completedWord}!`, 1.2);
       return;
     }
