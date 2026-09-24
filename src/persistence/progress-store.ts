@@ -86,11 +86,20 @@ export class ProgressStore {
     return entry;
   }
 
+  recordDiscovery(profileId: string, discoveryId: string): void {
+    this._saves.update((doc) => {
+      const profile = doc.profiles[profileId];
+      if (!profile) return;
+      profile.discoveries = [...new Set([...(profile.discoveries ?? []), discoveryId])];
+    });
+  }
+
   resetProgress(profileId: string) {
     return this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
       if (!profile) return null;
       profile.progress = {};
+      profile.discoveries = [];
       profile.stats = { correct: 0, wrong: 0 };
       delete profile.speedrunBestTime;
       return profile;

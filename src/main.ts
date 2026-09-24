@@ -1,5 +1,7 @@
+import { ExplorationScene } from './scenes/exploration-scene.js';
+import { initMobilePresentation } from './ui/mobile-presentation.js';
 import { DEBUG } from './core/debug-flag.js';
-import { EventBus } from './core/event-bus.js';
+import { EventBus, Events } from './core/event-bus.js';
 import { GameLoop } from './core/game-loop.js';
 import { SceneManager } from './core/scene-manager.js';
 import { InputManager } from './input/input-manager.js';
@@ -64,6 +66,7 @@ export interface GameContext {
   phoneControl: PhoneControlCoordinator;
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
+  startExploration(): void;
   // `scenes` and `loop` can only be constructed once `game` itself exists
   // (SceneManager needs a `game` reference to hand to every Scene), so both
   // are attached right after this object is built, mutating it in place —
@@ -175,6 +178,7 @@ export function createGame({
       scenes.switchTo('game', { lessonId, ...options });
     },
     /** Start a continuous speedrun through the alphabet lessons (A to Z). */
+    startExploration() { scenes.switchTo('exploration'); },
     startSpeedrun() {
       const course = buildSpeedrunCourse();
       scenes.switchTo('game', {
@@ -192,6 +196,7 @@ export function createGame({
   scenes.register('boot', BootScene);
   scenes.register('menu', MenuScene);
   scenes.register('game', GameScene);
+  scenes.register('exploration', ExplorationScene);
   scenes.register('victory', VictoryScene);
 
   const loop = new GameLoop({
@@ -234,6 +239,13 @@ if (bootCanvas && bootOverlay) {
     hudControlsRoot: bootHudControls as HTMLElement | null,
     touchControlsRoot: bootTouchControls as HTMLElement | null,
   });
+  initMobilePresentation({
+    bus: game.bus, isTouch: game.device.isTouch,
+    pause: () => game.bus.emit(Events.APP_BLURRED, undefined),
+    resetInput: () => game.input.reset(),
+    goToMenu: () => game.scenes.switchTo('menu'),
+  });
+  document.body.dataset.scene = game.scenes.currentName ?? 'boot';
   game.loop.start();
   void initPwaUpdates(game);
 

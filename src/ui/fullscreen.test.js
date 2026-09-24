@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from './fullscreen.js';
+import { enterFullscreen, isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from './fullscreen.js';
 
 describe('fullscreen helper', () => {
   let originalExitFullscreen;
@@ -18,6 +18,7 @@ describe('fullscreen helper', () => {
       value: null,
       configurable: true,
     });
+    delete document.fullscreenEnabled;
   });
 
   it('detects when fullscreen is supported', () => {
@@ -52,6 +53,16 @@ describe('fullscreen helper', () => {
     const result = await toggleFullscreen();
     expect(requestFullscreenMock).toHaveBeenCalled();
     expect(result).toBe(true);
+  });
+
+  it('reports unsupported instead of claiming fullscreen', async () => {
+    document.documentElement.requestFullscreen = undefined;
+    Object.defineProperty(document, 'fullscreenEnabled', {
+      value: false,
+      configurable: true,
+    });
+
+    await expect(enterFullscreen()).resolves.toBe(false);
   });
 
   it('exits fullscreen when currently active', async () => {

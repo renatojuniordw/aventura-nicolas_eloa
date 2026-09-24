@@ -25,6 +25,7 @@ export interface Profile {
   progress: Record<string, ProgressEntry>;
   stats: { correct: number; wrong: number };
   speedrunBestTime?: number | null;
+  discoveries?: string[];
 }
 
 export interface SaveDocument {
@@ -139,6 +140,7 @@ export function normalizeDocument(doc: Record<string, unknown>): SaveDocument {
       characterId: (p.characterId as string) ?? DEFAULT_CHARACTER_ID,
       createdAt: Number.isFinite(p.createdAt) ? (p.createdAt as number) : null,
       progress: normalizeProgress(p.progress),
+      discoveries: Array.isArray(p.discoveries) ? [...new Set(p.discoveries.filter((id): id is string => typeof id === 'string'))] : [],
       stats: {
         correct: Number(stats?.correct) || 0,
         wrong: Number(stats?.wrong) || 0,

@@ -33,6 +33,15 @@ describe('UpdateController', () => {
     expect(applyUpdate).toHaveBeenCalledTimes(1);
   });
 
+  it('also preserves a free exploration session until the menu', () => {
+    const { controller, applyUpdate, go } = setup('exploration');
+    controller.onUpdateReady();
+    controller.apply();
+    expect(applyUpdate).not.toHaveBeenCalled();
+    go('menu');
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+  });
+
   it('applies when hidden outside gameplay', () => {
     const { controller, applyUpdate } = setup('victory');
     controller.onUpdateReady();

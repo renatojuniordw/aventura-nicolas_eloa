@@ -173,9 +173,10 @@ Referência: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum
 
 ## 4. Novo modo: Quintal de descobertas
 
-### Proposta
+### Estado implementado
 
-Uma área segura, curta e revisitada livremente. A criança anda e pula; cada
+O primeiro recorte agora está disponível no menu como **Explorar o quintal**. É uma
+área segura, curta e revisitada livremente. A criança anda e pula; cada
 objeto responde com uma descoberta. Não há resposta errada, cronômetro,
 corações, ordem obrigatória ou bloqueio por desempenho.
 
@@ -186,9 +187,9 @@ pular em uma poça cria ondas. O jogo ensina por associação e causa/efeito.
 Aprender continua exigindo atenção, mas deixa de exigir uma resposta correta
 a uma pergunta. Esse é o objetivo do modo livre.
 
-### Primeiro recorte
+### Primeiro recorte entregue
 
-- Um cenário, com 6–8 objetos e sem buracos perigosos.
+- Um cenário, com 6 objetos e sem buracos perigosos.
 - Interação por aproximação/coleta ou aterrissagem, sem um novo botão.
 - Palavra, imagem e voz sincronizadas.
 - Intervalo entre ativações, evitando disparos contínuos por colisão.
@@ -197,7 +198,7 @@ a uma pergunta. Esse é o objetivo do modo livre.
 - Repetição livre; sair a qualquer momento, sem tela de derrota.
 - Nenhuma exigência de descobrir tudo para terminar ou liberar outra área.
 
-Validar com a criança: ela entende que pode explorar sem instrução verbal do
+O próximo passo é validar com crianças e responsáveis: ela entende que pode explorar sem instrução verbal do
 adulto? Repete uma interação espontaneamente? A voz acompanha a ação sem
 atrasar? Consegue sair e retornar sozinha?
 

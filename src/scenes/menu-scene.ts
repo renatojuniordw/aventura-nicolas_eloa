@@ -1,3 +1,4 @@
+import { Actions } from '../input/actions.js';
 import { Scene } from '../core/scene.js';
 import { COLORS } from '../core/config.js';
 import { DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
@@ -64,6 +65,7 @@ export class MenuScene extends Scene {
       });
       return;
     }
+    if (menu.offerFullscreen?.({ onDone: () => this.render() })) return;
     const activeProfile = resolved.profile;
 
     const { lessonOrder, getLesson } = this.game.curriculum;
@@ -82,6 +84,7 @@ export class MenuScene extends Scene {
       currentLessonTitle: discoveryTitle,
       speedrunBestTime: activeProfile ? progress.getSpeedrunBestTime(activeProfile.id) : null,
       onPlay: () => this.playNext(),
+      onExplore: () => this.game.startExploration(),
       onSpeedrun: () => this.startSpeedrun(),
       onSelectProfile: (profileId: string) => {
         profiles.setActiveProfile(profileId);
@@ -251,6 +254,7 @@ export class MenuScene extends Scene {
       this.render();
       return;
     }
+    if (this.game.input.consumePressed(Actions.PAUSE)) this.game.menu.triggerBack();
     pumpMenuKeys(this.game);
   }
 

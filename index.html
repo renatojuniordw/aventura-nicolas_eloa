@@ -18,6 +18,7 @@
     <!-- Pixel font is self-hosted in /fonts (see @font-face in main.css). -->
     <link rel="stylesheet" href="/src/styles/main.css" />
     <link rel="stylesheet" href="/src/styles/touch-controls.css" />
+    <link rel="stylesheet" href="/src/styles/mobile.css" />
   </head>
   <body>
     <!-- Game world is rendered on the canvas; menus are accessible DOM overlays. -->
@@ -88,7 +89,8 @@
     <!-- Touch devices in portrait: gameplay is landscape-only (see main.css). -->
     <div class="orientation-warning" role="alert">
       <span class="orientation-warning-icon" aria-hidden="true">📱</span>
-      <p>Gire o celular para jogar. O jogo funciona apenas na horizontal.</p>
+      <p>Gire o celular para continuar a brincadeira. Sua partida está pausada.</p>
+      <button id="orientation-back" type="button">Voltar ao menu</button>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

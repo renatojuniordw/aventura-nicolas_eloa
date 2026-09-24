@@ -1,3 +1,7 @@
+import { buildExplorationPause } from './screens/exploration-pause.js';
+import { buildFullscreenOffer } from './screens/fullscreen-offer.js';
+import { isFullscreenSupported, isFullscreen } from './fullscreen.js';
+import { isStandalone } from './pwa-install.js';
 import { clear } from './dom.js';
 import { buildMainMenuScreen } from './screens/main-menu.js';
 import { buildCharacterPickerScreen } from './screens/character-picker.js';
@@ -40,6 +44,7 @@ interface MenuOverlayOptions {
 export class MenuOverlay {
   private _root: HTMLElement;
   private _visible = false;
+  private _fullscreenOffered = false;
   private _primary: (() => void) | null = null;
   private _back: (() => void) | null = null;
   private _cleanup: (() => void) | null = null;
@@ -95,6 +100,17 @@ export class MenuOverlay {
   private _show<Options>(build: (options: Options) => ScreenResult, options: Options): void {
     const { node, ...actions } = build(options);
     this._mount(node, actions);
+  }
+
+  showExplorationPause(options: Parameters<typeof buildExplorationPause>[0]): void {
+    this._show(buildExplorationPause, options);
+  }
+
+  offerFullscreen(options: { onDone: () => void }): boolean {
+    if (this._fullscreenOffered || !isFullscreenSupported() || isFullscreen() || isStandalone()) return false;
+    this._fullscreenOffered = true;
+    this._show(buildFullscreenOffer, options);
+    return true;
   }
 
   // --- Screens -------------------------------------------------------------

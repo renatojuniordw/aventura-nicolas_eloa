@@ -28,10 +28,16 @@ implementa o mesmo contrato `InputAdapter` do teclado.
 - A detecção de toque só decide se os botões **aparecem**; a lógica de jogo nunca sabe de
   onde veio a ação, e o `TouchAdapter` continua registrado mesmo em desktop.
 
-O jogo é **paisagem apenas**: em telas de toque no modo retrato, um aviso ("Gire o
-celular para jogar") cobre a tela — ver `.orientation-warning` em `index.html` e
-`src/styles/touch-controls.css`. Isso casa com `orientation: 'landscape'` no manifest do
-PWA (seção 2) e com o viewport fixo de 16:9 do jogo (`VIEWPORT` em `core/config.ts`).
+Os menus se adaptam a retrato e paisagem. Durante jogo, corrida ou exploração, uma tela
+de toque em retrato pausa a atividade e mostra o aviso "Gire o celular para jogar", com
+uma ação para voltar ao menu. O comportamento fica em `src/ui/mobile-presentation.ts`;
+a apresentação está em `index.html`, `src/styles/touch-controls.css` e
+`src/styles/mobile.css`.
+
+Ao abrir no navegador, depois do aviso de privacidade, o jogo oferece tela cheia. O
+pedido acontece somente após o toque da pessoa, como exige a API do navegador, e inclui
+instruções para sair. Se a API não existir, a tela explica a alternativa de instalar ou
+adicionar o jogo à tela inicial. No PWA já aberto em modo standalone, o convite é pulado.
 
 O layout escala com `clamp()`/unidades de viewport para caber em telas de qualquer
 tamanho sem cortar a área de jogo (`src/styles/main.css`).
@@ -50,7 +56,7 @@ VitePWA({
     short_name: 'Nicolas&Eloá',
     lang: 'pt-BR',
     display: 'standalone',
-    orientation: 'landscape',
+    orientation: 'any',
     icons: [ /* 192x192 e 512x512, maskable */ ],
   },
   workbox: { /* ver estratégia de cache abaixo */ },

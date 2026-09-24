@@ -6,9 +6,10 @@ import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChan
 
 interface PauseButtonOptions {
   onPause: () => void;
+  onRepeat?: () => void;
 }
 
-function HudControlsBar({ onPause }: PauseButtonOptions) {
+function HudControlsBar({ onPause, onRepeat }: PauseButtonOptions) {
   const [fullscreen, setFullscreen] = useState(() => isFullscreen());
   const supported = isFullscreenSupported();
 
@@ -18,6 +19,7 @@ function HudControlsBar({ onPause }: PauseButtonOptions) {
 
   return (
     <div className="hud-controls-bar">
+      {onRepeat && <button className="hud-ctrl-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}>♫</button> }
       {supported && (
         <button
           className="hud-ctrl-btn hud-fullscreen-btn"
@@ -72,9 +74,9 @@ export class HudControls {
     this._root = root;
   }
 
-  showPauseButton({ onPause }: PauseButtonOptions): void {
+  showPauseButton({ onPause, onRepeat }: PauseButtonOptions): void {
     this._current?.cleanup();
-    const { node, cleanup } = mountScreen(<HudControlsBar onPause={onPause} />);
+    const { node, cleanup } = mountScreen(<HudControlsBar onPause={onPause} onRepeat={onRepeat} />);
     clear(this._root);
     this._root.append(node);
     this._current = { node, cleanup };

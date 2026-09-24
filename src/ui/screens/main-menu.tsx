@@ -5,8 +5,7 @@ import { CHARACTERS } from '../../content/characters.js';
 import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
-import { promptPwaInstall } from '../pwa-install.js';
-import { useFullscreen, usePwaInstallable } from '../hooks.js';
+import { useFullscreen } from '../hooks.js';
 
 /**
  * Wraps the framework-agnostic celebration canvas (its own rAF loop, unit
@@ -35,6 +34,7 @@ interface MainMenuOptions {
   currentLessonTitle?: string;
   speedrunBestTime?: number | null;
   onPlay: () => void;
+  onExplore?: () => void;
   onSpeedrun: () => void;
   onSelectProfile?: (profileId: string) => void;
   onSelectCharacter?: (characterId: string) => void;
@@ -53,6 +53,7 @@ function MainMenuScreen({
   currentLessonTitle = 'Família B',
   speedrunBestTime = null,
   onPlay,
+  onExplore,
   onSpeedrun,
   onOpenCharacterPicker,
   onOpenLessonPicker,
@@ -66,7 +67,6 @@ function MainMenuScreen({
   const speedrunText = bestTimeStr ? `⚡ Corrida do alfabeto (${bestTimeStr})` : '⚡ Corrida do alfabeto';
 
   const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
-  const installable = usePwaInstallable();
 
   return (
     <div className="overlay home-screen">
@@ -134,6 +134,9 @@ function MainMenuScreen({
               <div className="discovery-target">{currentLessonTitle}</div>
             </div>
             <div className="menu-buttons-group home-btn-group">
+              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
+                <strong>Explorar o quintal</strong><small>Descubra no seu ritmo, sem regras de ordem</small>
+              </MenuButton>}
               <MenuButton
                 className="btn-retro btn-primary-gold"
 
@@ -155,17 +158,6 @@ function MainMenuScreen({
               >
                 Escolher fase
               </MenuButton>
-              {installable && (
-                <MenuButton
-                  className="btn-retro btn-secondary-green pwa-install-btn"
-
-                  onClick={async () => {
-                    await promptPwaInstall();
-                  }}
-                >
-                  📲 Instalar no Celular
-                </MenuButton>
-              )}
               <div className="menu-meta-row home-meta-row">
                 <MenuButton className="btn-util" onClick={onOpenSettings}>
                   ⚙️ Configurações
@@ -181,7 +173,7 @@ function MainMenuScreen({
 
       {/* --- 4. Footer Tips --- */}
       <div className="home-footer-tips">
-        <span className="footer-tip-keyboard">Setas ou controle para escolher · Enter para brincar</span>
+        <span className="footer-tip-keyboard">Tab para escolher · Enter para brincar</span>
         <span className="footer-tip-touch">Toque para escolher · Toque para brincar</span>
       </div>
     </div>

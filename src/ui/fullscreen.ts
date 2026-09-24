@@ -29,6 +29,12 @@ export function isFullscreen(): boolean {
   return Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
 }
 
+export async function enterFullscreen(target?: HTMLElement | null): Promise<boolean> {
+  if (isFullscreen()) return true;
+  if (!isFullscreenSupported()) return false;
+  return toggleFullscreen(target);
+}
+
 export async function toggleFullscreen(target?: HTMLElement | null): Promise<boolean> {
   if (typeof document === 'undefined') return false;
   const doc = document as DocumentWithFullscreen;
@@ -47,6 +53,8 @@ export async function toggleFullscreen(target?: HTMLElement | null): Promise<boo
         await element.requestFullscreen();
       } else if (element.webkitRequestFullscreen) {
         await element.webkitRequestFullscreen();
+      } else {
+        return false;
       }
       return true;
     }

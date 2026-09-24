@@ -10,7 +10,7 @@
 import { Events, type EventBus } from '../core/event-bus.js';
 
 /** Scene during which a reload would lose the player's run. */
-const PLAYING_SCENE = 'game';
+const isPlayingScene = (name: string | null) => name === 'game' || name === 'exploration';
 const MENU_SCENE = 'menu';
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -50,12 +50,12 @@ export class UpdateController {
 
   /** The page was hidden (app minimised, tab switched, phone locked). */
   onHidden(): void {
-    if (this._pending && this._deps.getSceneName() !== PLAYING_SCENE) this.apply();
+    if (this._pending && !isPlayingScene(this._deps.getSceneName())) this.apply();
   }
 
   /** Manual "Atualizar" tap. */
   apply(): void {
-    if (!this._pending || this._applying || this._deps.getSceneName() === PLAYING_SCENE) return;
+    if (!this._pending || this._applying || isPlayingScene(this._deps.getSceneName())) return;
     this._applying = true;
     this._deps.banner.setVisible(false);
     const retry = () => {
@@ -70,7 +70,7 @@ export class UpdateController {
   }
 
   private _syncBanner(sceneName: string | null): void {
-    this._deps.banner.setVisible(this._pending && !this._applying && sceneName !== PLAYING_SCENE);
+    this._deps.banner.setVisible(this._pending && !this._applying && !isPlayingScene(sceneName));
   }
 }
 

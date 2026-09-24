@@ -43,7 +43,7 @@ export default defineConfig({
         display: 'standalone',
         // Gameplay is a fixed 16:9 canvas (see core/config.js VIEWPORT);
         // landscape matches the "gire o celular" guard in touch-controls.css.
-        orientation: 'landscape',
+        orientation: 'any',
         background_color: '#141c24',
         theme_color: '#141c24',
         icons: [
