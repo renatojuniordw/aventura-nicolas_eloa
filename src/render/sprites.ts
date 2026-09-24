@@ -49,6 +49,10 @@ interface RenderLevel {
   worldWidth?: number;
   worldHeight?: number;
   finish?: Point;
+  /** Streamed worlds only show the portal once it exists; undefined keeps the always-on default. */
+  portalActive?: boolean;
+  /** 0 -> 1 while the portal grows into view; undefined means fully shown. */
+  portalReveal?: number;
   [key: string]: unknown;
 }
 
@@ -169,17 +173,23 @@ export class SpriteRenderer {
     // 2. Finish Portal
     const portalImg = this._image<CanvasImageSource>('object:finish-portal');
 
-    if (portalImg && typeof renderer.worldImage === 'function') {
-      const { w: portalW, h: portalH } = FINISH_PORTAL_SIZE;
-      const { x: portalX, y: portalY } = finishPortalPosition(level);
+    if (level.portalActive !== false && portalImg && typeof renderer.worldImage === 'function') {
+      const { w: fullW, h: fullH } = FINISH_PORTAL_SIZE;
+      const { x: fullX, y: fullY } = finishPortalPosition(level);
+      // Grows out of the ground line, centred on its own footprint.
+      const reveal = this._reducedMotion() ? 1 : easeOutBack(level.portalReveal ?? 1);
+      const portalW = fullW * reveal;
+      const portalH = fullH * reveal;
+      const portalX = fullX + (fullW - portalW) / 2;
+      const portalY = fullY + (fullH - portalH);
 
-      // Soft magical portal pulse
+      // Soft magical portal pulse.
       const shimmer = this._reducedMotion() ? 0.85 : Math.sin(now / 320) * 0.15 + 0.85;
       renderer.worldFillRect(
-        portalX + 22,
-        portalY + 20,
-        portalW - 44,
-        portalH - 24,
+        portalX + 22 * reveal,
+        portalY + 20 * reveal,
+        portalW - 44 * reveal,
+        portalH - 24 * reveal,
         `rgba(110, 225, 255, ${shimmer * 0.4})`,
       );
 
@@ -345,6 +355,13 @@ export class SpriteRenderer {
     }
     renderer.worldStrokeRect(player.body.x, player.body.y, player.body.w, player.body.h, '#ff00ff', 2);
   }
+}
+
+/** Overshoots slightly before settling, so the portal "pops" into being. */
+function easeOutBack(t: number): number {
+  const c = 1.70158;
+  const x = Math.min(1, Math.max(0, t)) - 1;
+  return 1 + (c + 1) * x ** 3 + c * x ** 2;
 }
 
 /**

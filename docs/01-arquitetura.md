@@ -225,7 +225,9 @@ src/
 │   │   └── states/                # idle, walk, jump, fall
 │   ├── lives-manager.ts         # corações
 │   ├── level-manager.ts         # itens, perigos, queda dentro da fase
-│   ├── speedrun-course.ts       # curso contínuo A→Z do modo Speed Run
+│   ├── world-stream.ts          # mundo infinito: trechos sob demanda, alvo que reaparece, portal
+│   ├── stream-courses.ts        # fábricas por modo (explorar, corrida A→Z, lição)
+│   ├── speedrun-course.ts       # peças compartilhadas: modelos, pontos de letra, regras de alcance
 │   └── speedrun-run.ts          # progresso de uma corrida (letra atual, relógio, dica)
 ├── render/
 │   ├── canvas-renderer.ts       # única classe que fala com o Canvas 2D

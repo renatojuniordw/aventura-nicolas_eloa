@@ -12,16 +12,18 @@ O jogador escolhe um personagem e atravessa uma fase de plataforma 2D. No topo d
 aparece **o que ele precisa procurar** — uma letra, uma sílaba ou uma palavra. Espalhados
 pela fase existem vários itens; **um deles é a resposta certa** e os outros são distratores.
 
-- **Coletar o item certo** → comemoração (confete) e a fase termina em vitória.
+- **Coletar o item certo** → comemoração (confete). Ao coletar o último item da fase, o **portal** surge à frente; a fase só termina quando o jogador **entra no portal** (efeito de sucção, explosão de confete e flash).
 - **Coletar um item errado** → o jogador perde um coração e continua procurando.
 - **Margem de coleta**: cada item aceita toque com `GAMEPLAY.itemPickupMargin` (12 px)
   ao redor, para que um pulo curto (toque rápido) ainda alcance o item.
 - **Cair em um buraco** → o jogador volta ao *checkpoint* **sem perder coração**.
 
-No modo velocidade (`speedrun-course.ts`), o item certo é sempre posicionado onde um
-toque rápido no pulo o alcança (`isTapReachable`) e na primeira parte do trecho; os
-distratores excluem a letra atual e suas vizinhas no alfabeto, para que um "parecido" nunca
-fique ao lado do alvo.
+O mundo é **infinito** (`world-stream.ts`): trechos dos 4 cenários-modelo são gerados sob demanda,
+sempre à frente do jogador. Só existe **um alvo vivo por vez**; se o jogador passa direto sem
+pegar, o alvo é retirado e **reaparece adiante** (fora da tela), com outras letras no meio. O
+alvo é sempre posicionado onde um toque rápido no pulo o alcança (`isTapReachable`), e os
+distratores excluem a letra atual e suas vizinhas no alfabeto (corrida) ou as letras da palavra
+(explorar). O *checkpoint* acompanha o trecho em que o jogador está.
 
 O objetivo pedagógico é reconhecer letras, sílabas e palavras — então errar não deve ser
 punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.

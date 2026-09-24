@@ -8,16 +8,14 @@ import { PlayerController } from '../gameplay/player/player-controller.js';
 import { LivesManager } from '../gameplay/lives-manager.js';
 import { LevelManager, type Level, type LevelItem, type Point } from '../gameplay/level-manager.js';
 import { AnswerValidator } from '../content/answer-validator.js';
-import { getLevelData } from '../content/level-registry.js';
-import { loadLevel } from '../content/level-loader.js';
 import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
 import { lessonAssets } from '../render/asset-plan.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
-import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
-import { FUTURE_HINT_INTERVAL, SpeedrunRun } from '../gameplay/speedrun-run.js';
-import { buildExploreCourse } from '../gameplay/explore-course.js';
-import { FUTURE_HINT_INTERVAL as EXPLORE_FUTURE_HINT_INTERVAL, ExploreRun } from '../gameplay/explore-run.js';
+import { SpeedrunRun } from '../gameplay/speedrun-run.js';
+import { ALPHABET, createExploreStream, createLessonStream, createSpeedrunStream } from '../gameplay/stream-courses.js';
+import { PORTAL_SIZE, type WorldStream } from '../gameplay/world-stream.js';
+import { ExploreRun } from '../gameplay/explore-run.js';
 import { WORD_BANK } from '../content/word-bank.js';
 import { wordPhaseId, wordPhasePosition } from '../content/word-phases.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
@@ -25,6 +23,10 @@ import type { Lesson } from '../content/curriculum-model.js';
 import { vibrateJump, vibrateCollect, vibrateVictory, vibrateWarning } from '../input/haptics.js';
 import { tryLockLandscape } from '../ui/orientation.js';
 import { pumpMenuKeys, pumpOverlayInput } from '../ui/overlay-input.js';
+
+/** Portal exit timeline (seconds): the player is swallowed, then the screen whitens into the victory. */
+const PORTAL_SWALLOW_AT = 0.55;
+const PORTAL_WIN_SECONDS = 1.7;
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -41,17 +43,16 @@ interface GameLevel extends Level {
   playerStart: Point;
   viewport: unknown;
   camera: { maxX: number; startX: number; smoothing: number };
-  checkpoints?: Point[];
-  alphabet?: string[];
+  worldWidth: number;
 }
 
 interface EnterParams {
   lessonId?: string;
   mode?: 'normal' | 'speedrun' | 'explore';
-  speedrunCourse?: GameLevel | null;
   speedrunState?: { elapsed?: number } | null;
-  exploreCourse?: GameLevel | null;
   exploreRun?: ExploreRun | null;
+  /** Injects the endless world (tests use it for a deterministic layout); built per mode when omitted. */
+  stream?: WorldStream | null;
   /** Word (bank id) for an Explorar phase; defaults to the first word of the bank. */
   wordId?: string;
 }
@@ -73,8 +74,17 @@ export class GameScene extends Scene {
   mistakes = 0;
   status: StatusValue = Status.RUNNING;
   private _winTimer = 0;
+  private _winElapsed = 0;
+  private _winViaPortal = false;
+  private _playerHidden = false;
+  private _shake = 0;
+  /** True once the last target is collected: the world is sealed and the portal is the only way out. */
+  portalOpen = false;
+  private _portalIntroPlayed = false;
+  private _terrainVersion = -1;
   private _gameOverJumpGesture = new JumpConfirmGesture();
 
+  stream!: WorldStream;
   level!: GameLevel;
   lesson!: Lesson;
   validator!: AnswerValidator;
@@ -89,10 +99,6 @@ export class GameScene extends Scene {
   speedrun: SpeedrunRun | null = null;
   /** Progress through one Explorar session; null outside explore mode. */
   exploreRun: ExploreRun | null = null;
-
-  get speedrunCheckpoints(): Point[] | undefined {
-    return this.speedrun?.checkpoints;
-  }
 
   get alphabet(): string[] | undefined {
     return this.speedrun?.alphabet;
@@ -117,30 +123,34 @@ export class GameScene extends Scene {
   override enter({
     lessonId,
     mode = 'normal',
-    speedrunCourse = null,
     speedrunState = null,
-    exploreCourse = null,
     exploreRun = null,
+    stream = null,
     wordId,
   }: EnterParams = {}): void {
     this.mode = mode;
     this.mistakes = 0;
     this.status = Status.RUNNING;
     this._winTimer = 0;
+    this._winElapsed = 0;
+    this._winViaPortal = false;
+    this._playerHidden = false;
+    this._shake = 0;
+    this.portalOpen = false;
+    this._portalIntroPlayed = false;
+    this._terrainVersion = -1;
     this.speedrun = null;
     this.exploreRun = null;
 
     if (this.mode === 'speedrun') {
-      const course = speedrunCourse ?? (buildSpeedrunCourse() as unknown as GameLevel);
-      this.level = course;
-      this.speedrun = new SpeedrunRun(course.alphabet ?? [], course.checkpoints, speedrunState?.elapsed ?? 0);
+      this.stream = stream ?? createSpeedrunStream();
+      this.speedrun = new SpeedrunRun(ALPHABET, undefined, speedrunState?.elapsed ?? 0);
 
       this.lesson = this._letterLesson(this.speedrun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
     } else if (this.mode === 'explore') {
       const word = exploreRun?.word ?? WORD_BANK.find((entry) => entry.id === wordId) ?? WORD_BANK[0];
-      const course = exploreCourse ?? (buildExploreCourse(word) as unknown as GameLevel);
-      this.level = course;
+      this.stream = stream ?? createExploreStream(word);
       this.exploreRun = exploreRun ?? new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
 
       this.lesson = this._letterLesson(this.exploreRun.currentLetter, 0);
@@ -148,14 +158,12 @@ export class GameScene extends Scene {
     } else {
       const lesson = this.game.curriculum.getLesson(lessonId);
       if (!lesson) throw new Error(`Unknown lesson: ${lessonId}`);
-      const levelData = getLevelData(lesson.levelId);
-      if (!levelData) throw new Error(`Missing level file for lesson ${lessonId}`);
-
       this.lesson = lesson;
-      this.level = loadLevel(levelData) as unknown as GameLevel;
+      this.stream = stream ?? createLessonStream(lesson);
       this.validator = new AnswerValidator(lesson);
     }
 
+    this.level = this.stream.level as unknown as GameLevel;
     this.levelManager = new LevelManager({ level: this.level, bus: this.game.bus });
     this.lives = new LivesManager({ lives: GAMEPLAY.startingLives, bus: this.game.bus });
 
@@ -197,7 +205,7 @@ export class GameScene extends Scene {
       console.warn('Lesson art failed to load; falling back to placeholder shapes.', error);
     });
 
-    this.game.sprites.setLevel(this.level);
+    this._syncTerrain();
     this._subscribe();
     this.game.hudControls.showPauseButton({ onPause: () => this.togglePause() });
     if (this.game.device?.isTouch) this.game.touchControls.show();
@@ -278,6 +286,8 @@ export class GameScene extends Scene {
 
     if (this.status === Status.WON) {
       this._winTimer -= dt;
+      this._winElapsed += dt;
+      if (this._winViaPortal) this._updatePortalEntry(dt);
       this.game.effects.update(dt);
       this.hudModel.update(dt);
       if (this._winTimer <= 0) this.finishLevel();
@@ -287,28 +297,95 @@ export class GameScene extends Scene {
     this._applyInput();
     this.player.update(dt, this.level);
     this.levelManager.update(this.player);
+    this._updateStream(dt);
     this.camera.follow(this.player.body);
+    this._checkPortalIntro();
+    this._shake = Math.max(0, this._shake - dt);
     this.hudModel.update(dt);
     this.game.effects.update(dt);
   }
 
+  /** Keeps the endless world generated ahead of the player and the respawn point on their segment. */
+  private _updateStream(dt: number): void {
+    this.stream.update(this.player.body.x);
+    if (this._portalIntroPlayed) this.stream.tick(dt);
+
+    const checkpoint = this.stream.checkpointFor(this.player.body.x);
+    if (checkpoint.x !== this.levelManager.getRespawnPoint().x) this.levelManager.setCheckpoint(checkpoint);
+    this._syncTerrain();
+  }
+
+  /** The renderer caches grass strips per terrain; refresh them whenever the stream added or dropped ground. */
+  private _syncTerrain(): void {
+    if (this._terrainVersion === this.stream.terrainVersion) return;
+    this._terrainVersion = this.stream.terrainVersion;
+    this.game.sprites.setLevel(this.level);
+    this.camera.maxX = this.level.camera.maxX;
+  }
+
+  /** The portal grows into being the first time it scrolls into view. */
+  private _checkPortalIntro(): void {
+    const finish = this.level.finish;
+    if (!this.portalOpen || this._portalIntroPlayed || !finish) return;
+    if (finish.x > this.camera.x + this.camera.viewport.width) return;
+
+    this._portalIntroPlayed = true;
+    const cx = finish.x + PORTAL_SIZE.w / 2;
+    const cy = finish.y + PORTAL_SIZE.h / 2;
+    this.game.effects.spawnRing(cx, cy, 32);
+    this.game.effects.spawnPuff(cx, cy, 18, '#b9f2ff');
+    this.game.effects.spawnFloatingText?.(cx, finish.y - 14, 'Portal!', '#b9f2ff');
+    this._shake = 0.35;
+  }
+
+  /** Portal entry: the player is drawn into the portal, then a burst and a white flash close the phase. */
+  private _updatePortalEntry(dt: number): void {
+    const finish = this.level.finish;
+    if (!finish) return;
+    const body = this.player.body;
+    const targetX = finish.x + PORTAL_SIZE.w / 2 - body.w / 2;
+    const targetY = finish.y + PORTAL_SIZE.h / 2 - body.h / 2;
+    const pull = Math.min(1, dt * 7);
+    body.x += (targetX - body.x) * pull;
+    body.y += (targetY - body.y) * pull;
+
+    if (!this._playerHidden && this._winElapsed >= PORTAL_SWALLOW_AT) {
+      this._playerHidden = true;
+      const cx = finish.x + PORTAL_SIZE.w / 2;
+      const cy = finish.y + PORTAL_SIZE.h / 2;
+      this.game.effects.spawnRing(cx, cy, 36, '#ffffff', 280);
+      this.game.effects.spawnConfetti(cx, cy, 120);
+      this._shake = 0.4;
+    }
+  }
+
+  /** 0 -> 1 white overlay over the end of the portal exit. */
+  private get _flashAlpha(): number {
+    if (!this._winViaPortal) return 0;
+    const fadeStart = PORTAL_SWALLOW_AT + 0.2;
+    return Math.min(1, Math.max(0, (this._winElapsed - fadeStart) / (PORTAL_WIN_SECONDS - fadeStart)));
+  }
+
   override draw(renderer: CanvasRenderer): void {
     this.game.sprites.drawBackground(renderer, this.camera?.x ?? 0);
-    renderer.setCamera(this.camera.x, this.camera.y);
-    this.game.sprites.drawTerrain(renderer);
-    this.game.sprites.drawObjects(
-      renderer,
-      this.level,
-      this.mode === 'speedrun'
-        ? (this.speedrunCheckpoints ?? null)
-        : this.mode === 'explore'
-          ? (this.level.checkpoints ?? null)
-          : null,
+    const shake = this._shake > 0 ? this._shake * 14 : 0;
+    renderer.setCamera(
+      this.camera.x + (shake ? (Math.random() - 0.5) * shake : 0),
+      this.camera.y + (shake ? (Math.random() - 0.5) * shake : 0),
     );
+    this.game.sprites.drawTerrain(renderer);
+    // The single checkpoint flag follows the player's segment.
+    this.game.sprites.drawObjects(renderer, this.level, [this.levelManager.getRespawnPoint()]);
     this.game.sprites.drawItems(renderer, this.level.items, this.levelManager.collected);
     this.game.sprites.drawHazards(renderer, this.level.hazards);
-    this.game.sprites.drawPlayer(renderer, this.player, this.character);
+    if (!this._playerHidden) this.game.sprites.drawPlayer(renderer, this.player, this.character);
     this.game.effects.draw(renderer);
+
+    const flash = this._flashAlpha;
+    if (flash > 0) {
+      renderer.setCamera(0, 0);
+      renderer.screenFillRect(0, 0, renderer.width, renderer.height, `rgba(255, 255, 255, ${flash})`);
+    }
 
     if (this.game.debug.enabled) {
       this.game.sprites.drawDebug(renderer, {
@@ -349,6 +426,7 @@ export class GameScene extends Scene {
 
     on<{ item: LevelItem }>(Events.ITEM_COLLECTED, ({ item }) => this.onItemCollected(item));
     on(Events.HAZARD_HIT, () => this.onHazardHit());
+    on(Events.PORTAL_ENTERED, () => this.onPortalEntered());
     on(Events.PLAYER_FELL, () => this.respawn());
     on<{ lives: number; maxLives: number }>(Events.LIVES_CHANGED, ({ lives, maxLives }) => {
       this.hudModel.setLives(lives);
@@ -358,34 +436,8 @@ export class GameScene extends Scene {
     on(Events.APP_BLURRED, () => this.pause());
   }
 
-  onItemCollected(
-    item: LevelItem & { segmentIndex?: number; label?: string; kind?: string; fact?: string },
-  ): void {
+  onItemCollected(item: LevelItem & { label?: string; kind?: string; fact?: string }): void {
     if (this.status !== Status.RUNNING) return;
-
-    if (this.speedrun?.isAhead(item)) {
-      this.levelManager.collected.delete(item.id);
-      if (this.speedrun.claimFutureHint()) {
-        this.hudModel.showFeedback(
-          FeedbackKind.WRONG,
-          `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`,
-          FUTURE_HINT_INTERVAL,
-        );
-      }
-      return;
-    }
-
-    if (this.exploreRun?.isAhead(item)) {
-      this.levelManager.collected.delete(item.id);
-      if (this.exploreRun.claimFutureHint()) {
-        this.hudModel.showFeedback(
-          FeedbackKind.WRONG,
-          `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`,
-          EXPLORE_FUTURE_HINT_INTERVAL,
-        );
-      }
-      return;
-    }
 
     const { ok } = this.validator.validate(item);
     const centerX = item.x + item.w / 2;
@@ -430,7 +482,7 @@ export class GameScene extends Scene {
       'Muito bem! Você encontrou!',
       GAMEPLAY.wrongFeedbackDuration,
     );
-    this.winLevel();
+    this._openPortal();
   }
 
   /** Speedrun advance: next letter checkpoint, or marathon victory on Z. */
@@ -439,9 +491,7 @@ export class GameScene extends Scene {
       const nextLetter = run.currentLetter;
       this.lesson = this._letterLesson(nextLetter, run.currentIndex);
       this.validator = new AnswerValidator(this.lesson);
-      if (run.currentCheckpoint) {
-        this.levelManager.setCheckpoint({ ...run.currentCheckpoint });
-      }
+      this.stream.setTarget(nextLetter, this.player.body.x);
 
       this.hudModel.setObjective(this.lesson.objective ?? '');
       this.hudModel.setSpeedrunProgress(run.progressText);
@@ -455,9 +505,9 @@ export class GameScene extends Scene {
       return;
     }
 
-    // Collected Z! Venceu a maratona!
-    this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Parabéns! Maratona concluída!', 1.5);
-    this.winLevel();
+    // Collected Z! Only the portal is left.
+    this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Z! Corra até o portal!', 1.5);
+    this._openPortal();
   }
 
   private _syncExploreBoard(run: ExploreRun): void {
@@ -472,14 +522,28 @@ export class GameScene extends Scene {
     if (!wordComplete) {
       this.lesson = this._letterLesson(run.currentLetter, run.currentLetterIndex);
       this.validator = new AnswerValidator(this.lesson);
+      this.stream.setTarget(run.currentLetter, this.player.body.x);
       this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Boa! Continue!', 0.6);
       return;
     }
 
-    const profile = this.game.profiles.getActiveProfile();
-    if (profile) this.game.progress.recordDiscovery(profile.id, run.word.id);
-    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você montou ${run.word.label}! Parabéns!`, 1.5);
-    this.winLevel();
+    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você montou ${run.word.label}! Corra até o portal!`, 1.5);
+    this._openPortal();
+  }
+
+  /** Last target collected: seal the world with an arrival stretch and the portal; the phase ends only inside it. */
+  private _openPortal(): void {
+    if (this.portalOpen) return;
+    this.portalOpen = true;
+    this.stream.spawnPortal(this.player.body.x);
+    this._syncTerrain();
+    this.hudModel.setObjective('Corra até o portal!');
+    this.game.narrator?.speak?.('O portal abriu! Corra até ele!');
+  }
+
+  onPortalEntered(): void {
+    if (this.status !== Status.RUNNING || !this.portalOpen) return;
+    this.winLevel({ viaPortal: true });
   }
 
   /** Wrong-answer flow: count the mistake, cost a heart, show guidance. */
@@ -525,18 +589,23 @@ export class GameScene extends Scene {
     this.game.effects.clear();
   }
 
-  winLevel(): void {
+  winLevel({ viaPortal = false }: { viaPortal?: boolean } = {}): void {
     this.status = Status.WON;
+    this._winElapsed = 0;
+    this._winViaPortal = viaPortal;
     vibrateVictory();
     if (this.mode === 'speedrun' || this.mode === 'explore') {
       this.game.narrator?.speakPraise('Parabéns!');
     }
+    const centerX = this.player.body.x + this.player.body.w / 2;
+    if (viaPortal) {
+      // The suction pulls the player in; the burst and the flash follow (see _updatePortalEntry).
+      this._winTimer = PORTAL_WIN_SECONDS;
+      this.game.effects.spawnSuction(centerX, this.player.body.y + this.player.body.h / 2);
+      return;
+    }
     this._winTimer = this.mode === 'speedrun' || this.mode === 'explore' ? 1.2 : GAMEPLAY.celebrationDuration;
-    this.game.effects.spawnConfetti(
-      this.player.body.x + this.player.body.w / 2,
-      this.player.body.y,
-      96,
-    );
+    this.game.effects.spawnConfetti(centerX, this.player.body.y, 96);
   }
 
   finishLevel(): void {
@@ -560,6 +629,7 @@ export class GameScene extends Scene {
     }
 
     if (this.mode === 'explore' && this.exploreRun) {
+      if (profile) this.game.progress.recordDiscovery(profile.id, this.exploreRun.word.id);
       const entry = profile
         ? this.game.progress.completeLesson(profile.id, wordPhaseId(this.exploreRun.word.id), {
             mistakes: this.mistakes,

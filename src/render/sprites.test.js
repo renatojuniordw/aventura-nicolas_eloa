@@ -81,6 +81,46 @@ describe('SpriteRenderer', () => {
     // One for checkpoint, one for finish portal
     expect(renderer.worldImage).toHaveBeenCalledTimes(2);
   });
+
+  it('hides the portal until a streamed world opens it', () => {
+    const mockAssets = new Map([
+      ['object:checkpoint', { width: 1254, height: 1254 }],
+      ['object:finish-portal', { width: 1254, height: 1254 }],
+    ]);
+    const sprites = new SpriteRenderer({ assets: mockAssets });
+    const renderer = createMockRenderer();
+    const level = { worldWidth: 1920, worldHeight: 540, checkpoint: { x: 150, y: 400 }, portalActive: false };
+
+    sprites.drawObjects(renderer, level);
+
+    // Only the checkpoint flag.
+    expect(renderer.worldImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('grows the portal from the ground as it is revealed, at its full size once done', () => {
+    const mockAssets = new Map([['object:finish-portal', { width: 1254, height: 1254 }]]);
+    const sprites = new SpriteRenderer({ assets: mockAssets });
+    const level = {
+      worldWidth: 1920,
+      worldHeight: 540,
+      finish: { x: 1000, y: 364 },
+      portalActive: true,
+    };
+    const portalCall = (reveal) => {
+      const renderer = createMockRenderer();
+      sprites.drawObjects(renderer, { ...level, portalReveal: reveal });
+      return renderer.worldImage.mock.calls.at(-1);
+    };
+
+    const start = portalCall(0.2);
+    const done = portalCall(1);
+    // args: image, sx, sy, sw, sh, dx, dy, dw, dh
+    expect(done[7]).toBe(86);
+    expect(done[8]).toBe(84);
+    expect(start[7]).toBeLessThan(done[7]);
+    // The bottom edge stays on the ground while it grows.
+    expect(start[6] + start[8]).toBeCloseTo(done[6] + done[8]);
+  });
 });
 
 it.each([null, new Map([['item:letter-carrier', {}]])])('fits full word labels with or without assets (%s)', (assets) => {

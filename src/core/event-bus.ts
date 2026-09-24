@@ -19,6 +19,7 @@ export const Events = Object.freeze({
   LIVES_DEPLETED: 'lives.depleted',
   PLAYER_FELL: 'player.fell',
   HAZARD_HIT: 'hazard.hit',
+  PORTAL_ENTERED: 'portal.entered',
   LEVEL_COMPLETE: 'level.complete',
   CELEBRATION: 'celebration.trigger',
   HUD_REFRESH: 'hud.refresh',
@@ -44,6 +45,7 @@ export interface EventPayloadMap {
   [Events.LIVES_DEPLETED]: Record<string, never>;
   [Events.PLAYER_FELL]: Record<string, never>;
   [Events.HAZARD_HIT]: { hazard: unknown };
+  [Events.PORTAL_ENTERED]: Record<string, never>;
   [Events.LEVEL_COMPLETE]: unknown;
   [Events.CELEBRATION]: unknown;
   [Events.HUD_REFRESH]: unknown;

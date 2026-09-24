@@ -103,4 +103,45 @@ describe('LevelManager', () => {
     const manager = new LevelManager({ level: LEVEL });
     expect(() => manager.update({ body: body(0, 0) })).not.toThrow();
   });
+
+  describe('portal', () => {
+    const portalLevel = (overrides = {}) => ({ ...LEVEL, finish: { x: 800, y: 364 }, portalActive: true, ...overrides });
+
+    it('emits PORTAL_ENTERED once when the player reaches an active portal', () => {
+      const bus = new EventBus();
+      const onPortal = vi.fn();
+      bus.on(Events.PORTAL_ENTERED, onPortal);
+      const manager = new LevelManager({ level: portalLevel(), bus });
+
+      manager.update({ body: body(700, 364) });
+      expect(onPortal).not.toHaveBeenCalled();
+
+      manager.update({ body: body(810, 364) });
+      manager.update({ body: body(820, 364) });
+      expect(onPortal).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores a portal that is not active yet, even at its position', () => {
+      const bus = new EventBus();
+      const onPortal = vi.fn();
+      bus.on(Events.PORTAL_ENTERED, onPortal);
+      const manager = new LevelManager({ level: portalLevel({ portalActive: false }), bus });
+
+      manager.update({ body: body(810, 364) });
+      expect(onPortal).not.toHaveBeenCalled();
+    });
+
+    it('notices a portal that becomes active after the manager was created', () => {
+      const bus = new EventBus();
+      const onPortal = vi.fn();
+      bus.on(Events.PORTAL_ENTERED, onPortal);
+      const level = portalLevel({ portalActive: false });
+      const manager = new LevelManager({ level, bus });
+
+      manager.update({ body: body(810, 364) });
+      level.portalActive = true;
+      manager.update({ body: body(810, 364) });
+      expect(onPortal).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -110,6 +110,45 @@ export class Effects {
     }
   }
 
+  /** Even ring of particles expanding from a point (portal opening). */
+  spawnRing(x: number, y: number, count = 28, color = '#6ee1ff', speed = 220): void {
+    if (this._reducedMotion()) return;
+    for (let i = 0; i < count; i += 1) {
+      const angle = (i / count) * Math.PI * 2;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - this._gravity * 0.25,
+        life: 0.7 + this._random() * 0.3,
+        maxLife: 1,
+        size: 4 + Math.floor(this._random() * 3),
+        color,
+      });
+    }
+  }
+
+  /** Particles that start on a circle and spiral in to a point (being pulled into the portal). */
+  spawnSuction(x: number, y: number, count = 24, radius = 90, color = '#b9f2ff'): void {
+    if (this._reducedMotion()) return;
+    const life = 0.55;
+    for (let i = 0; i < count; i += 1) {
+      const angle = this._random() * Math.PI * 2;
+      const dist = radius * (0.6 + this._random() * 0.4);
+      this.particles.push({
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        // Straight to the centre within `life`; gravity is cancelled by the upward bias.
+        vx: (-Math.cos(angle) * dist) / life,
+        vy: (-Math.sin(angle) * dist) / life - (this._gravity * life) / 2,
+        life,
+        maxLife: life,
+        size: 3 + Math.floor(this._random() * 3),
+        color,
+      });
+    }
+  }
+
   update(dt: number): void {
     if (this._reducedMotion()) {
       this.particles = [];

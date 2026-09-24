@@ -2,6 +2,7 @@ import { overlap, type Box } from '../physics/aabb.js';
 import { GAMEPLAY } from '../core/config.js';
 import { Events, type EventBus } from '../core/event-bus.js';
 import type { Body } from '../physics/physics-engine.js';
+import { PORTAL_SIZE } from './world-stream.js';
 
 function inflate(box: Box, margin: number): Box {
   return { x: box.x - margin, y: box.y - margin, w: box.w + margin * 2, h: box.h + margin * 2 };
@@ -31,6 +32,9 @@ export interface Level {
   oneWayPlatforms: Box[];
   worldHeight: number;
   checkpoint: Point;
+  /** Portal position; only meaningful once `portalActive` is true. */
+  finish?: Point;
+  portalActive?: boolean;
   [key: string]: unknown;
 }
 
@@ -57,6 +61,7 @@ export class LevelManager {
   private _bus: EventBus | null;
   private _touchingHazards = new Set<string>();
   private _fellReported = false;
+  private _portalReported = false;
 
   constructor({ level, bus = null }: LevelManagerOptions) {
     this.level = level;
@@ -88,6 +93,7 @@ export class LevelManager {
     this._checkItems(player.body);
     this._checkHazards(player.body);
     this._checkFall(player.body);
+    this._checkPortal(player.body);
   }
 
   /** Clears transient state after a respawn (collection stays!). */
@@ -115,6 +121,16 @@ export class LevelManager {
       } else if (!touching) {
         this._touchingHazards.delete(hazard.id);
       }
+    }
+  }
+
+  /** Reports the portal once, when the player steps into an active one. */
+  private _checkPortal(body: Body): void {
+    const { finish, portalActive } = this.level;
+    if (!portalActive || !finish || this._portalReported) return;
+    if (overlap(body, { x: finish.x, y: finish.y, w: PORTAL_SIZE.w, h: PORTAL_SIZE.h })) {
+      this._portalReported = true;
+      this._bus?.emit(Events.PORTAL_ENTERED, {});
     }
   }
 

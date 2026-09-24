@@ -3,8 +3,7 @@ import { GameScene } from './game-scene.js';
 import { EventBus, Events } from '../core/event-bus.js';
 import { GAMEPLAY } from '../core/config.js';
 import * as curriculum from '../content/curriculum.js';
-import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
-import { buildExploreCourse } from '../gameplay/explore-course.js';
+import { createExploreStream, createSpeedrunStream } from '../gameplay/stream-courses.js';
 import { ExploreRun } from '../gameplay/explore-run.js';
 import { WORD_BANK } from '../content/word-bank.js';
 import { AnswerValidator } from '../content/answer-validator.js';
@@ -36,6 +35,8 @@ function makeFakeGame(overrides = {}) {
     },
     effects: {
       spawnConfetti: vi.fn(),
+      spawnRing: vi.fn(),
+      spawnSuction: vi.fn(),
       spawnPuff: vi.fn(),
       spawnFloatingText: vi.fn(),
       clear: vi.fn(),
@@ -67,7 +68,7 @@ function enterNormalLesson(game, lessonId = curriculum.LESSON_ORDER[0]) {
 
 function enterSpeedrun(game) {
   const scene = new GameScene(game);
-  scene.enter({ mode: 'speedrun', speedrunCourse: buildSpeedrunCourse({ random: () => 0.42 }) });
+  scene.enter({ mode: 'speedrun', stream: createSpeedrunStream({ random: () => 0.42 }) });
   return scene;
 }
 
@@ -76,14 +77,22 @@ function enterExplore(game, wordId = 'gato') {
   const scene = new GameScene(game);
   scene.enter({
     mode: 'explore',
-    exploreCourse: buildExploreCourse(word, { random: () => 0.42 }),
+    stream: createExploreStream(word, { random: () => 0.42 }),
     exploreRun: new ExploreRun(word, { position: 2, total: 30 }),
   });
   return scene;
 }
 
-const targetLetter = (scene, index) =>
-  scene.level.items.find((item) => item.type === 'target' && item.letterIndex === index);
+/** Collects the one live target, as the player touching it would. */
+const collectTarget = (scene) => scene.onItemCollected(scene.stream.liveTarget);
+
+/** Steps into the portal like a player running into it, then lets the exit animation play out. */
+function walkIntoPortal(scene) {
+  const { finish } = scene.level;
+  scene.player.body.x = finish.x;
+  scene.player.body.y = finish.y;
+  scene.update(0.016);
+}
 
 describe('GameScene explore (word phase)', () => {
   it('announces the word and shows the empty letter board on entering', () => {
@@ -95,32 +104,36 @@ describe('GameScene explore (word phase)', () => {
     expect(scene.hudModel.boardSlots.map((slot) => slot.revealed)).toEqual([false, false, false, false]);
   });
 
-  it('fills the board letter by letter and lets the child collect without touching anything else first', () => {
+  it('fills the board letter by letter, offering exactly one target at a time', () => {
     const scene = enterExplore(makeFakeGame());
+    expect(scene.level.items.filter((item) => item.type === 'target')).toHaveLength(1);
+    expect(scene.stream.liveTarget.label).toBe('G');
 
-    scene.onItemCollected(targetLetter(scene, 0));
+    collectTarget(scene);
     expect(scene.mistakes).toBe(0);
     expect(scene.status).toBe('running');
     expect(scene.hudModel.boardSlots.map((slot) => slot.revealed)).toEqual([true, false, false, false]);
+    expect(scene.stream.liveTarget.label).toBe('A');
   });
 
-  it('does not count a later letter as a mistake, just hints', () => {
-    const scene = enterExplore(makeFakeGame());
-    scene.onItemCollected(targetLetter(scene, 2));
-
-    expect(scene.mistakes).toBe(0);
-    expect(scene.exploreRun.currentLetterIndex).toBe(0);
-  });
-
-  it('wins after the last letter and completes the word phase in the trail', () => {
+  it('does not end the phase on the last letter: the portal opens and only entering it wins', () => {
     const game = makeFakeGame({ profiles: { getActiveProfile: vi.fn(() => ({ id: 'p1' })) } });
     game.progress.recordDiscovery = vi.fn();
     const scene = enterExplore(game);
+    expect(scene.level.portalActive).toBe(false);
 
-    for (let i = 0; i < 4; i += 1) scene.onItemCollected(targetLetter(scene, i));
+    for (let i = 0; i < 4; i += 1) collectTarget(scene);
+    expect(scene.status).toBe('running');
+    expect(scene.portalOpen).toBe(true);
+    expect(scene.level.portalActive).toBe(true);
+    expect(scene.hudModel.objective).toBe('Corra até o portal!');
+    expect(game.progress.completeLesson).not.toHaveBeenCalled();
+
+    walkIntoPortal(scene);
     expect(scene.status).toBe('won');
 
-    scene.finishLevel();
+    scene.update(2);
+    expect(game.progress.recordDiscovery).toHaveBeenCalledWith('p1', 'gato');
     expect(game.progress.completeLesson).toHaveBeenCalledWith('p1', 'palavra-gato', { mistakes: 0 });
     expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', {
       mode: 'explore',
@@ -128,6 +141,29 @@ describe('GameScene explore (word phase)', () => {
       mistakes: 0,
       stars: 3,
     });
+  });
+
+  it('plays the portal exit: player swallowed, burst, then the victory screen', () => {
+    const game = makeFakeGame();
+    const scene = enterExplore(game);
+    for (let i = 0; i < 4; i += 1) collectTarget(scene);
+
+    walkIntoPortal(scene);
+    expect(game.effects.spawnSuction).toHaveBeenCalledTimes(1);
+    expect(game.scenes.switchTo).not.toHaveBeenCalled();
+
+    scene.update(0.8);
+    expect(game.effects.spawnConfetti).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 120);
+    expect(game.scenes.switchTo).not.toHaveBeenCalled();
+
+    scene.update(1);
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', expect.objectContaining({ mode: 'explore' }));
+  });
+
+  it('ignores the portal until the last letter has been collected', () => {
+    const scene = enterExplore(makeFakeGame());
+    scene.onPortalEntered();
+    expect(scene.status).toBe('running');
   });
 
   it('costs a heart for a wrong letter and retries the same word from the top', () => {
@@ -144,36 +180,37 @@ describe('GameScene explore (word phase)', () => {
 });
 
 describe('GameScene (unit)', () => {
-  it('rejects a letter collected out of speedrun order without advancing', () => {
-    const game = makeFakeGame();
-    const scene = enterSpeedrun(game);
+  it('advances to the next letter and offers it as the single live target', () => {
+    const scene = enterSpeedrun(makeFakeGame());
+    expect(scene.stream.liveTarget.label).toBe('A');
 
-    const futureItem = scene.level.items.find(
-      (item) => item.type === 'target' && item.segmentIndex === 1,
-    );
-    expect(scene.currentIndex).toBe(0);
-
-    scene.onItemCollected(futureItem);
-
-    expect(scene.currentIndex).toBe(0);
-    expect(scene.lesson.target).toBe('A');
-    expect(scene.levelManager.collected.has(futureItem.id)).toBe(false);
-    expect(scene.status).toBe('running');
-  });
-
-  it('advances the checkpoint via the level manager, never mutating the frozen level', () => {
-    const game = makeFakeGame();
-    const scene = enterSpeedrun(game);
-    const targetA = scene.level.items.find(
-      (item) => item.type === 'target' && item.segmentIndex === 0,
-    );
-
-    scene.onItemCollected(targetA);
+    collectTarget(scene);
 
     expect(scene.currentIndex).toBe(1);
-    expect(scene.levelManager.getRespawnPoint()).toEqual(scene.speedrunCheckpoints[1]);
-    // The level object itself is frozen and was never touched.
-    expect(scene.level.checkpoint).toEqual(scene.speedrunCheckpoints[0]);
+    expect(scene.lesson.target).toBe('B');
+    expect(scene.stream.liveTarget.label).toBe('B');
+    expect(scene.level.items.filter((item) => item.type === 'target')).toHaveLength(1);
+  });
+
+  it('moves the respawn point along with the segment the player is in, never touching the start', () => {
+    const scene = enterSpeedrun(makeFakeGame());
+    expect(scene.levelManager.getRespawnPoint()).toEqual({ x: 96, y: 406 });
+
+    scene.player.body.x = 1920 * 2 + 300;
+    scene.update(0.016);
+
+    expect(scene.levelManager.getRespawnPoint()).toEqual({ x: 1920 * 2 + 96, y: 406 });
+  });
+
+  it('keeps generating world ahead as the player advances', () => {
+    const scene = enterSpeedrun(makeFakeGame());
+    const before = scene.level.worldWidth;
+
+    scene.player.body.x = before - 900;
+    scene.update(0.016);
+
+    expect(scene.level.worldWidth).toBeGreaterThan(before);
+    expect(scene.camera.maxX).toBe(Number.POSITIVE_INFINITY);
   });
 
   it('loses a heart, shows a warning and respawns on a hazard hit', () => {
@@ -335,68 +372,28 @@ describe('GameScene (unit)', () => {
     expect(game.menu.showGameOver).toHaveBeenCalledTimes(1);
   });
 
-  it('displays marathon victory when the final Z letter is collected in speedrun mode', () => {
+  it('opens the portal on Z and only finishes the marathon inside it', () => {
     const game = makeFakeGame({ profiles: { getActiveProfile: vi.fn(() => ({ id: 'p1' })) } });
     const scene = enterSpeedrun(game);
 
-    // Simulate being at the last letter (Z, index 25 of 0-based 26-letter alphabet)
-    scene.currentIndex = 25;
+    // Fast-forward to the last letter, Z.
+    scene.speedrun.currentIndex = 25;
     scene.lesson = { id: 'alfabeto-z', target: 'Z', objective: 'Colete a letra Z' };
     scene.validator = new AnswerValidator(scene.lesson);
+    scene.stream.setTarget('Z');
+    expect(scene.stream.liveTarget.label).toBe('Z');
 
-    const zTarget = scene.level.items.find(
-      (item) => item.type === 'target' && item.segmentIndex === 25,
-    );
-    expect(zTarget).toBeDefined();
-    expect(zTarget.label).toBe('Z');
+    collectTarget(scene);
 
-    scene.onItemCollected(zTarget);
+    expect(scene.status).toBe('running');
+    expect(scene.portalOpen).toBe(true);
+    expect(scene.hudModel.feedback.message).toBe('Z! Corra até o portal!');
+    expect(game.progress.recordSpeedrunTime).not.toHaveBeenCalled();
 
-    // Triggers the marathon-concluded feedback and winLevel
-    expect(scene.status).toBe('won');
-    expect(scene.hudModel.feedback.message).toBe('Parabéns! Maratona concluída!');
-    expect(game.effects.spawnConfetti).toHaveBeenCalled();
-
-    // Advance past the short speedrun celebration timer (1.2s)
-    scene.update(1.3);
+    walkIntoPortal(scene);
+    scene.update(2);
     expect(game.progress.recordSpeedrunTime).toHaveBeenCalledWith('p1', expect.any(Number));
-    expect(game.scenes.switchTo).toHaveBeenCalledWith(
-      'victory',
-      expect.objectContaining({ mode: 'speedrun' }),
-    );
-  });
-
-  it('rejects an item from a future speedrun segment', () => {
-    const game = makeFakeGame();
-    const scene = enterSpeedrun(game);
-
-    const futureItem = scene.level.items.find(
-      (item) => item.type === 'target' && item.segmentIndex === 3,
-    );
-    expect(futureItem).toBeDefined();
-
-    scene.onItemCollected(futureItem);
-
-    // Should stay in current segment and show WRONG feedback
-    expect(scene.currentIndex).toBe(0);
-    expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.WRONG);
-    expect(scene.hudModel.feedback.message).toContain('mais à frente');
-  });
-
-  it('shows the future-letter hint once per window, not on every overlapping frame', () => {
-    const game = makeFakeGame();
-    const scene = enterSpeedrun(game);
-    const futureItem = scene.level.items.find(
-      (item) => item.type === 'target' && item.segmentIndex === 3,
-    );
-
-    scene.onItemCollected(futureItem);
-    scene.hudModel.showFeedback(FeedbackKind.CORRECT, 'marker', 1);
-    scene.speedrunElapsed += 0.1;
-    scene.onItemCollected(futureItem);
-
-    expect(scene.hudModel.feedback.message).toBe('marker');
-    expect(scene.levelManager.collected.has(futureItem.id)).toBe(false);
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', expect.objectContaining({ mode: 'speedrun' }));
   });
 
   it('wires pause menu restart for normal mode and speedrun mode', () => {

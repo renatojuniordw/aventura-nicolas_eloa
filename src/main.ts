@@ -29,8 +29,6 @@ import { AudioSettingsStore } from './persistence/audio-settings-store.js';
 import { ExperienceSettingsStore } from './persistence/experience-settings-store.js';
 import * as curriculum from './content/curriculum.js';
 import type { Unit, Lesson } from './content/curriculum-model.js';
-import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
-import { buildExploreCourse } from './gameplay/explore-course.js';
 import { ExploreRun } from './gameplay/explore-run.js';
 import { WORD_BANK } from './content/word-bank.js';
 import {
@@ -204,20 +202,14 @@ export function createGame({
         ? wordPhaseId(wordId)
         : ((profile ? progress.getNextLesson(profile.id, WORD_PHASE_ORDER) : null) ?? WORD_PHASE_ORDER[0]);
       const word = getWordByPhaseId(phaseId) ?? WORD_BANK[0];
-      const course = buildExploreCourse(word);
       const exploreRun = new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
       scenes.switchTo('game', {
         mode: 'explore',
-        exploreCourse: course,
         exploreRun,
       });
     },
     startSpeedrun() {
-      const course = buildSpeedrunCourse();
-      scenes.switchTo('game', {
-        mode: 'speedrun',
-        speedrunCourse: course,
-      });
+      scenes.switchTo('game', { mode: 'speedrun' });
     },
     // `scenes` and `loop` are attached right after construction below (see the
     // `GameContext` doc comment) — cast now so those later assignments type-check.

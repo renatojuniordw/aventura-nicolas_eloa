@@ -1,61 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildSpeedrunCourse,
-  isSafeFromHazards,
-  isTapReachable,
-  MIN_HAZARD_DISTANCE,
-} from './speedrun-course.js';
+import { isSafeFromHazards } from './speedrun-course.js';
 
-describe('SpeedrunCourse', () => {
-  it('builds a continuous 26-segment course from A to Z', () => {
-    const course = buildSpeedrunCourse();
-    expect(course.id).toBe('speedrun-maratona-alfabeto');
-    expect(course.worldWidth).toBe(26 * 1920);
-    expect(course.checkpoints).toHaveLength(26);
-    expect(course.checkpoints[0]).toEqual({ x: 96, y: 406 });
-    expect(course.checkpoints[1]).toEqual({ x: 1920 + 96, y: 406 });
-
-    // 26 targets in order A to Z
-    const targets = course.items.filter((item) => item.type === 'target');
-    expect(targets).toHaveLength(26);
-    expect(targets.map((t) => t.label).join('')).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
-
-    // 3 distractors per segment = 78 distractors
-    const distractors = course.items.filter((item) => item.type === 'distractor');
-    expect(distractors).toHaveLength(78);
-  });
-
-  it('is frozen, just like any regular level, so nothing can mutate it in place', () => {
-    const course = buildSpeedrunCourse();
-    expect(Object.isFrozen(course)).toBe(true);
-    expect(Object.isFrozen(course.checkpoint)).toBe(true);
-    expect(Object.isFrozen(course.items)).toBe(true);
-    expect(Object.isFrozen(course.items[0])).toBe(true);
-    expect(() => {
-      course.checkpoint = { x: 0, y: 0 };
-    }).toThrow();
-  });
-
-  it('produces distinct positions when running with different random seeds', () => {
-    const run1 = buildSpeedrunCourse({ random: () => 0.1 });
-    const run2 = buildSpeedrunCourse({ random: () => 0.8 });
-
-    const target1 = run1.items.find((item) => item.segmentIndex === 0 && item.type === 'target');
-    const target2 = run2.items.find((item) => item.segmentIndex === 0 && item.type === 'target');
-
-    // Positions should differ based on random generator
-    expect(target1.x).not.toBe(target2.x);
-  });
-
-  it('places all items high enough so that a walking player cannot reach them without jumping', () => {
-    const course = buildSpeedrunCourse();
-    // Ground surface is at y = 448; player on ground has head at y = 406.
-    // Every item bottom (item.y + item.h) must be strictly above y = 406.
-    for (const item of course.items) {
-      expect(item.y + item.h).toBeLessThan(406);
-    }
-  });
-
+describe('speedrun course helpers', () => {
   it('reports safe and unsafe positions relative to hazards', () => {
     const hazards = [{ x: 1000, w: 64, y: 400, h: 32 }];
 
@@ -73,62 +19,5 @@ describe('SpeedrunCourse', () => {
 
     // Safe distance away to the right
     expect(isSafeFromHazards(1064 + 170, 32, hazards, 160)).toBe(true);
-  });
-
-  it('never places any letter directly over or dangerously close to any hazard across all segments', () => {
-    // Test across several random seeds to ensure jitter and random selection always respect the buffer
-    const seeds = [0.05, 0.25, 0.5, 0.75, 0.95];
-
-    for (const seed of seeds) {
-      const course = buildSpeedrunCourse({ random: () => seed });
-
-      for (const item of course.items) {
-        const itemLeft = item.x;
-        const itemRight = item.x + item.w;
-
-        for (const hazard of course.hazards) {
-          const hazardLeft = hazard.x;
-          const hazardRight = hazard.x + hazard.w;
-
-          // Check for direct horizontal overlap
-          const overlaps = itemRight > hazardLeft && itemLeft < hazardRight;
-          expect(overlaps).toBe(false);
-
-          // Check distance margin
-          let distance = 0;
-          if (itemRight <= hazardLeft) {
-            distance = hazardLeft - itemRight;
-          } else if (itemLeft >= hazardRight) {
-            distance = itemLeft - hazardRight;
-          }
-          expect(distance).toBeGreaterThanOrEqual(MIN_HAZARD_DISTANCE);
-        }
-      }
-    }
-  });
-
-  it('places every target where a quick jump tap can reach it, for any random seed', () => {
-    for (let seed = 1; seed <= 100; seed += 1) {
-      let state = seed;
-      const random = () => {
-        state = (state * 16807) % 2147483647;
-        return state / 2147483647;
-      };
-      const course = buildSpeedrunCourse({ random });
-      const supports = [...course.solids, ...course.oneWayPlatforms];
-      for (const t of course.items.filter((item) => item.type === 'target')) {
-        expect(isTapReachable(t, supports)).toBe(true);
-      }
-    }
-  });
-
-  it('never repeats the target letter of a neighbouring segment as a distractor', () => {
-    const course = buildSpeedrunCourse();
-    for (const d of course.items.filter((item) => item.type === 'distractor')) {
-      const neighbours = [d.segmentIndex - 1, d.segmentIndex, d.segmentIndex + 1].map(
-        (i) => course.alphabet[i],
-      );
-      expect(neighbours).not.toContain(d.label);
-    }
   });
 });

@@ -62,7 +62,8 @@ contam chamadas, não pegariam.
 | `gameplay/player/player-controller.test.js` |     12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições      |
 | `gameplay/lives-manager.test.js`            |      4 | Perda de coração, esgotamento anunciado uma vez, nunca negativo               |
 | `gameplay/level-manager.test.js`            |      8 | Coleta única, perigo ao entrar, queda anunciada uma vez, checkpoint           |
-| `gameplay/speedrun-course.test.js`          |      6 | Curso A→Z contínuo e congelado, itens fora do alcance de quem só anda, sem letra perto de perigo |
+| `gameplay/speedrun-course.test.js`          |      1 | Regra de distância segura entre letra e perigo                                |
+| `gameplay/world-stream.test.ts`             |     15 | Mundo infinito, alvo reaparece adiante, um alvo vivo por vez, alcance por toque, portal |
 
 ### 2.3 Conteúdo
 

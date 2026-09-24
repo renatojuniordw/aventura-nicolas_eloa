@@ -86,6 +86,12 @@ function enterFirstLesson(game) {
   return game.scenes.current;
 }
 
+/** Drops the player onto the (already open) portal, as running into it would. */
+function enterPortal(scene) {
+  scene.player.body.x = scene.level.finish.x;
+  scene.player.body.y = scene.level.finish.y;
+}
+
 describe('game integration', () => {
   it('boots from the boot scene into the pt-BR main menu', () => {
     const game = mountGame();
@@ -108,6 +114,7 @@ describe('game integration', () => {
 
     expect(scene.lesson.id).toBe('alfabeto-a');
     expect(scene.level.id).toBe('fase-alfabeto-a');
+    expect(scene.level.portalActive).toBe(false);
     expect(scene.status).toBe('running');
   });
 
@@ -163,9 +170,14 @@ describe('game integration', () => {
     scene.player.body.y = target.y;
     tick(game, 1);
 
-    expect(scene.status).toBe('won');
+    // The lesson is not over yet: the portal opened and the child has to reach it.
+    expect(scene.status).toBe('running');
+    expect(scene.portalOpen).toBe(true);
     expect(scene.lives.lives).toBe(scene.lives.maxLives);
-    expect(scene.levelManager.targetCollected).toBe(true);
+    expect(scene.levelManager.collected.has(target.id)).toBe(true);
+    enterPortal(scene);
+    tick(game, 1);
+    expect(scene.status).toBe('won');
 
     // Celebration runs, then the victory screen takes over.
     tick(game, 200);
@@ -227,6 +239,8 @@ describe('game integration', () => {
     const target = scene.level.items.find((item) => item.type === 'target');
     scene.player.body.x = target.x;
     scene.player.body.y = target.y;
+    tick(game, 2);
+    enterPortal(scene);
     tick(game, 300);
 
     expect(game.scenes.currentName).toBe('victory');
@@ -275,8 +289,9 @@ describe('game integration', () => {
     expect(scene.hudModel.isSpeedrun).toBe(true);
     expect(scene.hudModel.speedrunProgress).toBe('1/26');
 
-    // Find target 'A' in segment 0
-    const targetA = scene.level.items.find((item) => item.segmentIndex === 0 && item.type === 'target');
+    // The one live target is 'A'
+    const targetA = scene.stream.liveTarget;
+    expect(targetA.label).toBe('A');
     const collectedX = targetA.x;
     scene.player.body.x = targetA.x;
     scene.player.body.y = targetA.y;
