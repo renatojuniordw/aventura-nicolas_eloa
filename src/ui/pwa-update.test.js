@@ -34,8 +34,8 @@ describe('UpdateController', () => {
     expect(banner.setVisible).toHaveBeenLastCalledWith(true);
   });
 
-  it('also preserves a free exploration session until the menu', () => {
-    const { controller, applyUpdate, go } = setup('exploration');
+  it('also preserves a free Explorar session (it runs inside the game scene) until the menu', () => {
+    const { controller, applyUpdate, go } = setup('game');
     controller.onUpdateReady();
     controller.apply();
     expect(applyUpdate).not.toHaveBeenCalled();

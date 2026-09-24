@@ -40,8 +40,12 @@ export class Hud {
   }
 
   private _drawSpeedrun(model: HudModel): void {
-    const timeStr = `⏱️ ${formatTime(model.timer)}`;
-    const progressStr = model.speedrunProgress ? ` · ${model.speedrunProgress}` : '';
+    const timeStr = model.showTimer ? `⏱️ ${formatTime(model.timer)}` : '';
+    const progressStr = model.speedrunProgress
+      ? timeStr
+        ? ` · ${model.speedrunProgress}`
+        : model.speedrunProgress
+      : '';
     const label = `${timeStr}${progressStr}`;
     const width = 168;
     const height = 28;

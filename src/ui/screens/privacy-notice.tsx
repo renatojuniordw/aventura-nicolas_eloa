@@ -44,7 +44,8 @@ function PrivacyNoticeScreen({ onConfirm }: PrivacyNoticeOptions) {
           <summary className="privacy-details-summary">Ver mais informações aos responsáveis</summary>
           <div className="privacy-details-content">
             <p>
-              A opção &quot;Zerar progresso&quot; no menu apaga as fases concluídas. Para remover
+              O jogo lembra até oito respostas recentes por lição para escolher revisões e dicas.
+              A opção &quot;Zerar progresso&quot; no menu apaga as fases concluídas, esse histórico e as descobertas. Para remover
               também o nome da criança, limpe os dados do site no navegador.
             </p>
           </div>

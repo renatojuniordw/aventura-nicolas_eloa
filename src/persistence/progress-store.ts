@@ -86,6 +86,20 @@ export class ProgressStore {
     return entry;
   }
 
+  /** Bounded recent evidence, independent of best stars and motor errors. */
+  recordLessonAnswer(profileId: string, lessonId: string, correct: boolean, label: string): void {
+    this._saves.update((doc) => {
+      const profile = doc.profiles[profileId];
+      if (!profile) return;
+      profile.learning ??= {};
+      const previous = profile.learning[lessonId];
+      profile.learning[lessonId] = {
+        recent: [...(previous?.recent ?? []), correct].slice(-8),
+        confusedWith: correct ? previous?.confusedWith ?? null : label,
+      };
+    });
+  }
+
   recordDiscovery(profileId: string, discoveryId: string): void {
     this._saves.update((doc) => {
       const profile = doc.profiles[profileId];
@@ -100,6 +114,7 @@ export class ProgressStore {
       if (!profile) return null;
       profile.progress = {};
       profile.discoveries = [];
+      profile.learning = {};
       profile.stats = { correct: 0, wrong: 0 };
       delete profile.speedrunBestTime;
       return profile;

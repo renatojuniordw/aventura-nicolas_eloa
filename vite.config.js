@@ -28,6 +28,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('/src/content/levels/')) return 'curriculum-data';
+          if (id.includes('/src/content/embeddings.generated.json')) return 'embeddings-data';
           if (id.includes('/socket.io-client/') || id.includes('/engine.io-client/')) return 'phone-control';
         },
       },
@@ -70,6 +71,10 @@ export default defineConfig({
         // game works offline after the first visit. Vite's own JS/CSS chunks
         // and the copied public/assets art both land under dist/assets/.
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        // Precomputed multilingual-e5-base embeddings (src/content/embeddings.generated.json,
+        // see tools/generate-embeddings.mts) push the largest chunk past workbox's
+        // default 2 MiB precache limit; raise it so offline play still works.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
     }),
   ],

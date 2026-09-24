@@ -1,4 +1,3 @@
-import { ExplorationScene } from './scenes/exploration-scene.js';
 import { initMobilePresentation } from './ui/mobile-presentation.js';
 import { DEBUG } from './core/debug-flag.js';
 import { EventBus, Events } from './core/event-bus.js';
@@ -31,6 +30,10 @@ import { ExperienceSettingsStore } from './persistence/experience-settings-store
 import * as curriculum from './content/curriculum.js';
 import type { Unit, Lesson } from './content/curriculum-model.js';
 import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
+import { buildExploreCourse } from './gameplay/explore-course.js';
+import { ExploreRun } from './gameplay/explore-run.js';
+import { WORD_BANK, getWordEntry, type WordEntry } from './content/word-bank.js';
+import { pickWeighted, createSeededRandom } from './content/embedding-select.js';
 import { BootScene } from './scenes/boot-scene.js';
 import { MenuScene } from './scenes/menu-scene.js';
 import { GameScene } from './scenes/game-scene.js';
@@ -76,6 +79,30 @@ export interface GameContext {
   // reference. See the `as GameContext` cast below.
   scenes: SceneManager;
   loop: GameLoop;
+}
+
+const EXPLORE_WORD_COUNT = 6;
+
+/**
+ * Picks `count` words for one Explorar session: a random anchor, then each
+ * next word chosen by embedding relatedness to the previous one (falling
+ * back to uniform random without embeddings) — so a session reads as a
+ * loosely themed little walk through the word bank rather than a shuffle.
+ */
+function pickExploreWords(count: number, seed: number = Math.floor(Math.random() * 0xffffffff)): WordEntry[] {
+  const rng = createSeededRandom(seed >>> 0);
+  const allIds = WORD_BANK.map((entry) => entry.id);
+  const order: string[] = [];
+  let remaining = [...allIds];
+  let anchor = remaining[Math.floor(rng() * remaining.length)];
+  while (order.length < count && remaining.length > 0) {
+    order.push(anchor);
+    remaining = remaining.filter((id) => id !== anchor);
+    if (remaining.length === 0) break;
+    const [next] = pickWeighted(remaining, anchor, 1, rng);
+    anchor = next ?? remaining[Math.floor(rng() * remaining.length)];
+  }
+  return order.map((id) => getWordEntry(id)).filter((entry): entry is WordEntry => Boolean(entry));
 }
 
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
@@ -189,8 +216,16 @@ export function createGame({
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
     },
-    /** Start a continuous speedrun through the alphabet lessons (A to Z). */
-    startExploration() { scenes.switchTo('exploration'); },
+    startExploration() {
+      const words = pickExploreWords(EXPLORE_WORD_COUNT);
+      const course = buildExploreCourse(words);
+      const exploreRun = new ExploreRun(words, course.checkpoints);
+      scenes.switchTo('game', {
+        mode: 'explore',
+        exploreCourse: course,
+        exploreRun,
+      });
+    },
     startSpeedrun() {
       const course = buildSpeedrunCourse();
       scenes.switchTo('game', {
@@ -208,7 +243,6 @@ export function createGame({
   scenes.register('boot', BootScene);
   scenes.register('menu', MenuScene);
   scenes.register('game', GameScene);
-  scenes.register('exploration', ExplorationScene);
   scenes.register('victory', VictoryScene);
 
   const loop = new GameLoop({

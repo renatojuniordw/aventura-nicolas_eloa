@@ -14,6 +14,8 @@
 | Personagem escolhido              | Navegador, `localStorage`          | Mostrar o herói certo na tela inicial |
 | Progresso (fases concluídas)      | Navegador, `localStorage`          | Continuar de onde parou               |
 | Consentimento do responsável      | Navegador, `localStorage`          | Lembrar que o aviso foi aceito        |
+| Respostas recentes por lição e última alternativa confundida | Navegador, `localStorage` | Escolher revisões e dicas |
+| Descobertas realizadas | Navegador, `localStorage` | Registrar as palavras exploradas e sílabas formadas |
 | Volume do som                     | Navegador, `localStorage`          | Manter a preferência de áudio         |
 
 **O jogo não coleta:** localização, câmera, microfone, contatos, nem qualquer
@@ -80,7 +82,7 @@ aparece de novo — nem mesmo se os perfis forem apagados.
 - **Correção:** o nome do perfil pode ser alterado no jogo.
 - **Eliminação:** a opção **"Zerar progresso"** no menu apaga o progresso e as
   estatísticas do perfil ativo (fases concluídas, acertos, erros e melhor tempo
-  da maratona) — **o nome da criança permanece**. Para remover também o nome e
+  da maratona, respostas recentes por lição e descobertas) — **o nome da criança permanece**. Para remover também o nome e
   o registro de consentimento, use a limpeza de dados do site no navegador.
   > **Item em aberto:** o código já tem `ProfileStore.deleteProfile()` e a
   > remoção é coberta por teste, mas **nenhuma tela do jogo a expõe** — hoje

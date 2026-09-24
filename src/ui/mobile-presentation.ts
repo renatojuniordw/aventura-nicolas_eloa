@@ -20,7 +20,7 @@ export function initMobilePresentation({ bus, isTouch, pause, resetInput, goToMe
     blocked = needsLandscape;
   };
   const off = bus.on(Events.SCENE_CHANGED, ({ name }) => {
-    playing = name === 'game' || name === 'exploration';
+    playing = name === 'game';
     document.body.dataset.scene = name;
     if (!playing) {
       try { window.screen.orientation?.unlock?.(); } catch { /* unsupported */ }

@@ -17,6 +17,11 @@ export interface ProgressEntry {
   updatedAt: number | null;
 }
 
+export interface LearningEntry {
+  recent: boolean[];
+  confusedWith: string | null;
+}
+
 export interface Profile {
   id: string;
   name: string;
@@ -26,6 +31,7 @@ export interface Profile {
   stats: { correct: number; wrong: number };
   speedrunBestTime?: number | null;
   discoveries?: string[];
+  learning?: Record<string, LearningEntry>;
 }
 
 export interface SaveDocument {
@@ -140,6 +146,7 @@ export function normalizeDocument(doc: Record<string, unknown>): SaveDocument {
       characterId: (p.characterId as string) ?? DEFAULT_CHARACTER_ID,
       createdAt: Number.isFinite(p.createdAt) ? (p.createdAt as number) : null,
       progress: normalizeProgress(p.progress),
+      learning: normalizeLearning(p.learning),
       discoveries: Array.isArray(p.discoveries) ? [...new Set(p.discoveries.filter((id): id is string => typeof id === 'string'))] : [],
       stats: {
         correct: Number(stats?.correct) || 0,
@@ -180,4 +187,15 @@ function normalizeProgress(progress: unknown): Record<string, ProgressEntry> {
 export function clampStars(value: unknown): number {
   const stars = Number(value) || 0;
   return Math.max(0, Math.min(3, Math.trunc(stars)));
+}
+
+function normalizeLearning(raw: unknown): Record<string, LearningEntry> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).flatMap(([id, value]) => {
+    if (!value || typeof value !== 'object' || !Array.isArray(value.recent)) return [];
+    return [[id, {
+      recent: value.recent.filter((answer: unknown) => typeof answer === 'boolean').slice(-8),
+      confusedWith: typeof value.confusedWith === 'string' ? value.confusedWith.slice(0, 40) : null,
+    }]];
+  }));
 }

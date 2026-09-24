@@ -60,8 +60,9 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 - Segurar o pulo faz o personagem subir mais; soltar cedo encurta o pulo.
 - **Speed Run**: no menu, o modo corrida encadeia o alfabeto de A a Z e cronometra o
   melhor tempo por jogador.
-- **Explorar o quintal**: modo livre com objetos, palavras e narração, sem ordem,
-  cronômetro, vidas ou resposta errada.
+- **Explorar**: um item por vez, com narração do fato e a palavra mascarada em forma de
+  jogo da forca — toque nas letras do teclado para revelar a palavra. Ordem e distratores
+  variam por sessão via similaridade de embeddings (ver `src/content/embedding-select.ts`).
 - Em **Configurações**, é possível escolher apoio assistido, padrão ou desafios
   opcionais, ajustar voz/música/efeitos e ativar alto contraste, texto ampliado,
   redução de movimento ou cores adaptadas.

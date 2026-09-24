@@ -27,6 +27,7 @@ function makeFakeGame(overrides = {}) {
     profiles: { getActiveProfile: vi.fn(() => null) },
     progress: {
       recordAnswer: vi.fn(),
+      recordLessonAnswer: vi.fn(),
       recordSpeedrunTime: vi.fn(() => ({ bestTime: 10, isNewBest: true })),
       completeLesson: vi.fn(() => ({ stars: 3 })),
     },

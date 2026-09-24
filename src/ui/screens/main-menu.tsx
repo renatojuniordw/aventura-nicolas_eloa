@@ -39,7 +39,6 @@ interface MainMenuOptions {
   onSelectProfile?: (profileId: string) => void;
   onSelectCharacter?: (characterId: string) => void;
   onOpenCharacterPicker?: (characterId: string) => void;
-  onOpenLessonPicker: () => void;
   onOpenSettings: () => void;
 }
 
@@ -56,7 +55,6 @@ function MainMenuScreen({
   onExplore,
   onSpeedrun,
   onOpenCharacterPicker,
-  onOpenLessonPicker,
   onOpenSettings,
 }: MainMenuOptions) {
   const active = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? null;
@@ -134,9 +132,6 @@ function MainMenuScreen({
               <div className="discovery-target">{currentLessonTitle}</div>
             </div>
             <div className="menu-buttons-group home-btn-group">
-              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
-                <strong>Explorar o quintal</strong><small>Descubra no seu ritmo, sem regras de ordem</small>
-              </MenuButton>}
               <MenuButton
                 className="btn-retro btn-primary-gold"
 
@@ -151,13 +146,9 @@ function MainMenuScreen({
               >
                 {speedrunText}
               </MenuButton>
-              <MenuButton
-                className="btn-retro btn-secondary-green"
-
-                onClick={onOpenLessonPicker}
-              >
-                Escolher fase
-              </MenuButton>
+              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
+                <strong>Explorar</strong><small>Descubra o que é e monte a palavra</small>
+              </MenuButton>}
               <div className="menu-meta-row home-meta-row">
                 <MenuButton className="btn-util" onClick={onOpenSettings}>
                   ⚙️ Configurações

@@ -96,7 +96,6 @@ export class MenuScene extends Scene {
         this.render();
       },
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
-      onOpenLessonPicker: () => this.openLessonPicker(),
       onOpenSettings: () => this.openSettings(),
     });
   }
@@ -246,22 +245,6 @@ export class MenuScene extends Scene {
     measureLatency = result.measureLatency;
     pairingUrl = result.pairingUrl;
     renderPairing();
-  }
-
-  openLessonPicker(): void {
-    const profile = this.game.profiles.getActiveProfile();
-    const unlocked = new Set(
-      profile
-        ? this.game.progress.getUnlockedLessonIds(profile.id, this.game.curriculum.lessonOrder)
-        : [],
-    );
-
-    this.game.menu.showLessonPicker({
-      units: this.game.curriculum.units,
-      isUnlocked: (lessonId: string) => unlocked.has(lessonId),
-      onPick: (lessonId: string) => this.game.startLesson(lessonId),
-      onBack: () => this.render(),
-    });
   }
 
   override update(): void {

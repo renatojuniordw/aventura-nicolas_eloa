@@ -51,8 +51,8 @@ function createFakeStorage() {
 
 function mountGame() {
   document.body.innerHTML = `
-    <canvas id="game-canvas" width="960" height="540"></canvas>
-    <div id="overlay-root"></div>
+    <div class="game-viewport"><canvas id="game-canvas" width="960" height="540"></canvas>
+    <div id="overlay-root"></div></div>
   `;
   const canvas = document.getElementById('game-canvas');
   const overlayRoot = document.getElementById('overlay-root');

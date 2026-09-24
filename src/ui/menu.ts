@@ -1,14 +1,12 @@
-import { buildExplorationPause } from './screens/exploration-pause.js';
 import { buildFullscreenOffer } from './screens/fullscreen-offer.js';
 import { isFullscreenSupported, isFullscreen } from './fullscreen.js';
 import { isStandalone } from './pwa-install.js';
 import { clear } from './dom.js';
 import { buildMainMenuScreen } from './screens/main-menu.js';
 import { buildCharacterPickerScreen } from './screens/character-picker.js';
-import { buildLessonPickerScreen } from './screens/lesson-picker.js';
 import { buildPauseScreen, type PauseStep } from './screens/pause.js';
 import { buildGameOverScreen } from './screens/game-over.js';
-import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
+import { buildVictoryScreen, buildSpeedrunVictoryScreen, buildExploreVictoryScreen } from './screens/victory.js';
 import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
 import { buildPhonePairingScreen } from './screens/phone-pairing.js';
 import { buildSettingsScreen } from './screens/settings-v2.js';
@@ -103,10 +101,6 @@ export class MenuOverlay {
     this._mount(node, actions);
   }
 
-  showExplorationPause(options: Parameters<typeof buildExplorationPause>[0]): void {
-    this._show(buildExplorationPause, options);
-  }
-
   offerFullscreen(options: { onDone: () => void }): boolean {
     if (this._fullscreenOffered || !isFullscreenSupported() || isFullscreen() || isStandalone()) return false;
     this._fullscreenOffered = true;
@@ -122,10 +116,6 @@ export class MenuOverlay {
 
   showCharacterPicker(options: Parameters<typeof buildCharacterPickerScreen>[0]): void {
     this._show(buildCharacterPickerScreen, options);
-  }
-
-  showLessonPicker(options: Parameters<typeof buildLessonPickerScreen>[0]): void {
-    this._show(buildLessonPickerScreen, options);
   }
 
   showPause(options: Parameters<typeof buildPauseScreen>[1]): void {
@@ -147,6 +137,10 @@ export class MenuOverlay {
 
   showSpeedrunVictory(options: Parameters<typeof buildSpeedrunVictoryScreen>[0]): void {
     this._show(buildSpeedrunVictoryScreen, options);
+  }
+
+  showExploreVictory(options: Parameters<typeof buildExploreVictoryScreen>[0]): void {
+    this._show(buildExploreVictoryScreen, options);
   }
 
   showPrivacyNotice(options: Parameters<typeof buildPrivacyNoticeScreen>[0]): void {

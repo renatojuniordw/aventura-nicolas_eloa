@@ -123,3 +123,39 @@ function SpeedrunVictoryScreenView({
 export function buildSpeedrunVictoryScreen(options: SpeedrunVictoryOptions) {
   return buildScreen(<SpeedrunVictoryScreenView {...options} />, { primary: options.onReplay, back: options.onMenu });
 }
+
+interface ExploreVictoryOptions {
+  character?: Character | null;
+  words?: string[];
+  mistakes?: number;
+  onReplay: () => void;
+  onMenu: () => void;
+}
+
+function ExploreVictoryScreenView({ character, words = [], mistakes = 0, onReplay, onMenu }: ExploreVictoryOptions) {
+  const celebrateImage = character?.sprites?.celebrate;
+  return (
+    <div className="overlay">
+      <h1>🌻 Quintal explorado!</h1>
+      {celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
+      <h2>
+        Você descobriu {words.length} palavra{words.length === 1 ? '' : 's'}!
+      </h2>
+      <p>
+        {words.join(' · ')} ({mistakes} erro{mistakes === 1 ? '' : 's'})
+      </p>
+      <div className="overlay-actions">
+        <MenuButton className="primary" onClick={onReplay}>
+          Explorar de novo 🔎
+        </MenuButton>
+        <MenuButton onClick={onMenu}>
+          Menu principal
+        </MenuButton>
+      </div>
+    </div>
+  );
+}
+
+export function buildExploreVictoryScreen(options: ExploreVictoryOptions) {
+  return buildScreen(<ExploreVictoryScreenView {...options} />, { primary: options.onReplay, back: options.onMenu });
+}

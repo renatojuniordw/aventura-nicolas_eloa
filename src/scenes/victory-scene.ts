@@ -10,11 +10,12 @@ interface VictoryParams {
   lessonId?: string;
   stars?: number;
   mistakes?: number;
-  mode?: 'normal' | 'speedrun';
+  mode?: 'normal' | 'speedrun' | 'explore';
   elapsed?: number;
   isNewBest?: boolean;
   bestTime?: number;
   totalLetters?: number;
+  words?: string[];
 }
 
 /**
@@ -36,6 +37,7 @@ export class VictoryScene extends Scene {
     isNewBest = false,
     bestTime = 0,
     totalLetters = 26,
+    words = [],
   }: VictoryParams = {}): void {
     this._jumpGesture.reset();
     const profile = this.game.profiles.getActiveProfile();
@@ -50,6 +52,18 @@ export class VictoryScene extends Scene {
         bestTime,
         totalLetters,
         onReplay: () => this.game.startSpeedrun(),
+        onMenu: () => this.game.scenes.switchTo('menu'),
+      });
+      return;
+    }
+
+    if (mode === 'explore') {
+      this.game.effects.spawnConfetti(this.game.renderer.width / 2, 140, 96);
+      this.game.menu.showExploreVictory({
+        character: getCharacter(profile?.characterId),
+        words,
+        mistakes,
+        onReplay: () => this.game.startExploration(),
         onMenu: () => this.game.scenes.switchTo('menu'),
       });
       return;

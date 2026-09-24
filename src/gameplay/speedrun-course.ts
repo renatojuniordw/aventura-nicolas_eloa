@@ -4,11 +4,11 @@ import type { Box } from '../physics/aabb.js';
 import { GAMEPLAY } from '../core/config.js';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const SEGMENT_WIDTH = 1920; // 60 tiles * 32px
+export const SEGMENT_WIDTH = 1920; // 60 tiles * 32px
 /** The target is preferably placed within this segment-local x (first ~60%). */
 const EARLY_TARGET_MAX_X = 1150;
 
-const TEMPLATE_IDS = [
+export const TEMPLATE_IDS = [
   'fase-alfabeto-a', // 0: Planície
   'fase-alfabeto-b', // 1: Degraus
   'fase-alfabeto-c', // 2: Plataformas
@@ -53,7 +53,7 @@ export function isSafeFromHazards(
   return true;
 }
 
-interface Spot {
+export interface Spot {
   x: number;
   y: number;
 }
@@ -92,7 +92,7 @@ export function isTapReachable(spot: Spot, supports: SupportBox[]): boolean {
  * Heights (y) vary from ground jumps (~310..320) to elevated platforms (~200..250).
  * All spots are positioned away from hazards (such as spikes) and pit gaps.
  */
-const CANDIDATE_SPOTS: Spot[][] = [
+export const CANDIDATE_SPOTS: Spot[][] = [
   // 0: Planície (ground jumps at y: 340; platform jumps at y: 220..250)
   [
     { x: 340, y: 340 },
@@ -136,7 +136,7 @@ const CANDIDATE_SPOTS: Spot[][] = [
   ],
 ];
 
-function shuffle<T>(array: T[], random: () => number): T[] {
+export function shuffle<T>(array: T[], random: () => number): T[] {
   const copy = [...array];
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));

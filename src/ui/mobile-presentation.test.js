@@ -26,7 +26,7 @@ describe('mobile presentation', () => {
     expect(document.body.classList.contains('needs-landscape')).toBe(false);
     expect(pause).not.toHaveBeenCalled();
 
-    bus.emit(Events.SCENE_CHANGED, { name: 'exploration' });
+    bus.emit(Events.SCENE_CHANGED, { name: 'game' });
     expect(document.body.classList.contains('needs-landscape')).toBe(true);
     expect(document.getElementById('app').inert).toBe(true);
     expect(pause).toHaveBeenCalledTimes(1);

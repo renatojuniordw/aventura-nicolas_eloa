@@ -9,8 +9,8 @@
  */
 import { Events, type EventBus } from '../core/event-bus.js';
 
-/** Scene during which a reload would lose the player's run. */
-const isPlayingScene = (name: string | null) => name === 'game' || name === 'exploration';
+/** Scene during which a reload would lose the player's run (normal, speedrun and explore modes all run inside 'game'). */
+const isPlayingScene = (name: string | null) => name === 'game';
 const MENU_SCENE = 'menu';
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 

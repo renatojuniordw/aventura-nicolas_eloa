@@ -27,6 +27,8 @@ interface HudModelOptions {
   isSpeedrun?: boolean;
   timer?: number;
   speedrunProgress?: string;
+  /** False hides the clock in the progress badge (used by Explorar, which has no timer). */
+  showTimer?: boolean;
 }
 
 export class HudModel {
@@ -37,6 +39,7 @@ export class HudModel {
   isSpeedrun: boolean;
   timer: number;
   speedrunProgress: string;
+  showTimer: boolean;
   feedback: Feedback;
 
   constructor({
@@ -47,6 +50,7 @@ export class HudModel {
     isSpeedrun = false,
     timer = 0,
     speedrunProgress = '',
+    showTimer = true,
   }: HudModelOptions = {}) {
     this.objective = objective;
     this.levelName = levelName;
@@ -55,6 +59,7 @@ export class HudModel {
     this.isSpeedrun = isSpeedrun;
     this.timer = timer;
     this.speedrunProgress = speedrunProgress;
+    this.showTimer = showTimer;
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
   }
 

@@ -16,6 +16,9 @@ import { lessonAssets } from '../render/asset-plan.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
 import { FUTURE_HINT_INTERVAL, SpeedrunRun } from '../gameplay/speedrun-run.js';
+import { buildExploreCourse } from '../gameplay/explore-course.js';
+import { FUTURE_HINT_INTERVAL as EXPLORE_FUTURE_HINT_INTERVAL, ExploreRun } from '../gameplay/explore-run.js';
+import { WORD_BANK } from '../content/word-bank.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
 import { vibrateJump, vibrateCollect, vibrateVictory, vibrateWarning } from '../input/haptics.js';
@@ -43,9 +46,11 @@ interface GameLevel extends Level {
 
 interface EnterParams {
   lessonId?: string;
-  mode?: 'normal' | 'speedrun';
+  mode?: 'normal' | 'speedrun' | 'explore';
   speedrunCourse?: GameLevel | null;
   speedrunState?: { elapsed?: number } | null;
+  exploreCourse?: GameLevel | null;
+  exploreRun?: ExploreRun | null;
 }
 
 /**
@@ -60,7 +65,8 @@ export class GameScene extends Scene {
   physics = new PhysicsEngine();
   private _unsubscribers: Array<() => void> = [];
 
-  mode: 'normal' | 'speedrun' = 'normal';
+  mode: 'normal' | 'speedrun' | 'explore' = 'normal';
+
   mistakes = 0;
   status: StatusValue = Status.RUNNING;
   private _winTimer = 0;
@@ -78,6 +84,8 @@ export class GameScene extends Scene {
 
   /** Progress through the A-to-Z run; null outside speedrun mode. */
   speedrun: SpeedrunRun | null = null;
+  /** Progress through one Explorar session; null outside explore mode. */
+  exploreRun: ExploreRun | null = null;
 
   get speedrunCheckpoints(): Point[] | undefined {
     return this.speedrun?.checkpoints;
@@ -103,12 +111,20 @@ export class GameScene extends Scene {
     if (this.speedrun) this.speedrun.elapsed = seconds;
   }
 
-  override enter({ lessonId, mode = 'normal', speedrunCourse = null, speedrunState = null }: EnterParams = {}): void {
+  override enter({
+    lessonId,
+    mode = 'normal',
+    speedrunCourse = null,
+    speedrunState = null,
+    exploreCourse = null,
+    exploreRun = null,
+  }: EnterParams = {}): void {
     this.mode = mode;
     this.mistakes = 0;
     this.status = Status.RUNNING;
     this._winTimer = 0;
     this.speedrun = null;
+    this.exploreRun = null;
 
     if (this.mode === 'speedrun') {
       const course = speedrunCourse ?? (buildSpeedrunCourse() as unknown as GameLevel);
@@ -116,6 +132,15 @@ export class GameScene extends Scene {
       this.speedrun = new SpeedrunRun(course.alphabet ?? [], course.checkpoints, speedrunState?.elapsed ?? 0);
 
       this.lesson = this._letterLesson(this.speedrun.currentLetter, 0);
+      this.validator = new AnswerValidator(this.lesson);
+    } else if (this.mode === 'explore') {
+      const course =
+        exploreCourse ?? (buildExploreCourse(WORD_BANK.slice(0, 6)) as unknown as GameLevel);
+      this.level = course;
+      this.exploreRun =
+        exploreRun ?? new ExploreRun((course.words as never) ?? WORD_BANK.slice(0, 6), course.checkpoints);
+
+      this.lesson = this._letterLesson(this.exploreRun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
     } else {
       const lesson = this.game.curriculum.getLesson(lessonId);
@@ -145,14 +170,19 @@ export class GameScene extends Scene {
     this.camera.snapTo(this.player.body);
 
     const isSpeedrun = this.mode === 'speedrun';
-    const progressText = this.speedrun?.progressText ?? '';
+    const isExplore = this.mode === 'explore';
+    const progressText = this.speedrun?.progressText ?? this.exploreRun?.progressText ?? '';
+    const objective = isExplore
+      ? `Monte a palavra: ${this.exploreRun!.currentWord.label}`
+      : this.lesson.objective;
 
     this.hudModel = new HudModel({
-      objective: this.lesson.objective,
+      objective,
       levelName: this.level.name,
       lives: this.lives.lives,
       maxLives: this.lives.maxLives,
-      isSpeedrun,
+      isSpeedrun: isSpeedrun || isExplore,
+      showTimer: isSpeedrun,
       timer: this.speedrunElapsed,
       speedrunProgress: progressText,
     });
@@ -169,7 +199,9 @@ export class GameScene extends Scene {
     if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
     tryLockLandscape().catch(() => {});
-    if (this.lesson?.target) {
+    // Explorar narrates on touching each word's discovery marker instead of
+    // announcing the letter target up front — the word hasn't been found yet.
+    if (this.lesson?.target && this.mode !== 'explore') {
       this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
   }
@@ -234,6 +266,10 @@ export class GameScene extends Scene {
     if (this.mode === 'speedrun') {
       this.speedrun?.tick(dt);
       this.hudModel.setTimer(this.speedrunElapsed);
+    } else if (this.mode === 'explore') {
+      // No visible clock for Explorar (showTimer: false); ticked anyway so the
+      // future-item hint keeps its normal pacing, same as speedrun's.
+      this.exploreRun?.tick(dt);
     }
 
     if (this.status === Status.WON) {
@@ -259,7 +295,11 @@ export class GameScene extends Scene {
     this.game.sprites.drawObjects(
       renderer,
       this.level,
-      this.mode === 'speedrun' ? (this.speedrunCheckpoints ?? null) : null,
+      this.mode === 'speedrun'
+        ? (this.speedrunCheckpoints ?? null)
+        : this.mode === 'explore'
+          ? (this.level.checkpoints ?? null)
+          : null,
     );
     this.game.sprites.drawItems(renderer, this.level.items, this.levelManager.collected);
     this.game.sprites.drawHazards(renderer, this.level.hazards);
@@ -314,7 +354,19 @@ export class GameScene extends Scene {
     on(Events.APP_BLURRED, () => this.pause());
   }
 
-  onItemCollected(item: LevelItem & { segmentIndex?: number; label?: string }): void {
+  onItemCollected(
+    item: LevelItem & { segmentIndex?: number; label?: string; kind?: string; fact?: string },
+  ): void {
+    if (this.status !== Status.RUNNING) return;
+
+    // The discovery marker is a narration trigger, not a right/wrong pickup:
+    // no validator, no mistake tracking, no lesson-answer recording.
+    if (this.mode === 'explore' && item.kind === 'discovery') {
+      this.game.narrator?.speak(`${item.label}. ${item.fact ?? ''}`.trim());
+      this.exploreRun?.markDiscovered();
+      return;
+    }
+
     if (this.speedrun?.isAhead(item)) {
       this.levelManager.collected.delete(item.id);
       if (this.speedrun.claimFutureHint()) {
@@ -327,10 +379,23 @@ export class GameScene extends Scene {
       return;
     }
 
+    if (this.exploreRun?.isAhead(item)) {
+      this.levelManager.collected.delete(item.id);
+      if (this.exploreRun.claimFutureHint()) {
+        const hint = this.exploreRun.discovered
+          ? `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`
+          : `Toque em "${this.exploreRun.currentWord.label}" primeiro!`;
+        this.hudModel.showFeedback(FeedbackKind.WRONG, hint, EXPLORE_FUTURE_HINT_INTERVAL);
+      }
+      return;
+    }
+
     const { ok } = this.validator.validate(item);
     const centerX = item.x + item.w / 2;
     const centerY = item.y + item.h / 2;
     const profile = this.game.profiles.getActiveProfile();
+
+    if (profile) this.game.progress.recordLessonAnswer(profile.id, this.lesson.id, ok, item.label);
 
     if (ok) {
       this._handleCorrectAnswer(item, profile, centerX, centerY);
@@ -355,6 +420,11 @@ export class GameScene extends Scene {
 
     if (this.speedrun) {
       this._advanceSpeedrun(this.speedrun);
+      return;
+    }
+
+    if (this.exploreRun) {
+      this._advanceExplore(this.exploreRun);
       return;
     }
 
@@ -390,6 +460,41 @@ export class GameScene extends Scene {
 
     // Collected Z! Venceu a maratona!
     this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Parabéns! Maratona concluída!', 1.5);
+    this.winLevel();
+  }
+
+  /** Explore advance: next letter of the same word, the next word, or session victory. */
+  private _advanceExplore(run: ExploreRun): void {
+    const wordComplete = run.collectLetter();
+
+    if (!wordComplete) {
+      const nextLetter = run.currentLetter;
+      this.lesson = this._letterLesson(nextLetter, run.currentWordIndex);
+      this.validator = new AnswerValidator(this.lesson);
+      this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Boa! Continue!', 0.6);
+      return;
+    }
+
+    const profile = this.game.profiles.getActiveProfile();
+    if (profile) this.game.progress.recordDiscovery(profile.id, run.currentWord.id);
+    const completedWord = run.currentWord.label;
+
+    if (run.advance()) {
+      const nextLetter = run.currentLetter;
+      this.lesson = this._letterLesson(nextLetter, run.currentWordIndex);
+      this.validator = new AnswerValidator(this.lesson);
+      if (run.currentCheckpoint) {
+        this.levelManager.setCheckpoint({ ...run.currentCheckpoint });
+      }
+
+      this.hudModel.setObjective(`Monte a palavra: ${run.currentWord.label}`);
+      this.hudModel.setSpeedrunProgress(run.progressText);
+      this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você descobriu ${completedWord}!`, 1.2);
+      return;
+    }
+
+    // Last word spelled — session complete!
+    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você descobriu ${completedWord}! Parabéns!`, 1.5);
     this.winLevel();
   }
 
@@ -439,10 +544,10 @@ export class GameScene extends Scene {
   winLevel(): void {
     this.status = Status.WON;
     vibrateVictory();
-    if (this.mode === 'speedrun') {
+    if (this.mode === 'speedrun' || this.mode === 'explore') {
       this.game.narrator?.speakPraise('Parabéns!');
     }
-    this._winTimer = this.mode === 'speedrun' ? 1.2 : GAMEPLAY.celebrationDuration;
+    this._winTimer = this.mode === 'speedrun' || this.mode === 'explore' ? 1.2 : GAMEPLAY.celebrationDuration;
     this.game.effects.spawnConfetti(
       this.player.body.x + this.player.body.w / 2,
       this.player.body.y,
@@ -470,6 +575,15 @@ export class GameScene extends Scene {
       return;
     }
 
+    if (this.mode === 'explore') {
+      this.game.scenes.switchTo('victory', {
+        mode: 'explore',
+        words: this.exploreRun?.words.map((word) => word.label) ?? [],
+        mistakes: this.mistakes,
+      });
+      return;
+    }
+
     const entry = profile
       ? this.game.progress.completeLesson(profile.id, this.lesson.id, { mistakes: this.mistakes })
       : null;
@@ -491,10 +605,12 @@ export class GameScene extends Scene {
     });
   }
 
-  /** Starts this run over: a fresh speedrun, or the current lesson from the top. */
+  /** Starts this run over: a fresh speedrun/explore session, or the current lesson from the top. */
   restart(): void {
     if (this.mode === 'speedrun') {
       this.game.startSpeedrun();
+    } else if (this.mode === 'explore') {
+      this.game.startExploration();
     } else {
       this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
     }
