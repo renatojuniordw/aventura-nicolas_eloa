@@ -1,3 +1,5 @@
+import { DISCOVERY_AREAS } from '../content/discoveries.js';
+import { drawDiscoveryPixels } from './discovery-pixels.js';
 import type { CanvasRenderer } from './canvas-renderer.js';
 import type { DiscoveryRun } from '../gameplay/discovery-run.js';
 
@@ -5,6 +7,7 @@ const rect = (r: CanvasRenderer, x: number, y: number, w: number, h: number, col
 
 function drawObject(r: CanvasRenderer, id: string, x: number, y: number, t: number, moving: boolean): void {
   const wave = moving ? Math.sin(t * 12) : 0;
+  if (drawDiscoveryPixels(r, id, x, y, wave)) return;
   if (id === 'bola') {
     const lift = moving ? Math.abs(wave) * 30 : 0; const cy = y - lift;
     rect(r, x + 18, cy + 8, 36, 36, '#fff7df'); rect(r, x + 26, cy, 20, 52, '#fff7df'); rect(r, x + 14, cy + 16, 44, 20, '#fff7df');
@@ -32,12 +35,22 @@ function drawObject(r: CanvasRenderer, id: string, x: number, y: number, t: numb
 }
 
 export function drawDiscoveries(renderer: CanvasRenderer, run: DiscoveryRun, reducedMotion: boolean, guideId?: string | null): void {
+  for (const area of DISCOVERY_AREAS) {
+    renderer.worldFillRect(area.x + 38, 320, 8, 144, '#986132');
+    renderer.worldFillRect(area.x + 18, 270, 330, 42, area.color);
+    renderer.worldText(area.label, area.x + 183, 291, { color: '#fff7df', font: 'bold 20px "Trebuchet MS", sans-serif' });
+    for (let x = area.x + 70; x < area.x + 1550; x += 110) {
+      renderer.worldFillRect(x, 450, 4, 14, '#397f4e');
+      renderer.worldFillRect(x - 4, 445, 12, 7, area.color === '#986132' ? '#efaa58' : '#ef77a8');
+    }
+  }
   for (const item of run.objects) {
     const center = item.x + item.w / 2; const active = item.id === run.active?.id && run.animation > 0;
-    renderer.worldFillRect(item.x, 456, item.w, 8, active ? '#ffd479' : '#326855');
-    drawObject(renderer, item.id, item.x + 4, 385, run.animation, active && !reducedMotion);
+    renderer.worldFillRect(item.x, item.y + item.h - 8, item.w, 8, active ? '#ffd479' : run.discovered.has(item.id) ? '#55a866' : '#326855');
+    drawObject(renderer, item.id, item.x + 4, item.y + 33, run.animation, active && !reducedMotion);
     const font = 'bold 20px "Trebuchet MS", sans-serif'; const width = renderer.measureText(item.label, font) + 20;
-    renderer.worldFillRect(center - width / 2, 328, width, 30, '#fbf4df'); renderer.worldText(item.label, center, 343, { color: '#233d38', font });
-    if (guideId === item.id) { renderer.worldText('▼', center, 298 + (reducedMotion ? 0 : Math.sin(run.animation * 5) * 5), { color: '#ffd447', font: 'bold 28px sans-serif' }); }
+    renderer.worldFillRect(center - width / 2, item.y - 24, width, 30, '#fbf4df'); renderer.worldText(item.label, center, item.y - 9, { color: '#233d38', font });
+    if (run.discovered.has(item.id)) renderer.worldText('✓', center + width / 2 + 12, item.y - 9, { color: '#326855', font: 'bold 22px sans-serif' });
+    if (guideId === item.id) { renderer.worldText('▼', center, item.y - 54 + (reducedMotion ? 0 : Math.sin(run.animation * 5) * 5), { color: '#ffd447', font: 'bold 28px sans-serif' }); }
   }
 }

@@ -22,3 +22,12 @@ describe('DiscoveryRun', () => {
     expect(run.active).toBe(flower);
   });
 });
+
+it('discovers an object after cooldown even when the player is still touching it', () => {
+  const other = { ...BALL, id: 'flor', x: 100 };
+  const run = new DiscoveryRun([BALL, other]);
+  run.update({ x: 25, y: 25, w: 10, h: 10 }, 0.1);
+  expect(run.update({ x: 105, y: 25, w: 10, h: 10 }, 0.5)).toBeNull();
+  expect(run.update({ x: 105, y: 25, w: 10, h: 10 }, 1)).toBe(other);
+  expect(run.discovered.size).toBe(2);
+});

@@ -16,7 +16,7 @@ export class DiscoveryRun {
     this.animation = Math.max(0, this.animation - dt);
     const contact = this.objects.filter((item) => overlap(body, item));
     const discovered = contact.find((item) => !this.touching.has(item.id));
-    this.touching = new Set(contact.map((item) => item.id));
+    this.touching = new Set(contact.filter((item) => this.cooldown === 0 || this.touching.has(item.id)).map((item) => item.id));
     if (!discovered || this.cooldown > 0) return null;
     this.active = discovered;
     this.discovered.add(discovered.id);

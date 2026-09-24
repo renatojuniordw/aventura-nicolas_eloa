@@ -36,6 +36,7 @@ export class ExplorationScene extends Scene {
     this.game.sprites.setLevel(DISCOVERY_LEVEL);
     this.game.assets.load(lessonAssets(DISCOVERY_LEVEL, this.character)).catch(() => {});
     this.hud = new DiscoveryHud();
+    this.hud.updateProgress(0, this.run.objects.length);
     this.game.hudControls.showPauseButton({ onPause: () => this.togglePause(), onRepeat: () => this.repeat() });
     if (this.game.device.isTouch) this.game.touchControls.show();
     this.unsubscribe = this.game.bus.on(Events.APP_BLURRED, () => this.pause());
@@ -63,6 +64,7 @@ export class ExplorationScene extends Scene {
     const item = this.run.update(this.player.body, dt);
     if (item) {
       this.hud.show(item.label, this.supportLevel === 'challenge' ? `${item.fact} Desafio opcional: ${item.challenge}` : item.fact, true);
+      this.hud.updateProgress(this.run.discovered.size, this.run.objects.length);
       this.repeat();
       const profile = this.game.profiles.getActiveProfile();
       if (profile) this.game.progress.recordDiscovery(profile.id, item.id);
