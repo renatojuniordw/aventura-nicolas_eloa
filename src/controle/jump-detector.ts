@@ -36,7 +36,7 @@ export const DEFAULT_JUMP_DETECTOR_THRESHOLDS: JumpDetectorThresholds = Object.f
   minFreefallMs: 100,
   maxFreefallMs: 750,
   cooldownMs: 300,
-  takeoffDeltaG: 0.4,
+  takeoffDeltaG: 0.2,
   takeoffWindowMs: 250,
 });
 
@@ -86,6 +86,11 @@ const REST_BLEND = 0.5;
  * this costs one extra sample (~16ms), negligible next to minFreefallMs.
  */
 const FREEFALL_CONFIRM_SAMPLES = 2;
+// A sustained push can trigger on the first low-g sample. Brief spikes need
+// 50ms of uninterrupted low-g instead, so sample rate does not amplify noise.
+const SUSTAINED_PUSH_MS = 80;
+const MAX_PUSH_SAMPLE_GAP_MS = 60;
+const TAKEOFF_CONFIRM_MS = 50;
 
 /**
  * Pure freefall-then-impact jump detector, extracted from the page so it can
@@ -107,6 +112,9 @@ export class JumpDetector {
   private _lastJump: JumpInfo | null = null;
   private _spikeAt = -Infinity;
   private _spikeG = 0;
+  private _spikeStart = -Infinity;
+  private _pushContinues = false;
+  private _lowGContinues = false;
   private _firedThisFlight = false;
   private _trackRest: boolean;
   private _restUpdates = 0;
@@ -172,7 +180,9 @@ export class JumpDetector {
         this._pendingMinG = Math.min(this._pendingMinG, magnitude);
         this._belowThresholdStreak += 1;
         this._resetRestWindow();
-        if (this._belowThresholdStreak >= FREEFALL_CONFIRM_SAMPLES) {
+        const sustainedPush = this._hasSustainedPush(timestampMs);
+        this._pushContinues = false;
+        if (this._belowThresholdStreak >= FREEFALL_CONFIRM_SAMPLES || sustainedPush) {
           this._state = 'freefall';
           this._freefallStart = this._pendingFreefallStart;
           this._minFreefallG = this._pendingMinG;
@@ -180,7 +190,8 @@ export class JumpDetector {
           this._pendingFreefallStart = null;
           this._pendingMinG = Infinity;
           this._firedThisFlight = false;
-          return this._tryTakeoffFire(timestampMs);
+          this._lowGContinues = true;
+          return this._tryTakeoffFire(timestampMs, sustainedPush);
         }
       } else {
         this._belowThresholdStreak = 0;
@@ -224,7 +235,10 @@ export class JumpDetector {
     if (elapsed > maxFreefallMs) {
       this._state = 'idle'; // was never a real jump — abort
       this._firedThisFlight = false;
+      return false;
     }
+    if (magnitude >= this.freefallThreshold) this._lowGContinues = false;
+    if (this._lowGContinues && !this._firedThisFlight) return this._tryTakeoffFire(timestampMs);
     return false;
   }
 
@@ -235,6 +249,9 @@ export class JumpDetector {
     this._pendingFreefallStart = null;
     this._pendingMinG = Infinity;
     this._spikeAt = -Infinity;
+    this._spikeStart = -Infinity;
+    this._pushContinues = false;
+    this._lowGContinues = false;
     this._firedThisFlight = false;
     this._resetRestWindow();
   }
@@ -242,15 +259,29 @@ export class JumpDetector {
   /** Remembers the most recent push-off spike so a freefall right after it can fire early. */
   private _noteTakeoffSpike(magnitude: number, timestampMs: number): void {
     const { takeoffDeltaG, takeoffWindowMs } = this._thresholds;
-    if (!(takeoffDeltaG > 0) || magnitude <= this._restMagnitude + takeoffDeltaG) return;
+    if (!(takeoffDeltaG > 0) || magnitude <= this._restMagnitude + takeoffDeltaG) {
+      this._pushContinues = false;
+      return;
+    }
+    if (!this._pushContinues || timestampMs - this._spikeAt > MAX_PUSH_SAMPLE_GAP_MS) {
+      this._spikeStart = timestampMs;
+    }
+    this._pushContinues = true;
     const sameSpike = timestampMs - this._spikeAt <= takeoffWindowMs;
     this._spikeG = sameSpike ? Math.max(this._spikeG, magnitude) : magnitude;
     this._spikeAt = timestampMs;
   }
 
-  /** Fires on the sample that confirms freefall, if a push-off spike just preceded it. */
-  private _tryTakeoffFire(timestampMs: number): boolean {
+  private _hasSustainedPush(timestampMs: number): boolean {
+    return this._pushContinues
+      && timestampMs - this._spikeStart >= SUSTAINED_PUSH_MS
+      && timestampMs - this._spikeAt <= MAX_PUSH_SAMPLE_GAP_MS;
+  }
+
+  /** Fires early after a sustained push, or after enough continuous low-g. */
+  private _tryTakeoffFire(timestampMs: number, sustainedPush = false): boolean {
     const { takeoffDeltaG, takeoffWindowMs, cooldownMs } = this._thresholds;
+    if (!sustainedPush && timestampMs - this._freefallStart < TAKEOFF_CONFIRM_MS) return false;
     if (!(takeoffDeltaG > 0)) return false; // also covers thresholds saved before this field existed
     if (this._freefallStart - this._spikeAt > takeoffWindowMs) return false;
     if (timestampMs - this._lastJumpAt <= cooldownMs) return false;

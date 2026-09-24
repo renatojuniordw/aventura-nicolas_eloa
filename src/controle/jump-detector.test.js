@@ -248,3 +248,45 @@ describe('JumpDetector takeoff trigger', () => {
     expect(results.filter(Boolean).length).toBeLessThanOrEqual(1);
   });
 });
+
+describe('low-latency synthetic sensor traces', () => {
+  function run(hz, phase, signal, thresholds) {
+    const detector = new JumpDetector(thresholds);
+    detector.calibrate([sampleAt(1)]);
+    const detections = [];
+    for (let n = 0; n < hz * 2; n++) {
+      const t = (n + phase / 10) * 1000 / hz;
+      if (detector.feed(sampleAt(signal(t)), t)) detections.push({ t, trigger: detector.lastJump.trigger });
+    }
+    return detections;
+  }
+
+  for (const hz of [20, 30, 60, 100]) {
+    for (let phase = 0; phase < 10; phase++) {
+      it(`detects weak sustained push-off within one sensor interval (${hz}Hz, phase ${phase})`, () => {
+        const detections = run(hz, phase, t =>
+          t >= 450 && t < 600 ? 1.3 : t >= 600 && t < 900 ? 0.2 : t >= 900 && t < 980 ? 2.2 : 1);
+        expect(detections).toHaveLength(1);
+        expect(detections[0].trigger).toBe('takeoff');
+        expect(detections[0].t - 600).toBeLessThanOrEqual(1000 / hz + 0.001);
+      });
+      it(`detects a short jump with sustained push (${hz}Hz, phase ${phase})`, () => {
+        const detections = run(hz, phase, t =>
+          t >= 500 && t < 600 ? 1.9 : t >= 600 && t < 680 ? 0.2 : t >= 680 && t < 760 ? 2.2 : 1);
+        expect(detections).toHaveLength(1);
+        expect(detections[0].trigger).toBe('takeoff');
+      });
+      it(`rejects a brief synthetic jolt (${hz}Hz, phase ${phase})`, () => {
+        expect(run(hz, phase, t =>
+          t >= 500 && t < 560 ? 1.9 : t >= 560 && t < 600 ? 0.2 : 1)).toHaveLength(0);
+      });
+    }
+  }
+
+  it('does not trigger after low acceleration has already ended', () => {
+    const d = new JumpDetector();
+    const fired = [[0, 1.9], [10, 0.2], [20, 0.2], [30, 1], [100, 1]]
+      .map(([t, g]) => d.feed(sampleAt(g), t));
+    expect(fired.some(Boolean)).toBe(false);
+  });
+});
