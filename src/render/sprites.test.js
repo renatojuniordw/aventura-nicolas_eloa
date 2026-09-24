@@ -11,6 +11,7 @@ function createMockRenderer() {
     worldImage: vi.fn(),
     worldFillRect: vi.fn(),
     worldText: vi.fn(),
+    measureText: vi.fn((text) => text.length * 14),
   };
 }
 
@@ -80,4 +81,15 @@ describe('SpriteRenderer', () => {
     // One for checkpoint, one for finish portal
     expect(renderer.worldImage).toHaveBeenCalledTimes(2);
   });
+});
+
+it.each([null, new Map([['item:letter-carrier', {}]])])('fits full word labels with or without assets (%s)', (assets) => {
+  const renderer = createMockRenderer();
+  const sprites = new SpriteRenderer({ assets, reducedMotion: () => true });
+  const item = { id: 'word', label: 'BOLA', type: 'target', x: 200, y: 300, w: 32, h: 32 };
+  sprites.drawItems(renderer, [item]);
+  const panel = renderer.worldFillRect.mock.calls.find((call) => call[4] === '#fbf4df');
+  expect(panel[2]).toBeGreaterThanOrEqual(renderer.measureText('BOLA') + 18);
+  expect(renderer.worldText).toHaveBeenCalledWith('BOLA', 216, 316, expect.any(Object));
+  expect(item).toEqual({ id: 'word', label: 'BOLA', type: 'target', x: 200, y: 300, w: 32, h: 32 });
 });

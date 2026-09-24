@@ -71,3 +71,17 @@ describe('Effects', () => {
     expect(effects.count).toBe(0);
   });
 });
+
+it('reduces decorative motion while preserving readable feedback', () => {
+  let reduced = false;
+  const effects = new Effects({ reducedMotion: () => reduced });
+  effects.spawnConfetti(0, 0);
+  effects.spawnFloatingText(100, 200, 'Muito bem!');
+  reduced = true;
+  effects.update(0.1);
+  expect(effects.particles).toHaveLength(0);
+  expect(effects.floatingTexts[0].y).toBe(200);
+  effects.spawnPuff(0, 0);
+  effects.spawnConfetti(0, 0);
+  expect(effects.particles).toHaveLength(0);
+});

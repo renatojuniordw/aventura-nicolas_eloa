@@ -34,6 +34,7 @@ interface FloatingText {
 interface EffectsOptions {
   random?: () => number;
   gravity?: number;
+  reducedMotion?: () => boolean;
 }
 
 export class Effects {
@@ -41,10 +42,12 @@ export class Effects {
   floatingTexts: FloatingText[] = [];
   private _random: () => number;
   private _gravity: number;
+  private _reducedMotion: () => boolean;
 
-  constructor({ random = Math.random, gravity = 900 }: EffectsOptions = {}) {
+  constructor({ random = Math.random, gravity = 900, reducedMotion = () => false }: EffectsOptions = {}) {
     this._random = random;
     this._gravity = gravity;
+    this._reducedMotion = reducedMotion;
   }
 
   get count(): number {
@@ -62,7 +65,7 @@ export class Effects {
       text,
       x,
       y,
-      vy: -55,
+      vy: this._reducedMotion() ? 0 : -55,
       life: 0.9,
       maxLife: 0.9,
       color,
@@ -71,6 +74,7 @@ export class Effects {
 
   /** Celebration burst centered on a world position. */
   spawnConfetti(x: number, y: number, count = 48): void {
+    if (this._reducedMotion()) return;
     for (let i = 0; i < count; i += 1) {
       const angle = this._random() * Math.PI * 2;
       const speed = 120 + this._random() * 260;
@@ -89,6 +93,7 @@ export class Effects {
 
   /** Small puff used when an item is collected. */
   spawnPuff(x: number, y: number, count = 12, color = '#ffcc4d'): void {
+    if (this._reducedMotion()) return;
     for (let i = 0; i < count; i += 1) {
       const angle = this._random() * Math.PI * 2;
       const speed = 40 + this._random() * 120;
@@ -106,6 +111,10 @@ export class Effects {
   }
 
   update(dt: number): void {
+    if (this._reducedMotion()) {
+      this.particles = [];
+      for (const text of this.floatingTexts) text.vy = 0;
+    }
     for (const particle of this.particles) {
       particle.vy += this._gravity * dt;
       particle.x += particle.vx * dt;

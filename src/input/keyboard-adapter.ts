@@ -41,7 +41,15 @@ export class KeyboardAdapter extends InputAdapter {
     this._attached = false;
   }
 
+  private _usesNativeKeyboard(event: KeyboardEvent): boolean {
+    const target = event.target;
+    if (typeof Element === 'undefined' || !(target instanceof Element)) return false;
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
+    return (event.code === 'Enter' || event.code === 'Space') && Boolean(target.closest('button, a[href], summary'));
+  }
+
   private _handleKeyDown(event: KeyboardEvent): void {
+    if (this._usesNativeKeyboard(event)) return;
     const action = translateKey(event.code, this._keymap);
     if (!action) return;
     // Stop the browser from scrolling the page on Space/Arrows.
@@ -52,7 +60,8 @@ export class KeyboardAdapter extends InputAdapter {
   private _handleKeyUp(event: KeyboardEvent): void {
     const action = translateKey(event.code, this._keymap);
     if (!action) return;
-    event.preventDefault();
+    // Release held movement even if focus moved to a control after keydown.
+    if (!this._usesNativeKeyboard(event)) event.preventDefault();
     this.onAction(action, { pressed: false, repeated: false });
   }
 }

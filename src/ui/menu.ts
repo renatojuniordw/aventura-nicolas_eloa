@@ -57,8 +57,17 @@ export class MenuOverlay {
     this._cleanup = null;
     clear(this._root);
     this._visible = false;
+    this._setGameplayControlsInert(false);
     this._primary = null;
     this._back = null;
+    document.getElementById('game-canvas')?.focus({ preventScroll: true });
+  }
+
+  private _setGameplayControlsInert(inert: boolean): void {
+    for (const id of ['hud-controls-root', 'touch-controls-root']) {
+      const controls = document.getElementById(id);
+      if (controls && controls !== this._root) controls.inert = inert;
+    }
   }
 
   triggerPrimary(): void {
@@ -77,6 +86,9 @@ export class MenuOverlay {
     this._primary = primary ?? null;
     this._back = back ?? null;
     this._visible = true;
+    this._setGameplayControlsInert(true);
+    const primaryButton = node.querySelector<HTMLElement>('.btn-primary-gold') ?? node.querySelector<HTMLElement>('button, [href], input');
+    primaryButton?.focus({ preventScroll: true });
   }
 
   /** Builds a screen from its options and mounts it with the actions it returned. */

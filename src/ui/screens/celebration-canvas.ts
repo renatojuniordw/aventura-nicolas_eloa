@@ -34,10 +34,12 @@ export function createCelebrationCanvas(
   let animId: number | null = null;
   let lastTime = 0;
   const frameDuration = 180; // ms per frame
+  const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
   function step(time: number) {
     if (img.complete && img.naturalWidth > 0) {
-      if (!lastTime || time - lastTime >= frameDuration) {
+      if (motionPreference?.matches) frame = 0;
+      else if (!lastTime || time - lastTime >= frameDuration) {
         lastTime = time;
         frame = (frame + 1) % (columns * rows);
       }

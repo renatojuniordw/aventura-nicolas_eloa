@@ -412,7 +412,8 @@ export class GameScene extends Scene {
       GAMEPLAY.wrongFeedbackDuration,
     );
     if (item.label) {
-      this.game.narrator?.speak(`Ops! Essa é a letra ${item.label.toLowerCase()}`);
+      const kind = this.lesson.type === 'word' ? 'palavra' : this.lesson.type === 'syllable' ? 'sílaba' : 'letra';
+      this.game.narrator?.speak(`Essa é a ${kind} ${item.label.toLowerCase()}. Procure ${this.lesson.target.toLowerCase()}.`);
     }
   }
 

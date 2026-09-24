@@ -72,6 +72,14 @@ export class CanvasRenderer {
     );
   }
 
+  measureText(text: string, font: string): number {
+    this.ctx.save();
+    this.ctx.font = font;
+    const width = this.ctx.measureText(text).width;
+    this.ctx.restore();
+    return width;
+  }
+
   worldText(
     text: string,
     x: number,

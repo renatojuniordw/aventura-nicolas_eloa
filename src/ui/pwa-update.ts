@@ -3,7 +3,7 @@
  * left waiting (registerType 'prompt'); this module decides WHEN it is safe
  * to activate it and reload — never while a level is being played.
  *
- *  - Update found: show a "new version" banner outside gameplay.
+ *  - Update found in the menu: activate and reload; otherwise show a banner outside gameplay.
  *  - Back on the menu (i.e. between levels) or app sent to background while
  *    not playing: apply it automatically.
  */
@@ -12,7 +12,7 @@ import { Events, type EventBus } from '../core/event-bus.js';
 /** Scene during which a reload would lose the player's run. */
 const PLAYING_SCENE = 'game';
 const MENU_SCENE = 'menu';
-const CHECK_INTERVAL_MS = 30 * 60 * 1000;
+const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface UpdateBanner {
   setVisible(visible: boolean): void;
@@ -22,7 +22,7 @@ export interface UpdateControllerDeps {
   bus: EventBus;
   getSceneName: () => string | null;
   /** Activates the waiting service worker and reloads the page. */
-  applyUpdate: () => void;
+  applyUpdate: () => void | Promise<void>;
   banner: UpdateBanner;
 }
 
@@ -44,7 +44,8 @@ export class UpdateController {
   /** A new version finished downloading and is waiting to activate. */
   onUpdateReady(): void {
     this._pending = true;
-    this._syncBanner(this._deps.getSceneName());
+    if (this._deps.getSceneName() === MENU_SCENE) this.apply();
+    else this._syncBanner(this._deps.getSceneName());
   }
 
   /** The page was hidden (app minimised, tab switched, phone locked). */
@@ -54,14 +55,22 @@ export class UpdateController {
 
   /** Manual "Atualizar" tap. */
   apply(): void {
-    if (!this._pending || this._applying) return;
+    if (!this._pending || this._applying || this._deps.getSceneName() === PLAYING_SCENE) return;
     this._applying = true;
     this._deps.banner.setVisible(false);
-    this._deps.applyUpdate();
+    const retry = () => {
+      this._applying = false;
+      this._syncBanner(this._deps.getSceneName());
+    };
+    try {
+      Promise.resolve(this._deps.applyUpdate()).catch(retry);
+    } catch {
+      retry();
+    }
   }
 
   private _syncBanner(sceneName: string | null): void {
-    this._deps.banner.setVisible(this._pending && sceneName !== PLAYING_SCENE);
+    this._deps.banner.setVisible(this._pending && !this._applying && sceneName !== PLAYING_SCENE);
   }
 }
 
@@ -101,9 +110,11 @@ export async function initPwaUpdates(game: {
       if (!registration) return;
       // A long-lived PWA is rarely cold-started, so poll for new versions.
       const check = () => {
-        if (navigator.onLine) void registration.update().catch(() => {});
+        if (navigator.onLine && !registration.installing) void registration.update().catch(() => {});
       };
+      check();
       setInterval(check, CHECK_INTERVAL_MS);
+      window.addEventListener('online', check);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) check();
       });
@@ -112,7 +123,7 @@ export async function initPwaUpdates(game: {
   controller = new UpdateController({
     bus: game.bus,
     getSceneName: () => game.scenes.currentName,
-    applyUpdate: () => void updateSW(true),
+    applyUpdate: () => updateSW(true),
     banner,
   });
   document.addEventListener('visibilitychange', () => {

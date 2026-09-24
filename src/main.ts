@@ -100,8 +100,10 @@ export function createGame({
 }: CreateGameOptions): GameContext {
   const bus = new EventBus();
   const renderer = new CanvasRenderer(canvas);
-  const sprites = new SpriteRenderer({ assets });
-  const effects = new Effects();
+  const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const reducedMotion = () => motionPreference?.matches ?? false;
+  const sprites = new SpriteRenderer({ assets, reducedMotion });
+  const effects = new Effects({ reducedMotion });
   const hud = new Hud(renderer, {
     viewport: { width: canvas.width, height: canvas.height },
   });

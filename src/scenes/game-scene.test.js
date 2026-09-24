@@ -375,3 +375,12 @@ describe('GameScene (unit)', () => {
     expect(game.input.resync).toHaveBeenCalledTimes(1);
   });
 });
+
+it.each([['word', 'palavra'], ['syllable', 'sílaba'], ['letter', 'letra']])('describes incorrect %s content accurately', (type, noun) => {
+  const narrator = { speak: vi.fn(), speakLessonTarget: vi.fn() };
+  const game = makeFakeGame({ narrator });
+  const scene = enterNormalLesson(game);
+  scene.lesson = { ...scene.lesson, type };
+  scene.onItemCollected({ id: 'wrong', label: 'BOLA', value: 'BOLA', type: 'distractor', x: 0, y: 0, w: 32, h: 32 });
+  expect(narrator.speak).toHaveBeenCalledWith(expect.stringContaining(`Essa é a ${noun} bola`));
+});

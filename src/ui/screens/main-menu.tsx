@@ -63,7 +63,7 @@ function MainMenuScreen({
   const selectedChar = CHARACTERS.find((c) => c.id === currentCharacterId) ?? CHARACTERS[0];
 
   const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
-  const speedrunText = bestTimeStr ? `⚡ Speed Run (${bestTimeStr})` : '⚡ Speed Run (A ao Z)';
+  const speedrunText = bestTimeStr ? `⚡ Corrida do alfabeto (${bestTimeStr})` : '⚡ Corrida do alfabeto';
 
   const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
   const installable = usePwaInstallable();

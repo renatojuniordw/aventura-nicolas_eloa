@@ -70,8 +70,8 @@ export class Hud {
   private _drawHearts(model: HudModel): void {
     const size = 22;
     const gap = 8;
-    // Leave clearance for the pause button on the top-right corner
-    const rightMargin = 80;
+    // Leave clearance for both accessible fullscreen and pause controls.
+    const rightMargin = 140;
     const startX = this.viewport.width - rightMargin - (size + gap) * model.maxLives;
     model.hearts.forEach((filled, index) => {
       const x = startX + index * (size + gap);

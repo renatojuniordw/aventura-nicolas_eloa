@@ -22,11 +22,9 @@ function HudControlsBar({ onPause }: PauseButtonOptions) {
         <button
           className="hud-ctrl-btn hud-fullscreen-btn"
           type="button"
-          tabIndex={-1}
           aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
           title={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-          onClick={(event) => {
-            event.currentTarget.blur();
+          onClick={() => {
             void toggleFullscreen();
           }}
         >
@@ -36,11 +34,9 @@ function HudControlsBar({ onPause }: PauseButtonOptions) {
       <button
         className="hud-ctrl-btn pause-btn"
         type="button"
-        tabIndex={-1}
         aria-label="Pausar"
         title="Pausar"
-        onClick={(event) => {
-          event.currentTarget.blur();
+        onClick={() => {
           onPause();
         }}
       >

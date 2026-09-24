@@ -1484,3 +1484,15 @@ body {
   border: 2px solid var(--color-gold-dark);
   cursor: pointer;
 }
+
+/* Keyboard navigation must remain visible over the pixel-art backgrounds. */
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible {
+  outline: 3px solid var(--color-cream);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--color-ink);
+}
+
+.hud-ctrl-btn, .btn-util, .update-banner button {
+  min-width: 44px;
+  min-height: 44px;
+}

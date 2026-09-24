@@ -16,11 +16,11 @@ function setup(scene = 'menu') {
 }
 
 describe('UpdateController', () => {
-  it('shows the banner on the menu without reloading', () => {
+  it('applies immediately when an update arrives in the menu', () => {
     const { controller, applyUpdate, banner } = setup('menu');
     controller.onUpdateReady();
-    expect(banner.setVisible).toHaveBeenLastCalledWith(true);
-    expect(applyUpdate).not.toHaveBeenCalled();
+    expect(banner.setVisible).toHaveBeenLastCalledWith(false);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('never shows or applies while playing, then applies back on the menu', () => {
@@ -34,8 +34,9 @@ describe('UpdateController', () => {
   });
 
   it('applies when hidden outside gameplay', () => {
-    const { controller, applyUpdate } = setup('menu');
+    const { controller, applyUpdate } = setup('victory');
     controller.onUpdateReady();
+    expect(applyUpdate).not.toHaveBeenCalled();
     controller.onHidden();
     expect(applyUpdate).toHaveBeenCalledTimes(1);
   });
@@ -56,4 +57,21 @@ describe('UpdateController', () => {
     go('victory');
     expect(banner.setVisible).toHaveBeenLastCalledWith(true);
   });
+});
+
+it('does not reload a game even if apply is invoked directly', () => {
+  const { controller, applyUpdate } = setup('game');
+  controller.onUpdateReady();
+  controller.apply();
+  expect(applyUpdate).not.toHaveBeenCalled();
+});
+
+it('allows retry after a rejected activation', async () => {
+  const { controller, applyUpdate, banner } = setup('menu');
+  applyUpdate.mockRejectedValueOnce(new Error('offline'));
+  controller.onUpdateReady();
+  await Promise.resolve();
+  expect(banner.setVisible).toHaveBeenLastCalledWith(true);
+  controller.apply();
+  expect(applyUpdate).toHaveBeenCalledTimes(2);
 });

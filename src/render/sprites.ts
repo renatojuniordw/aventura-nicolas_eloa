@@ -60,6 +60,7 @@ interface CharacterLike {
 interface SpriteRendererOptions {
   assets?: AssetManager | null;
   now?: () => number;
+  reducedMotion?: () => boolean;
 }
 
 /**
@@ -69,14 +70,16 @@ interface SpriteRendererOptions {
 export class SpriteRenderer {
   private _assets: AssetManager | null;
   private _now: () => number;
+  private _reducedMotion: () => boolean;
   private _level: RenderLevel | null = null;
   private _surfaces: Box[] = [];
   private _animPose: string | null = null;
   private _animStart = 0;
 
-  constructor({ assets = null, now = () => Date.now() }: SpriteRendererOptions = {}) {
+  constructor({ assets = null, now = () => Date.now(), reducedMotion = () => false }: SpriteRendererOptions = {}) {
     this._assets = assets;
     this._now = now;
+    this._reducedMotion = reducedMotion;
   }
 
   /** Cache per-level render data (grass tops) when a level is loaded. */
@@ -95,7 +98,7 @@ export class SpriteRenderer {
         const viewportW = renderer.width || VIEWPORT.width;
         const viewportH = renderer.height || VIEWPORT.height;
         const bgW = Math.round((bgImage.width / bgImage.height) * viewportH);
-        const parallaxSpeed = 0.28;
+        const parallaxSpeed = this._reducedMotion() ? 0 : 0.28;
         let offsetX = -Math.round((cameraX * parallaxSpeed) % bgW);
         if (offsetX > 0) offsetX -= bgW;
         while (offsetX < viewportW) {
@@ -171,7 +174,7 @@ export class SpriteRenderer {
       const { x: portalX, y: portalY } = finishPortalPosition(level);
 
       // Soft magical portal pulse
-      const shimmer = Math.sin(now / 320) * 0.15 + 0.85;
+      const shimmer = this._reducedMotion() ? 0.85 : Math.sin(now / 320) * 0.15 + 0.85;
       renderer.worldFillRect(
         portalX + 22,
         portalY + 20,
@@ -220,10 +223,22 @@ export class SpriteRenderer {
       if (collectedIds.has(item.id)) continue;
 
       // Gentle floating bob
-      const bob = Math.sin((now / 240) + (item.x * 0.05)) * 3;
+      const bob = this._reducedMotion() ? 0 : Math.sin((now / 240) + (item.x * 0.05)) * 3;
       const drawY = item.y + bob;
 
-      if (carrierImg && typeof renderer.worldImage === 'function') {
+      if (Array.from(item.label).length > 1) {
+        const font = 'bold 21px "Trebuchet MS", sans-serif';
+        const width = Math.max(48, Math.ceil(renderer.measureText(item.label, font)) + 24);
+        const centerX = item.x + item.w / 2;
+        const centerY = drawY + item.h / 2;
+        const x = Math.round(centerX - width / 2);
+        const y = Math.round(centerY - 20);
+        // The central marker anchors the label to the existing collectible.
+        renderer.worldFillRect(centerX - 5, y + 38, 10, 6, '#ffd479');
+        renderer.worldFillRect(x, y, width, 40, '#233d38');
+        renderer.worldFillRect(x + 3, y + 3, width - 6, 34, '#fbf4df');
+        renderer.worldText(item.label, centerX, centerY, { color: '#233d38', font });
+      } else if (carrierImg && typeof renderer.worldImage === 'function') {
         const size = 40;
         const centerX = item.x + item.w / 2;
         const centerY = drawY + item.h / 2;
