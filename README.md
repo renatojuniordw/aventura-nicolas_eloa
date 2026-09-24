@@ -33,7 +33,7 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 | Comando                     | O que faz                                              |
 | ---------------------------- | ------------------------------------------------------- |
 | `npm run dev`                 | Servidor de desenvolvimento com recarga automática       |
-| `npm test`                    | Roda os 487 testes                                       |
+| `npm test`                    | Roda os 489 testes                                       |
 | `npm run test:watch`          | Testes em modo observador                                 |
 | `npm run typecheck`           | Checa os tipos TypeScript (`tsc --noEmit`)               |
 | `npm run build`                | Gera a versão de produção em `dist/` (inclui o PWA)      |
@@ -62,6 +62,9 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
   melhor tempo por jogador.
 - **Explorar o quintal**: modo livre com objetos, palavras e narração, sem ordem,
   cronômetro, vidas ou resposta errada.
+- Em **Configurações**, é possível escolher apoio assistido, padrão ou desafios
+  opcionais, ajustar voz/música/efeitos e ativar alto contraste, texto ampliado,
+  redução de movimento ou cores adaptadas.
 - Em celular/tablet os controles de toque aparecem automaticamente (detecção por
   `matchMedia('(pointer: coarse)')`); teclado e toque podem ficar ativos ao mesmo tempo
   (útil em notebooks conversíveis). Menus funcionam em retrato e paisagem; as atividades

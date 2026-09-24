@@ -25,6 +25,12 @@ export default defineConfig({
         main: `${root}index.html`,
         controle: `${root}controle.html`,
       },
+      output: {
+        manualChunks(id) {
+          if (id.includes('/src/content/levels/')) return 'curriculum-data';
+          if (id.includes('/socket.io-client/') || id.includes('/engine.io-client/')) return 'phone-control';
+        },
+      },
     },
   },
   plugins: [

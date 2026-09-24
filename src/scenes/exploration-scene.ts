@@ -8,7 +8,7 @@ import { DISCOVERIES, DISCOVERY_LEVEL } from '../content/discoveries.js';
 import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
 import { lessonAssets } from '../render/asset-plan.js';
-import { drawDiscoveries } from '../render/discovery-renderer.js';
+import { drawDiscoveries } from '../render/discovery-renderer-v2.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import { DiscoveryHud } from '../ui/discovery-hud.js';
 import { pumpMenuKeys } from '../ui/overlay-input.js';
@@ -25,9 +25,12 @@ export class ExplorationScene extends Scene {
   private unsubscribe: (() => void) | null = null;
   private motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   private reducedMotion = () => this.motionPreference?.matches ?? false;
+  private supportLevel: 'assisted' | 'standard' | 'challenge' = 'standard';
 
   override enter(): void {
     this.player = new PlayerController({ x: 100, y: 410, physics: new PhysicsEngine() });
+    this.run = new DiscoveryRun(DISCOVERIES);
+    this.supportLevel = this.game.experience.read().supportLevel;
     this.camera = new Camera({ maxX: DISCOVERY_LEVEL.worldWidth - 960 });
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
     this.game.sprites.setLevel(DISCOVERY_LEVEL);
@@ -36,7 +39,7 @@ export class ExplorationScene extends Scene {
     this.game.hudControls.showPauseButton({ onPause: () => this.togglePause(), onRepeat: () => this.repeat() });
     if (this.game.device.isTouch) this.game.touchControls.show();
     this.unsubscribe = this.game.bus.on(Events.APP_BLURRED, () => this.pause());
-    this.game.narrator.speak('Bem-vindo ao quintal! Ande e pule perto das figuras para descobrir.');
+    this.game.narrator.speak(this.supportLevel === 'assisted' ? 'Bem-vindo! Siga a seta e chegue perto de cada figura. Use as setas para andar e o botão de pulo.' : 'Bem-vindo ao quintal! Ande e pule perto das figuras para descobrir.');
     void tryLockLandscape();
   }
 
@@ -59,7 +62,7 @@ export class ExplorationScene extends Scene {
     this.camera.follow(this.player.body);
     const item = this.run.update(this.player.body, dt);
     if (item) {
-      this.hud.show(item.label, item.fact);
+      this.hud.show(item.label, this.supportLevel === 'challenge' ? `${item.fact} Desafio opcional: ${item.challenge}` : item.fact, true);
       this.repeat();
       const profile = this.game.profiles.getActiveProfile();
       if (profile) this.game.progress.recordDiscovery(profile.id, item.id);
@@ -70,7 +73,8 @@ export class ExplorationScene extends Scene {
     this.game.sprites.drawBackground(renderer, this.camera.x);
     renderer.setCamera(this.camera.x, this.camera.y);
     this.game.sprites.drawTerrain(renderer);
-    drawDiscoveries(renderer, this.run, this.reducedMotion());
+    const guide = this.supportLevel === 'assisted' ? this.run.objects.find((item) => !this.run.discovered.has(item.id))?.id : null;
+    drawDiscoveries(renderer, this.run, this.reducedMotion() || this.game.experience.read().reducedMotion, guide);
     this.game.sprites.drawPlayer(renderer, this.player, this.character);
   }
 

@@ -27,6 +27,7 @@ import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
 import { ProgressStore } from './persistence/progress-store.js';
 import { AudioSettingsStore } from './persistence/audio-settings-store.js';
+import { ExperienceSettingsStore } from './persistence/experience-settings-store.js';
 import * as curriculum from './content/curriculum.js';
 import type { Unit, Lesson } from './content/curriculum-model.js';
 import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
@@ -55,6 +56,7 @@ export interface GameContext {
   hud: Hud;
   profiles: ProfileStore;
   progress: ProgressStore;
+  experience: ExperienceSettingsStore;
   device: { isTouch: boolean };
   curriculum: {
     units: Unit[];
@@ -104,7 +106,10 @@ export function createGame({
   const bus = new EventBus();
   const renderer = new CanvasRenderer(canvas);
   const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const reducedMotion = () => motionPreference?.matches ?? false;
+  const storageAdapter = createStorageAdapter(storage);
+  const experience = new ExperienceSettingsStore(storageAdapter);
+  experience.apply();
+  const reducedMotion = () => Boolean(motionPreference?.matches || experience.read().reducedMotion);
   const sprites = new SpriteRenderer({ assets, reducedMotion });
   const effects = new Effects({ reducedMotion });
   const hud = new Hud(renderer, {
@@ -115,13 +120,19 @@ export function createGame({
   const hudControls = new HudControls({ root: hudControlsRoot ?? overlayRoot });
   const touchControls = new TouchControls({ root: touchControlsRoot ?? overlayRoot });
 
-  const storageAdapter = createStorageAdapter(storage);
   const saves = new SaveStore({ adapter: storageAdapter });
   const profiles = new ProfileStore({ saves });
   const progress = new ProgressStore({ saves, bus });
   const audioSettings = new AudioSettingsStore({ adapter: storageAdapter });
   const audio = new AudioManager({ settings: audioSettings });
-  const narrator = new SpeechNarrator({ isMuted: () => audio.isMuted });
+  const narrator = new SpeechNarrator({
+    isMuted: () => audio.isVoiceMuted,
+    volume: () => audio.voiceVolume,
+    onSpeakingChange: (speaking) => {
+      audio.setVoiceActive(speaking);
+      if (typeof document !== 'undefined') document.body.classList.toggle('voice-speaking', speaking);
+    },
+  });
   initPwaInstallListener();
 
   // The only lines where physical input meets the game's actions. Both stay
@@ -155,6 +166,7 @@ export function createGame({
     hud,
     profiles,
     progress,
+    experience,
     device: {
       isTouch: isTouchDevice(),
     },

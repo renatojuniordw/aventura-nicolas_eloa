@@ -4,6 +4,8 @@ export interface SpeechNarratorOptions {
   lang?: string;
   rate?: number;
   pitch?: number;
+  volume?: () => number;
+  onSpeakingChange?: (speaking: boolean) => void;
 }
 
 const PRAISES = [
@@ -29,6 +31,8 @@ export class SpeechNarrator {
   private _rate: number;
   private _pitch: number;
   private _activeUtterances = new Set<SpeechSynthesisUtterance>();
+  private _volume: () => number;
+  private _onSpeakingChange: (speaking: boolean) => void;
 
   constructor({
     isMuted = () => false,
@@ -36,12 +40,16 @@ export class SpeechNarrator {
     lang = 'pt-BR',
     rate = 0.92,
     pitch = 1.15,
+    volume = () => 1,
+    onSpeakingChange = () => {},
   }: SpeechNarratorOptions = {}) {
     this._isMuted = isMuted;
     this._synth = synth;
     this._lang = lang;
     this._rate = rate;
     this._pitch = pitch;
+    this._volume = volume;
+    this._onSpeakingChange = onSpeakingChange;
   }
 
   get isSupported(): boolean {
@@ -68,14 +76,18 @@ export class SpeechNarrator {
       utterance.lang = this._lang;
       utterance.rate = this._rate;
       utterance.pitch = this._pitch;
+      utterance.volume = Math.min(1, Math.max(0, this._volume()));
 
       // Retain utterance reference to prevent browser Garbage Collection from killing TTS engine
       this._activeUtterances.add(utterance);
+      this._onSpeakingChange(true);
       utterance.onend = () => {
         this._activeUtterances.delete(utterance);
+        if (this._activeUtterances.size === 0) this._onSpeakingChange(false);
       };
       utterance.onerror = () => {
         this._activeUtterances.delete(utterance);
+        if (this._activeUtterances.size === 0) this._onSpeakingChange(false);
       };
 
       this._synth.speak(utterance);
@@ -134,6 +146,7 @@ export class SpeechNarrator {
     try {
       this._synth?.cancel();
       this._activeUtterances.clear();
+      this._onSpeakingChange(false);
     } catch {
       // Ignored in environments where cancel fails
     }

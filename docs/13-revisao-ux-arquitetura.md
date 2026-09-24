@@ -202,6 +202,14 @@ O próximo passo é validar com crianças e responsáveis: ela entende que pode 
 adulto? Repete uma interação espontaneamente? A voz acompanha a ação sem
 atrasar? Consegue sair e retornar sozinha?
 
+### Evolução de apoio e acessibilidade
+
+O quintal agora desenha figuras próprias em pixel art e cada objeto tem uma reação
+visual diferente. O modo assistido mostra a próxima descoberta com uma seta; o padrão
+mantém a exploração livre; o modo desafio acrescenta perguntas opcionais de leitura,
+sem bloquear progresso. As configurações persistem volumes separados de voz, música e
+efeitos, texto ampliado, alto contraste, redução de movimento e adaptações de cor.
+
 ## 5. Sugestões de novas fases
 
 | Fase | Brincadeira | Conteúdo educativo | Tipo |

@@ -16,21 +16,22 @@ function setup(scene = 'menu') {
 }
 
 describe('UpdateController', () => {
-  it('applies immediately when an update arrives in the menu', () => {
+  it('shows a ready indicator when an update arrives in the menu', () => {
     const { controller, applyUpdate, banner } = setup('menu');
     controller.onUpdateReady();
-    expect(banner.setVisible).toHaveBeenLastCalledWith(false);
-    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(banner.setVisible).toHaveBeenLastCalledWith(true);
+    expect(applyUpdate).not.toHaveBeenCalled();
   });
 
-  it('never shows or applies while playing, then applies back on the menu', () => {
+  it('never shows or applies while playing, then offers it back on the menu', () => {
     const { controller, applyUpdate, banner, go } = setup('game');
     controller.onUpdateReady();
     expect(banner.setVisible).toHaveBeenLastCalledWith(false);
     controller.onHidden();
     expect(applyUpdate).not.toHaveBeenCalled();
     go('menu');
-    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(applyUpdate).not.toHaveBeenCalled();
+    expect(banner.setVisible).toHaveBeenLastCalledWith(true);
   });
 
   it('also preserves a free exploration session until the menu', () => {
@@ -39,7 +40,7 @@ describe('UpdateController', () => {
     controller.apply();
     expect(applyUpdate).not.toHaveBeenCalled();
     go('menu');
-    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(applyUpdate).not.toHaveBeenCalled();
   });
 
   it('applies when hidden outside gameplay', () => {
@@ -72,6 +73,7 @@ it('does not reload a game even if apply is invoked directly', () => {
   const { controller, applyUpdate } = setup('game');
   controller.onUpdateReady();
   controller.apply();
+  controller.apply();
   expect(applyUpdate).not.toHaveBeenCalled();
 });
 
@@ -79,6 +81,7 @@ it('allows retry after a rejected activation', async () => {
   const { controller, applyUpdate, banner } = setup('menu');
   applyUpdate.mockRejectedValueOnce(new Error('offline'));
   controller.onUpdateReady();
+  controller.apply();
   await Promise.resolve();
   expect(banner.setVisible).toHaveBeenLastCalledWith(true);
   controller.apply();

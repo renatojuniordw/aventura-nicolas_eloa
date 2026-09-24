@@ -54,7 +54,7 @@ describe('AudioManager', () => {
     const audio = new AudioManager({ settings });
     audio.toggleMuted();
     expect(audio.isMuted).toBe(true);
-    expect(settings.write).toHaveBeenCalledWith({ muted: true, volume: 0.8 });
+    expect(settings.write).toHaveBeenCalledWith({ muted: true, volume: 0.8, musicVolume: 0.55, sfxVolume: 0.8, voiceVolume: 1 });
   });
 
   it('clamps volume to [0, 1] and persists it', () => {
@@ -81,7 +81,7 @@ describe('AudioManager', () => {
     expect(createdAudios[0].url).toBe('/theme.mp3');
     expect(createdAudios[0].loop).toBe(true);
     expect(createdAudios[0].muted).toBe(true);
-    expect(createdAudios[0].volume).toBe(0.4);
+    expect(createdAudios[0].volume).toBeCloseTo(0.22);
   });
 
   it('stops previous music before playing a new track', () => {

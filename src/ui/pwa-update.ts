@@ -32,8 +32,7 @@ export class UpdateController {
 
   constructor(private readonly _deps: UpdateControllerDeps) {
     _deps.bus.on(Events.SCENE_CHANGED, ({ name }) => {
-      if (this._pending && name === MENU_SCENE) this.apply();
-      else this._syncBanner(name);
+      this._syncBanner(name);
     });
   }
 
@@ -44,8 +43,7 @@ export class UpdateController {
   /** A new version finished downloading and is waiting to activate. */
   onUpdateReady(): void {
     this._pending = true;
-    if (this._deps.getSceneName() === MENU_SCENE) this.apply();
-    else this._syncBanner(this._deps.getSceneName());
+    this._syncBanner(this._deps.getSceneName());
   }
 
   /** The page was hidden (app minimised, tab switched, phone locked). */
@@ -82,7 +80,7 @@ export function createUpdateBanner(onApply: () => void): UpdateBanner {
   el.hidden = true;
 
   const text = document.createElement('span');
-  text.textContent = 'Nova versão disponível!';
+  text.textContent = 'Nova versão pronta para instalar.';
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = 'Atualizar';

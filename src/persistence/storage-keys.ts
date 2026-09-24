@@ -11,3 +11,4 @@ export const DEGRADED_KEY = `${STORAGE_KEY}.degraded`;
 
 /** Device-level preference, not tied to a profile, so it lives outside SaveStore. */
 export const AUDIO_SETTINGS_KEY = `${STORAGE.keyPrefix}.audio.v1`;
+export const EXPERIENCE_SETTINGS_KEY = `${STORAGE.keyPrefix}.experience.v1`;

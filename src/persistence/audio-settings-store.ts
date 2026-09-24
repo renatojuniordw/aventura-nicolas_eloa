@@ -5,12 +5,17 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-interface AudioSettingsValue {
+export interface AudioSettingsValue {
   muted: boolean;
   volume: number;
+  musicVolume: number;
+  sfxVolume: number;
+  voiceVolume: number;
 }
 
-const DEFAULTS: AudioSettingsValue = Object.freeze({ muted: false, volume: 0.8 });
+const DEFAULTS: AudioSettingsValue = Object.freeze({
+  muted: false, volume: 0.8, musicVolume: 0.55, sfxVolume: 0.8, voiceVolume: 1,
+});
 
 interface AudioSettingsStoreOptions {
   adapter: StorageAdapter;
@@ -36,6 +41,9 @@ export class AudioSettingsStore {
       return {
         muted: Boolean(value.muted),
         volume: clamp01(value.volume ?? DEFAULTS.volume),
+        musicVolume: clamp01(value.musicVolume ?? DEFAULTS.musicVolume),
+        sfxVolume: clamp01(value.sfxVolume ?? value.volume ?? DEFAULTS.sfxVolume),
+        voiceVolume: clamp01(value.voiceVolume ?? DEFAULTS.voiceVolume),
       };
     } catch {
       return { ...DEFAULTS };

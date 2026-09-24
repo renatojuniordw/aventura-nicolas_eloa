@@ -34,6 +34,33 @@ body:not([data-scene="game"]):not([data-scene="exploration"]) .game-viewport {
 }
 .discovery-hud strong, .discovery-hud span { display: block; }
 .discovery-hud strong { color: var(--color-gold); margin-bottom: 3px; }
+.voice-speaking .discovery-hud strong,
+.discovery-hud-active strong { background: var(--color-gold); color: var(--color-ink); padding: 3px 7px; width: fit-content; }
+.settings-screen { width: min(720px, 100%); align-items: stretch; gap: 12px; }
+.settings-section { border: 1px solid rgba(255,212,121,.35); background: rgba(20,36,32,.7); border-radius: 8px; padding: 12px; }
+.settings-section h3 { margin: 0 0 10px; color: var(--color-gold); font: bold 17px var(--font-ui); }
+.settings-control { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(120px, 2fr) 54px; align-items: center; gap: 10px; min-height: 44px; }
+.settings-control input { width: 100%; min-height: 32px; accent-color: var(--color-gold-dark); }
+.settings-control output { text-align: right; font-variant-numeric: tabular-nums; }
+.settings-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.settings-toggle input { width: 24px; height: 24px; accent-color: var(--color-gold-dark); }
+.settings-select { display: grid; gap: 8px; line-height: 1.4; }
+.settings-select select { min-height: 48px; border: 2px solid var(--color-gold-border); border-radius: 6px; background: var(--color-cream); color: var(--color-ink); padding: 8px; font: 16px var(--font-ui); }
+.install-guide { width: min(560px, 100%); text-align: left; }
+.install-guide ol { display: grid; gap: 10px; line-height: 1.5; padding-left: 28px; }
+.install-success { color: var(--color-gold); font-weight: bold; }
+
+html[data-text-size="large"] { font-size: 118%; }
+html[data-contrast="high"] { --color-bg: #000; --color-ink: #000; --color-cream: #fff; --color-gold: #ffed00; --color-gold-border: #fff; --color-green: #005f38; --color-green-hover: #008c54; --color-green-dark: #001f14; }
+html[data-contrast="high"] button:focus-visible,
+html[data-contrast="high"] input:focus-visible,
+html[data-contrast="high"] select:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+html[data-color-vision="deuteranopia"] #game-canvas { filter: saturate(.8) hue-rotate(12deg); }
+html[data-color-vision="protanopia"] #game-canvas { filter: saturate(.72) hue-rotate(22deg) brightness(1.08); }
+html[data-color-vision="tritanopia"] #game-canvas { filter: saturate(.75) hue-rotate(-24deg); }
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
 .hud-controls-bar { gap: 8px; }
 .hud-ctrl-btn { min-width: 48px; min-height: 48px; }
 .touch-controls-dpad { bottom: max(16px, env(safe-area-inset-bottom)); }
@@ -62,6 +89,8 @@ body:not([data-scene="game"]):not([data-scene="exploration"]) .game-viewport {
   .fullscreen-offer .overlay-actions { grid-template-columns: 1fr; }
   .overlay-scroll { max-height: 52dvh; }
   .character-picker-grid { flex-wrap: wrap; }
+  .settings-control { grid-template-columns: 1fr 52px; }
+  .settings-control span { grid-column: 1 / -1; }
 }
 
 @media (orientation: landscape) and (max-height: 540px) {

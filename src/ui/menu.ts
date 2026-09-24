@@ -11,7 +11,8 @@ import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen } from './screens/victory.js';
 import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
 import { buildPhonePairingScreen } from './screens/phone-pairing.js';
-import { buildSettingsScreen } from './screens/settings.js';
+import { buildSettingsScreen } from './screens/settings-v2.js';
+import { buildInstallGuide } from './screens/install-guide.js';
 
 interface ScreenResult {
   node: HTMLElement;
@@ -158,5 +159,9 @@ export class MenuOverlay {
 
   showSettings(options: Parameters<typeof buildSettingsScreen>[0]): void {
     this._show(buildSettingsScreen, options);
+  }
+
+  showInstallGuide(options: Parameters<typeof buildInstallGuide>[0]): void {
+    this._show(buildInstallGuide, options);
   }
 }

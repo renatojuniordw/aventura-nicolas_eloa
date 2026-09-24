@@ -158,6 +158,21 @@ export class MenuScene extends Scene {
   openSettings(): void {
     const { profiles, progress } = this.game;
     this.game.menu.showSettings({
+      audio: {
+        musicVolume: this.game.audio.musicVolume,
+        sfxVolume: this.game.audio.sfxVolume,
+        voiceVolume: this.game.audio.voiceVolume,
+      },
+      experience: this.game.experience.read(),
+      onAudioChange: (category, value) => {
+        this.game.audio.setCategoryVolume(category, value);
+        this.openSettings();
+      },
+      onExperienceChange: (patch) => {
+        this.game.experience.update(patch);
+        this.openSettings();
+      },
+      onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings() }),
       onOpenPhonePairing: () => this.openPhonePairing(),
       onResetProgress: () => {
         const profile = profiles.getActiveProfile();

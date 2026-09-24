@@ -46,6 +46,11 @@ tamanho sem cortar a área de jogo (`src/styles/main.css`).
 
 ## 2. PWA (instalável, offline)
 
+A tela **Instalar no celular** usa o convite nativo quando o navegador o oferece e
+mostra o passo a passo “Compartilhar → Adicionar à Tela de Início” no Safari do iPhone.
+Quando uma atualização termina de baixar, um aviso informa que a nova versão está
+pronta e deixa a pessoa escolher o momento de recarregar, sem interromper uma atividade.
+
 Configurado em `vite.config.js` via `vite-plugin-pwa`:
 
 ```js
@@ -62,6 +67,9 @@ VitePWA({
   workbox: { /* ver estratégia de cache abaixo */ },
 })
 ```
+
+O build separa dados do currículo e controle remoto em chunks próprios. A biblioteca
+de QR Code é importada apenas ao abrir o pareamento, reduzindo o JavaScript inicial.
 
 - **Instalável**: "Adicionar à tela inicial" no Android/desktop; no iOS, que ignora o
   manifest para isso, `index.html` traz as duas tags que cobrem o caso

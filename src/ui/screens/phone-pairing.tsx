@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
 import { buildScreen } from './mount-screen.js';
 import { MenuButton } from './menu-button.js';
 
@@ -33,9 +32,9 @@ function QrCode({ url }: { url: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(url, { margin: 1, width: 220 }).then((result) => {
+    import('qrcode').then(({ default: QRCode }) => QRCode.toDataURL(url, { margin: 1, width: 220 })).then((result) => {
       if (!cancelled) setDataUrl(result);
-    });
+    }).catch(() => { if (!cancelled) setDataUrl(null); });
     return () => {
       cancelled = true;
     };

@@ -26,6 +26,14 @@ export function isPwaInstallable(): boolean {
   return deferredPrompt != null && !isStandalone();
 }
 
+export function getInstallPlatform(): 'ios' | 'android' | 'desktop' {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const agent = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(agent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/android/.test(agent)) return 'android';
+  return 'desktop';
+}
+
 export function onPwaInstallableChange(callback: (canInstall: boolean) => void): () => void {
   listeners.add(callback);
   callback(isPwaInstallable());

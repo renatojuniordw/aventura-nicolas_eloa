@@ -7,6 +7,7 @@ export class DiscoveryRun {
   private cooldown = 0;
   active: Discovery | null = null;
   animation = 0;
+  discovered = new Set<string>();
 
   constructor(readonly objects: Discovery[]) {}
 
@@ -18,6 +19,7 @@ export class DiscoveryRun {
     this.touching = new Set(contact.map((item) => item.id));
     if (!discovered || this.cooldown > 0) return null;
     this.active = discovered;
+    this.discovered.add(discovered.id);
     this.cooldown = 1.5;
     this.animation = 1.2;
     return discovered;
