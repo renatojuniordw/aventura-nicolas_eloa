@@ -79,12 +79,12 @@ export class MenuScene extends Scene {
       profiles: profiles.listProfiles(),
       activeProfileId: activeProfile?.id ?? null,
       selectedCharacterId: activeProfile?.characterId ?? DEFAULT_CHARACTER_ID,
-      completedCount: activeProfile ? progress.completedCount(activeProfile.id) : 0,
+      completedCount: activeProfile ? progress.completedCount(activeProfile.id, lessonOrder) : 0,
       totalLessons: this.game.curriculum.lessons.length,
       currentLessonTitle: discoveryTitle,
       speedrunBestTime: activeProfile ? progress.getSpeedrunBestTime(activeProfile.id) : null,
       onPlay: () => this.playNext(),
-      onExplore: () => this.game.startExploration(),
+      onExplore: () => this.startExplore(),
       onSpeedrun: () => this.startSpeedrun(),
       onSelectProfile: (profileId: string) => {
         profiles.setActiveProfile(profileId);
@@ -98,6 +98,13 @@ export class MenuScene extends Scene {
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenSettings: () => this.openSettings(),
     });
+  }
+
+  /** Start the next unfinished Explorar word, creating a profile if needed. */
+  startExplore(): void {
+    this.game.profiles.getActiveProfile() ??
+      this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
+    this.game.startExploration();
   }
 
   startSpeedrun(): void {

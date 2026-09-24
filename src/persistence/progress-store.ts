@@ -43,10 +43,14 @@ export class ProgressStore {
     return Boolean(this.getLessonProgress(profileId, lessonId)?.completed);
   }
 
-  completedCount(profileId: string): number {
+  /** Completed lessons; pass `lessonIds` to count only those (e.g. the curriculum, not Explorar words). */
+  completedCount(profileId: string, lessonIds?: readonly string[]): number {
     const profile = this._saves.read().profiles[profileId];
     if (!profile) return 0;
-    return Object.values(profile.progress).filter((entry) => entry.completed).length;
+    const entries = lessonIds
+      ? lessonIds.map((id) => profile.progress[id]).filter(Boolean)
+      : Object.values(profile.progress);
+    return entries.filter((entry) => entry.completed).length;
   }
 
   /** Records a correct/wrong answer for the profile statistics. */

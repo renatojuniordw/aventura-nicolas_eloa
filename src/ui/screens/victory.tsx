@@ -126,30 +126,49 @@ export function buildSpeedrunVictoryScreen(options: SpeedrunVictoryOptions) {
 
 interface ExploreVictoryOptions {
   character?: Character | null;
-  words?: string[];
-  mistakes?: number;
+  word: string;
+  fact?: string;
+  stars: number;
+  mistakes: number;
+  hasNext: boolean;
+  onNext: () => void;
   onReplay: () => void;
   onMenu: () => void;
 }
 
-function ExploreVictoryScreenView({ character, words = [], mistakes = 0, onReplay, onMenu }: ExploreVictoryOptions) {
+function ExploreVictoryScreenView({
+  character,
+  word,
+  fact = '',
+  stars,
+  mistakes,
+  hasNext,
+  onNext,
+  onReplay,
+  onMenu,
+}: ExploreVictoryOptions) {
+  const starRow = '★'.repeat(stars) + '☆'.repeat(Math.max(0, 3 - stars));
   const celebrateImage = character?.sprites?.celebrate;
   return (
     <div className="overlay">
-      <h1>🌻 Quintal explorado!</h1>
+      <h1>Muito bem!</h1>
       {celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
-      <h2>
-        Você descobriu {words.length} palavra{words.length === 1 ? '' : 's'}!
-      </h2>
+      <h2>Você montou {word}</h2>
+      {fact ? <p>{fact}</p> : null}
       <p>
-        {words.join(' · ')} ({mistakes} erro{mistakes === 1 ? '' : 's'})
+        {starRow}   ({mistakes} erro{mistakes === 1 ? '' : 's'})
       </p>
       <div className="overlay-actions">
-        <MenuButton className="primary" onClick={onReplay}>
-          Explorar de novo 🔎
+        {hasNext ? (
+          <MenuButton className="primary" onClick={onNext}>
+            Próxima fase
+          </MenuButton>
+        ) : null}
+        <MenuButton onClick={onReplay}>
+          Jogar de novo
         </MenuButton>
         <MenuButton onClick={onMenu}>
-          Menu principal
+          Menu
         </MenuButton>
       </div>
     </div>
@@ -157,5 +176,8 @@ function ExploreVictoryScreenView({ character, words = [], mistakes = 0, onRepla
 }
 
 export function buildExploreVictoryScreen(options: ExploreVictoryOptions) {
-  return buildScreen(<ExploreVictoryScreenView {...options} />, { primary: options.onReplay, back: options.onMenu });
+  return buildScreen(<ExploreVictoryScreenView {...options} />, {
+    primary: options.hasNext ? options.onNext : options.onReplay,
+    back: options.onMenu,
+  });
 }

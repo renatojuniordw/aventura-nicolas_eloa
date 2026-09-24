@@ -19,6 +19,7 @@ import { FUTURE_HINT_INTERVAL, SpeedrunRun } from '../gameplay/speedrun-run.js';
 import { buildExploreCourse } from '../gameplay/explore-course.js';
 import { FUTURE_HINT_INTERVAL as EXPLORE_FUTURE_HINT_INTERVAL, ExploreRun } from '../gameplay/explore-run.js';
 import { WORD_BANK } from '../content/word-bank.js';
+import { wordPhaseId, wordPhasePosition } from '../content/word-phases.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
 import { vibrateJump, vibrateCollect, vibrateVictory, vibrateWarning } from '../input/haptics.js';
@@ -51,6 +52,8 @@ interface EnterParams {
   speedrunState?: { elapsed?: number } | null;
   exploreCourse?: GameLevel | null;
   exploreRun?: ExploreRun | null;
+  /** Word (bank id) for an Explorar phase; defaults to the first word of the bank. */
+  wordId?: string;
 }
 
 /**
@@ -118,6 +121,7 @@ export class GameScene extends Scene {
     speedrunState = null,
     exploreCourse = null,
     exploreRun = null,
+    wordId,
   }: EnterParams = {}): void {
     this.mode = mode;
     this.mistakes = 0;
@@ -134,11 +138,10 @@ export class GameScene extends Scene {
       this.lesson = this._letterLesson(this.speedrun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
     } else if (this.mode === 'explore') {
-      const course =
-        exploreCourse ?? (buildExploreCourse(WORD_BANK.slice(0, 6)) as unknown as GameLevel);
+      const word = exploreRun?.word ?? WORD_BANK.find((entry) => entry.id === wordId) ?? WORD_BANK[0];
+      const course = exploreCourse ?? (buildExploreCourse(word) as unknown as GameLevel);
       this.level = course;
-      this.exploreRun =
-        exploreRun ?? new ExploreRun((course.words as never) ?? WORD_BANK.slice(0, 6), course.checkpoints);
+      this.exploreRun = exploreRun ?? new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
 
       this.lesson = this._letterLesson(this.exploreRun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
@@ -200,9 +203,9 @@ export class GameScene extends Scene {
     if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
     tryLockLandscape().catch(() => {});
-    // Explorar narrates on touching each word's discovery marker instead of
-    // announcing the letter target up front — the word hasn't been found yet.
-    if (this.lesson?.target && this.mode !== 'explore') {
+    if (this.exploreRun) {
+      this.game.narrator?.speakWordTarget(this.exploreRun.word.label);
+    } else if (this.lesson?.target) {
       this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
   }
@@ -360,14 +363,6 @@ export class GameScene extends Scene {
   ): void {
     if (this.status !== Status.RUNNING) return;
 
-    // The discovery marker is a narration trigger, not a right/wrong pickup:
-    // no validator, no mistake tracking, no lesson-answer recording.
-    if (this.mode === 'explore' && item.kind === 'discovery') {
-      this.game.narrator?.speak(`${item.label}. ${item.fact ?? ''}`.trim());
-      this.exploreRun?.markDiscovered();
-      return;
-    }
-
     if (this.speedrun?.isAhead(item)) {
       this.levelManager.collected.delete(item.id);
       if (this.speedrun.claimFutureHint()) {
@@ -383,10 +378,11 @@ export class GameScene extends Scene {
     if (this.exploreRun?.isAhead(item)) {
       this.levelManager.collected.delete(item.id);
       if (this.exploreRun.claimFutureHint()) {
-        const hint = this.exploreRun.discovered
-          ? `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`
-          : `Toque em "${this.exploreRun.currentWord.label}" primeiro!`;
-        this.hudModel.showFeedback(FeedbackKind.WRONG, hint, EXPLORE_FUTURE_HINT_INTERVAL);
+        this.hudModel.showFeedback(
+          FeedbackKind.WRONG,
+          `Essa letra vem mais à frente! Procure a letra "${this.lesson.target}".`,
+          EXPLORE_FUTURE_HINT_INTERVAL,
+        );
       }
       return;
     }
@@ -468,40 +464,21 @@ export class GameScene extends Scene {
     this.hudModel.setWordBoard(run.currentWordLetters, run.currentLetterIndex);
   }
 
-  /** Explore advance: next letter of the same word, the next word, or session victory. */
+  /** Explore advance: next letter of the word, or phase victory once it is spelled. */
   private _advanceExplore(run: ExploreRun): void {
     const wordComplete = run.collectLetter();
     this._syncExploreBoard(run);
 
     if (!wordComplete) {
-      const nextLetter = run.currentLetter;
-      this.lesson = this._letterLesson(nextLetter, run.currentWordIndex);
+      this.lesson = this._letterLesson(run.currentLetter, run.currentLetterIndex);
       this.validator = new AnswerValidator(this.lesson);
       this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Boa! Continue!', 0.6);
       return;
     }
 
     const profile = this.game.profiles.getActiveProfile();
-    if (profile) this.game.progress.recordDiscovery(profile.id, run.currentWord.id);
-    const completedWord = run.currentWord.label;
-
-    if (run.advance()) {
-      const nextLetter = run.currentLetter;
-      this.lesson = this._letterLesson(nextLetter, run.currentWordIndex);
-      this.validator = new AnswerValidator(this.lesson);
-      if (run.currentCheckpoint) {
-        this.levelManager.setCheckpoint({ ...run.currentCheckpoint });
-      }
-
-      this.hudModel.setObjective(`Monte a palavra: ${run.currentWord.label}`);
-      this.hudModel.setSpeedrunProgress(run.progressText);
-      this._syncExploreBoard(run);
-      this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você descobriu ${completedWord}!`, 1.2);
-      return;
-    }
-
-    // Last word spelled — session complete!
-    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você descobriu ${completedWord}! Parabéns!`, 1.5);
+    if (profile) this.game.progress.recordDiscovery(profile.id, run.word.id);
+    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você montou ${run.word.label}! Parabéns!`, 1.5);
     this.winLevel();
   }
 
@@ -582,11 +559,17 @@ export class GameScene extends Scene {
       return;
     }
 
-    if (this.mode === 'explore') {
+    if (this.mode === 'explore' && this.exploreRun) {
+      const entry = profile
+        ? this.game.progress.completeLesson(profile.id, wordPhaseId(this.exploreRun.word.id), {
+            mistakes: this.mistakes,
+          })
+        : null;
       this.game.scenes.switchTo('victory', {
         mode: 'explore',
-        words: this.exploreRun?.words.map((word) => word.label) ?? [],
+        wordId: this.exploreRun.word.id,
         mistakes: this.mistakes,
+        stars: entry?.stars ?? 0,
       });
       return;
     }
@@ -612,12 +595,12 @@ export class GameScene extends Scene {
     });
   }
 
-  /** Starts this run over: a fresh speedrun/explore session, or the current lesson from the top. */
+  /** Starts this run over: a fresh speedrun, the same Explorar word, or the current lesson from the top. */
   restart(): void {
     if (this.mode === 'speedrun') {
       this.game.startSpeedrun();
     } else if (this.mode === 'explore') {
-      this.game.startExploration();
+      this.game.startExploration(this.exploreRun?.word.id);
     } else {
       this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
     }

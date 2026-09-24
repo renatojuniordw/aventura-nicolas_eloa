@@ -164,6 +164,15 @@ describe('ProgressStore', () => {
     expect(progress.completedCount('p-1')).toBe(1);
   });
 
+  it('counts only the given lessons, so Explorar word phases do not inflate the curriculum count', () => {
+    const { progress } = setupProgress();
+    progress.completeLesson('p-1', 'l1', {});
+    progress.completeLesson('p-1', 'palavra-gato', {});
+
+    expect(progress.completedCount('p-1')).toBe(2);
+    expect(progress.completedCount('p-1', ['l1', 'l2'])).toBe(1);
+  });
+
   it('reports no next lesson when everything is complete', () => {
     const { progress } = setupProgress();
     progress.completeLesson('p-1', 'l1', {});

@@ -3,80 +3,60 @@ import type { WordEntry } from '../content/word-bank.js';
 /** Minimum seconds between "not yet" hints while touching a blocked item. */
 export const FUTURE_HINT_INTERVAL = 1.2;
 
-interface Point {
-  x: number;
-  y: number;
-}
-
 interface ItemLike {
-  segmentIndex?: number;
   kind?: string;
   type?: string;
   letterIndex?: number;
 }
 
+interface TrailPosition {
+  position: number;
+  total: number;
+}
+
 /**
- * Progress through one "Explorar" session: which word is current, whether its
- * discovery marker has been touched yet, and which of its letters comes next.
- * Pure state and rules — the scene turns its answers into narration, feedback
- * and celebration, exactly like `SpeedrunRun` does for the alphabet marathon.
+ * Progress through one "Explorar" phase: spelling a single word, letter by
+ * letter, left to right. Pure state and rules — the scene turns its answers
+ * into narration, feedback and celebration, exactly like `SpeedrunRun` does for
+ * the alphabet marathon.
  */
 export class ExploreRun {
-  currentWordIndex = 0;
   currentLetterIndex = 0;
-  discovered = false;
   elapsed: number;
   private _lastHintAt = -Infinity;
 
   constructor(
-    readonly words: WordEntry[],
-    readonly checkpoints?: Point[],
+    readonly word: WordEntry,
+    readonly trail: TrailPosition = { position: 1, total: 1 },
     elapsed = 0,
   ) {
     this.elapsed = elapsed;
   }
 
   get currentWord(): WordEntry {
-    return this.words[this.currentWordIndex];
+    return this.word;
   }
 
   get currentWordLetters(): string[] {
-    return Array.from(this.currentWord.label);
+    return Array.from(this.word.label);
   }
 
   get currentLetter(): string {
     return this.currentWordLetters[this.currentLetterIndex];
   }
 
-  /** Checkpoint that goes with the current word, if the course has one. */
-  get currentCheckpoint(): Point | undefined {
-    return this.checkpoints?.[this.currentWordIndex];
-  }
-
-  get isOnLastWord(): boolean {
-    return this.currentWordIndex >= this.words.length - 1;
-  }
-
-  /** "2/6"-style label for the HUD. */
+  /** "3/30"-style label for the HUD: where this word sits in the trail. */
   get progressText(): string {
-    return `${this.currentWordIndex + 1}/${this.words.length}`;
+    return `${this.trail.position}/${this.trail.total}`;
   }
 
   tick(dt: number): void {
     this.elapsed += dt;
   }
 
-  /**
-   * True when `item` must not be collectable yet: it belongs to a later word,
-   * or it is a letter of the current word touched before its discovery marker,
-   * or a target letter that comes later than the one currently expected.
-   */
+  /** True when `item` is a target letter that comes later than the one expected now. */
   isAhead(item: ItemLike): boolean {
-    if (item.segmentIndex == null) return false;
-    if (item.segmentIndex > this.currentWordIndex) return true;
-    if (item.segmentIndex < this.currentWordIndex) return false;
     if (item.kind !== 'letter') return false;
-    if (!this.discovered) return true;
     return item.type === 'target' && item.letterIndex != null && item.letterIndex > this.currentLetterIndex;
   }
 
@@ -90,23 +70,9 @@ export class ExploreRun {
     return true;
   }
 
-  /** Marks the current word's discovery marker as touched/narrated. */
-  markDiscovered(): void {
-    this.discovered = true;
-  }
-
   /** Advances the expected-letter pointer; true once the whole word is spelled. */
   collectLetter(): boolean {
     this.currentLetterIndex += 1;
     return this.currentLetterIndex >= this.currentWordLetters.length;
-  }
-
-  /** Moves on to the next word; false (and no change) when already on the last. */
-  advance(): boolean {
-    if (this.isOnLastWord) return false;
-    this.currentWordIndex += 1;
-    this.currentLetterIndex = 0;
-    this.discovered = false;
-    return true;
   }
 }

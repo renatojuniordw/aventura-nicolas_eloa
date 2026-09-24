@@ -60,9 +60,11 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 - Segurar o pulo faz o personagem subir mais; soltar cedo encurta o pulo.
 - **Speed Run**: no menu, o modo corrida encadeia o alfabeto de A a Z e cronometra o
   melhor tempo por jogador.
-- **Explorar**: um item por vez, com narração do fato e a palavra mascarada em forma de
-  jogo da forca — toque nas letras do teclado para revelar a palavra. Ordem e distratores
-  variam por sessão via similaridade de embeddings (ver `src/content/embedding-select.ts`).
+- **Explorar**: uma trilha de fases de palavra, da mais curta para a mais longa. Cada fase
+  mostra a palavra no topo e a narra ("Vamos montar a palavra Gato"); a criança coleta as
+  letras em ordem e um quadro de letras vai sendo preenchido. Na última letra vem a vitória
+  com o botão **Próxima fase**. O progresso de cada palavra é salvo junto com o das fases
+  (ids `palavra-<id>`, ver `src/content/word-phases.ts`).
 - Em **Configurações**, é possível escolher apoio assistido, padrão ou desafios
   opcionais, ajustar voz/música/efeitos e ativar alto contraste, texto ampliado,
   redução de movimento ou cores adaptadas.

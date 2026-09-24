@@ -32,8 +32,13 @@ import type { Unit, Lesson } from './content/curriculum-model.js';
 import { buildSpeedrunCourse } from './gameplay/speedrun-course.js';
 import { buildExploreCourse } from './gameplay/explore-course.js';
 import { ExploreRun } from './gameplay/explore-run.js';
-import { WORD_BANK, getWordEntry, type WordEntry } from './content/word-bank.js';
-import { pickWeighted, createSeededRandom } from './content/embedding-select.js';
+import { WORD_BANK } from './content/word-bank.js';
+import {
+  WORD_PHASE_ORDER,
+  getWordByPhaseId,
+  wordPhaseId,
+  wordPhasePosition,
+} from './content/word-phases.js';
 import { BootScene } from './scenes/boot-scene.js';
 import { MenuScene } from './scenes/menu-scene.js';
 import { GameScene } from './scenes/game-scene.js';
@@ -71,7 +76,8 @@ export interface GameContext {
   phoneControl: PhoneControlCoordinator;
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
-  startExploration(): void;
+  /** Starts an Explorar phase; without `wordId`, the next unfinished word of the trail. */
+  startExploration(wordId?: string): void;
   // `scenes` and `loop` can only be constructed once `game` itself exists
   // (SceneManager needs a `game` reference to hand to every Scene), so both
   // are attached right after this object is built, mutating it in place —
@@ -79,30 +85,6 @@ export interface GameContext {
   // reference. See the `as GameContext` cast below.
   scenes: SceneManager;
   loop: GameLoop;
-}
-
-const EXPLORE_WORD_COUNT = 6;
-
-/**
- * Picks `count` words for one Explorar session: a random anchor, then each
- * next word chosen by embedding relatedness to the previous one (falling
- * back to uniform random without embeddings) — so a session reads as a
- * loosely themed little walk through the word bank rather than a shuffle.
- */
-function pickExploreWords(count: number, seed: number = Math.floor(Math.random() * 0xffffffff)): WordEntry[] {
-  const rng = createSeededRandom(seed >>> 0);
-  const allIds = WORD_BANK.map((entry) => entry.id);
-  const order: string[] = [];
-  let remaining = [...allIds];
-  let anchor = remaining[Math.floor(rng() * remaining.length)];
-  while (order.length < count && remaining.length > 0) {
-    order.push(anchor);
-    remaining = remaining.filter((id) => id !== anchor);
-    if (remaining.length === 0) break;
-    const [next] = pickWeighted(remaining, anchor, 1, rng);
-    anchor = next ?? remaining[Math.floor(rng() * remaining.length)];
-  }
-  return order.map((id) => getWordEntry(id)).filter((entry): entry is WordEntry => Boolean(entry));
 }
 
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
@@ -216,10 +198,14 @@ export function createGame({
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
     },
-    startExploration() {
-      const words = pickExploreWords(EXPLORE_WORD_COUNT);
-      const course = buildExploreCourse(words);
-      const exploreRun = new ExploreRun(words, course.checkpoints);
+    startExploration(wordId?: string) {
+      const profile = profiles.getActiveProfile();
+      const phaseId = wordId
+        ? wordPhaseId(wordId)
+        : ((profile ? progress.getNextLesson(profile.id, WORD_PHASE_ORDER) : null) ?? WORD_PHASE_ORDER[0]);
+      const word = getWordByPhaseId(phaseId) ?? WORD_BANK[0];
+      const course = buildExploreCourse(word);
+      const exploreRun = new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
       scenes.switchTo('game', {
         mode: 'explore',
         exploreCourse: course,

@@ -49,6 +49,7 @@ function makeFakeGame(overrides = {}) {
     },
     startSpeedrun: vi.fn(),
     startLesson: vi.fn(),
+    startExploration: vi.fn(),
     ...overrides,
   };
 }
@@ -201,6 +202,15 @@ describe('MenuScene', () => {
     scene.playNext();
 
     expect(game.startLesson).toHaveBeenCalledWith('alfabeto-b');
+  });
+
+  it('starts the Explorar trail for the active profile, creating one if needed', () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.startExplore();
+
+    expect(game.profiles.createProfile).toHaveBeenCalledTimes(1);
+    expect(game.startExploration).toHaveBeenCalledTimes(1);
   });
 
   it('starts a phone pairing session and shows the QR screen with its pairing URL', () => {

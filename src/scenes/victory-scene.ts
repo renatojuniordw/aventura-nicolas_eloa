@@ -2,6 +2,7 @@ import { Scene } from '../core/scene.js';
 import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
 import { COLORS } from '../core/config.js';
 import { getCharacter } from '../content/characters.js';
+import { WORD_PHASE_ORDER, getWordByPhaseId, wordPhaseId } from '../content/word-phases.js';
 import { pumpOverlayInput } from '../ui/overlay-input.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import type { Lesson } from '../content/curriculum-model.js';
@@ -15,7 +16,7 @@ interface VictoryParams {
   isNewBest?: boolean;
   bestTime?: number;
   totalLetters?: number;
-  words?: string[];
+  wordId?: string;
 }
 
 /**
@@ -37,7 +38,7 @@ export class VictoryScene extends Scene {
     isNewBest = false,
     bestTime = 0,
     totalLetters = 26,
-    words = [],
+    wordId,
   }: VictoryParams = {}): void {
     this._jumpGesture.reset();
     const profile = this.game.profiles.getActiveProfile();
@@ -58,12 +59,19 @@ export class VictoryScene extends Scene {
     }
 
     if (mode === 'explore') {
+      const word = getWordByPhaseId(wordPhaseId(wordId ?? ''));
+      const nextPhaseId = profile ? this.game.progress.getNextLesson(profile.id, WORD_PHASE_ORDER) : null;
+      const nextWordId = getWordByPhaseId(nextPhaseId)?.id ?? null;
       this.game.effects.spawnConfetti(this.game.renderer.width / 2, 140, 96);
       this.game.menu.showExploreVictory({
         character: getCharacter(profile?.characterId),
-        words,
+        word: word?.label ?? '',
+        fact: word?.fact ?? '',
+        stars,
         mistakes,
-        onReplay: () => this.game.startExploration(),
+        hasNext: Boolean(nextWordId) && nextWordId !== wordId,
+        onNext: () => this.game.startExploration(nextWordId ?? undefined),
+        onReplay: () => this.game.startExploration(wordId),
         onMenu: () => this.game.scenes.switchTo('menu'),
       });
       return;

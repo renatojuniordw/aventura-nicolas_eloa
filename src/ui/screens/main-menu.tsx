@@ -147,7 +147,7 @@ function MainMenuScreen({
                 {speedrunText}
               </MenuButton>
               {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
-                <strong>Explorar</strong><small>Descubra o que é e monte a palavra</small>
+                <strong>Explorar</strong><small>Monte palavras, letra por letra</small>
               </MenuButton>}
               <div className="menu-meta-row home-meta-row">
                 <MenuButton className="btn-util" onClick={onOpenSettings}>

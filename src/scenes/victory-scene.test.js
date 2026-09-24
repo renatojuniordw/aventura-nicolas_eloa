@@ -22,6 +22,7 @@ function makeFakeGame(overrides = {}) {
     menu: {
       showSpeedrunVictory: vi.fn(),
       showVictory: vi.fn(),
+      showExploreVictory: vi.fn(),
       hide: vi.fn(),
     },
     input: {
@@ -30,6 +31,7 @@ function makeFakeGame(overrides = {}) {
     scenes: { switchTo: vi.fn() },
     startSpeedrun: vi.fn(),
     startLesson: vi.fn(),
+    startExploration: vi.fn(),
     ...overrides,
   };
 }
@@ -115,6 +117,32 @@ describe('VictoryScene', () => {
 
     game.menu.showSpeedrunVictory.mock.calls[0][0].onMenu();
     expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
+  });
+
+  it('shows the word victory with a next phase and wires its buttons in explore mode', () => {
+    const game = makeFakeGame({ progress: { getNextLesson: vi.fn(() => 'palavra-bola') } });
+    const scene = new VictoryScene(game);
+    scene.enter({ mode: 'explore', wordId: 'gato', stars: 2, mistakes: 1 });
+
+    const opts = game.menu.showExploreVictory.mock.calls[0][0];
+    expect(opts.word).toBe('GATO');
+    expect(opts.stars).toBe(2);
+    expect(opts.hasNext).toBe(true);
+
+    opts.onNext();
+    expect(game.startExploration).toHaveBeenCalledWith('bola');
+    opts.onReplay();
+    expect(game.startExploration).toHaveBeenCalledWith('gato');
+    opts.onMenu();
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
+  });
+
+  it('has no next phase once the trail is finished or only the same word is left', () => {
+    for (const next of [null, 'palavra-gato']) {
+      const game = makeFakeGame({ progress: { getNextLesson: vi.fn(() => next) } });
+      new VictoryScene(game).enter({ mode: 'explore', wordId: 'gato' });
+      expect(game.menu.showExploreVictory.mock.calls[0][0].hasNext).toBe(false);
+    }
   });
 
   it('wires onNext to startLesson in normal mode', () => {

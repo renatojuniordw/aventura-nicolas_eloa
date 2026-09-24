@@ -4,6 +4,9 @@ import { EventBus, Events } from '../core/event-bus.js';
 import { GAMEPLAY } from '../core/config.js';
 import * as curriculum from '../content/curriculum.js';
 import { buildSpeedrunCourse } from '../gameplay/speedrun-course.js';
+import { buildExploreCourse } from '../gameplay/explore-course.js';
+import { ExploreRun } from '../gameplay/explore-run.js';
+import { WORD_BANK } from '../content/word-bank.js';
 import { AnswerValidator } from '../content/answer-validator.js';
 import { FeedbackKind } from '../render/hud-model.js';
 
@@ -67,6 +70,78 @@ function enterSpeedrun(game) {
   scene.enter({ mode: 'speedrun', speedrunCourse: buildSpeedrunCourse({ random: () => 0.42 }) });
   return scene;
 }
+
+function enterExplore(game, wordId = 'gato') {
+  const word = WORD_BANK.find((entry) => entry.id === wordId);
+  const scene = new GameScene(game);
+  scene.enter({
+    mode: 'explore',
+    exploreCourse: buildExploreCourse(word, { random: () => 0.42 }),
+    exploreRun: new ExploreRun(word, { position: 2, total: 30 }),
+  });
+  return scene;
+}
+
+const targetLetter = (scene, index) =>
+  scene.level.items.find((item) => item.type === 'target' && item.letterIndex === index);
+
+describe('GameScene explore (word phase)', () => {
+  it('announces the word and shows the empty letter board on entering', () => {
+    const narrator = { speakWordTarget: vi.fn(), speakPraise: vi.fn(), speak: vi.fn(), stop: vi.fn() };
+    const scene = enterExplore(makeFakeGame({ narrator }));
+
+    expect(narrator.speakWordTarget).toHaveBeenCalledWith('GATO');
+    expect(scene.hudModel.objective).toBe('Monte a palavra: GATO');
+    expect(scene.hudModel.boardSlots.map((slot) => slot.revealed)).toEqual([false, false, false, false]);
+  });
+
+  it('fills the board letter by letter and lets the child collect without touching anything else first', () => {
+    const scene = enterExplore(makeFakeGame());
+
+    scene.onItemCollected(targetLetter(scene, 0));
+    expect(scene.mistakes).toBe(0);
+    expect(scene.status).toBe('running');
+    expect(scene.hudModel.boardSlots.map((slot) => slot.revealed)).toEqual([true, false, false, false]);
+  });
+
+  it('does not count a later letter as a mistake, just hints', () => {
+    const scene = enterExplore(makeFakeGame());
+    scene.onItemCollected(targetLetter(scene, 2));
+
+    expect(scene.mistakes).toBe(0);
+    expect(scene.exploreRun.currentLetterIndex).toBe(0);
+  });
+
+  it('wins after the last letter and completes the word phase in the trail', () => {
+    const game = makeFakeGame({ profiles: { getActiveProfile: vi.fn(() => ({ id: 'p1' })) } });
+    game.progress.recordDiscovery = vi.fn();
+    const scene = enterExplore(game);
+
+    for (let i = 0; i < 4; i += 1) scene.onItemCollected(targetLetter(scene, i));
+    expect(scene.status).toBe('won');
+
+    scene.finishLevel();
+    expect(game.progress.completeLesson).toHaveBeenCalledWith('p1', 'palavra-gato', { mistakes: 0 });
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', {
+      mode: 'explore',
+      wordId: 'gato',
+      mistakes: 0,
+      stars: 3,
+    });
+  });
+
+  it('costs a heart for a wrong letter and retries the same word from the top', () => {
+    const game = makeFakeGame({ startExploration: vi.fn() });
+    const scene = enterExplore(game);
+    const distractor = scene.level.items.find((item) => item.type === 'distractor');
+
+    scene.onItemCollected(distractor);
+    expect(scene.mistakes).toBe(1);
+
+    scene.restart();
+    expect(game.startExploration).toHaveBeenCalledWith('gato');
+  });
+});
 
 describe('GameScene (unit)', () => {
   it('rejects a letter collected out of speedrun order without advancing', () => {

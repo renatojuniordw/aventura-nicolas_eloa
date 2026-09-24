@@ -35,14 +35,11 @@ interface RawTemplateLevel {
 
 export interface ExploreItem extends Box {
   id: string;
-  /** Index of the word this item belongs to — the "segment" for gating purposes. */
-  segmentIndex: number;
-  kind: 'discovery' | 'letter';
-  type: 'discovery' | 'target' | 'distractor';
+  kind: 'letter';
+  type: 'target' | 'distractor';
   label: string;
   /** Left-to-right order within the word, for `target` letters only. */
   letterIndex?: number;
-  fact?: string;
 }
 
 interface PlacedSegment {
@@ -54,17 +51,16 @@ interface BuildExploreCourseOptions {
 }
 
 /**
- * Builds a continuous world for the "Explorar" mode: one segment per word in
- * `wordEntries` (stitched from the same 4 stage templates speedrun uses, and
- * spanning extra ones for longer words). Each segment holds a "discovery"
- * marker — the word plus its narrated fact — followed by the word's letters
- * in left-to-right order and a couple of distractor letters, so a round is
- * physically identical to Corrida do Alfabeto: run, jump, collect.
+ * Builds the world for one "Explorar" phase: the word's letters in
+ * left-to-right order plus a couple of distractor letters, stitched from the
+ * same 4 stage templates speedrun uses (extra ones for longer words such as
+ * "BORBOLETA" or "PASSARINHO"). Physically identical to Corrida do Alfabeto:
+ * run, jump, collect.
  *
  * @returns validated Level object for the physics engine and renderer
  */
 export function buildExploreCourse(
-  wordEntries: WordEntry[],
+  word: WordEntry,
   { random = Math.random }: BuildExploreCourseOptions = {},
 ) {
   const templates = TEMPLATE_IDS.map((id) => {
@@ -78,136 +74,109 @@ export function buildExploreCourse(
   const oneWayPlatforms: Box[] = [];
   const hazards: (Box & { id: string })[] = [];
   const items: ExploreItem[] = [];
-  const checkpoints: Spot[] = [];
 
+  const letters = Array.from(word.label);
+  const desiredDistractors = 2;
+  const wanted = letters.length + desiredDistractors;
+
+  const placed: PlacedSegment[] = [];
+  let pooledSpotCount = 0;
   let geometryCursor = 0;
+  // Stitch template segments (cycling the same 4 as speedrun) until there is
+  // room for the word plus a couple of distractors, or a generous hard cap
+  // is hit (guards against a pathological run of hazard-heavy templates).
+  while (pooledSpotCount < wanted && placed.length < letters.length + 3) {
+    const templateIndex = geometryCursor % templates.length;
+    const template = templates[templateIndex];
+    const xOffset = geometryCursor * SEGMENT_WIDTH;
 
-  for (let wordIndex = 0; wordIndex < wordEntries.length; wordIndex += 1) {
-    const word = wordEntries[wordIndex];
-    const letters = Array.from(word.label);
-    const desiredDistractors = 2;
-    const wanted = 1 + letters.length + desiredDistractors;
-
-    const placed: PlacedSegment[] = [];
-    let pooledSpotCount = 0;
-    // Stitch template segments (cycling the same 4 as speedrun) until there is
-    // room for the word plus a couple of distractors, or a generous hard cap
-    // is hit (guards against a pathological run of hazard-heavy templates).
-    while (pooledSpotCount < wanted && placed.length < letters.length + 3) {
-      const templateIndex = geometryCursor % templates.length;
-      const template = templates[templateIndex];
-      const xOffset = geometryCursor * SEGMENT_WIDTH;
-
-      for (const solid of template.solids) {
-        solids.push({ x: solid.x + xOffset, y: solid.y, w: solid.w, h: solid.h });
-      }
-      for (const platform of template.oneWayPlatforms) {
-        oneWayPlatforms.push({ x: platform.x + xOffset, y: platform.y, w: platform.w, h: platform.h });
-      }
-      for (const hazard of template.hazards) {
-        hazards.push({
-          id: `hazard-w${wordIndex}-${geometryCursor}-${hazard.id}`,
-          x: hazard.x + xOffset,
-          y: hazard.y,
-          w: hazard.w,
-          h: hazard.h,
-        });
-      }
-
-      const rawSpots = CANDIDATE_SPOTS[templateIndex];
-      const safeSpots = rawSpots.filter((s) => isSafeFromHazards(s.x, ITEM_SIZE, template.hazards));
-      const spotCandidates = safeSpots.length >= 4 ? safeSpots : rawSpots;
-      const supports = [...template.solids, ...template.oneWayPlatforms];
-      const reachableSpots = spotCandidates.filter((s) => isTapReachable(s, supports));
-      const usableSpots = (reachableSpots.length > 0 ? reachableSpots : spotCandidates)
-        .map((s) => ({ x: s.x + xOffset, y: s.y }))
-        .sort((a, b) => a.x - b.x);
-
-      if (placed.length === 0) checkpoints.push({ x: xOffset + 96, y: 406 });
-      placed.push({ spots: usableSpots });
-      pooledSpotCount += usableSpots.length;
-      geometryCursor += 1;
-
-      // Only budget-worth of segments strictly needed; loop condition above
-      // re-checks pooledSpotCount, this just avoids an infinite spin if a
-      // template ever produced zero usable spots.
-      if (usableSpots.length === 0 && placed.length >= SPOTS_PER_GEOMETRY_SEGMENT_BUDGET) break;
+    for (const solid of template.solids) {
+      solids.push({ x: solid.x + xOffset, y: solid.y, w: solid.w, h: solid.h });
+    }
+    for (const platform of template.oneWayPlatforms) {
+      oneWayPlatforms.push({ x: platform.x + xOffset, y: platform.y, w: platform.w, h: platform.h });
+    }
+    for (const hazard of template.hazards) {
+      hazards.push({
+        id: `hazard-${geometryCursor}-${hazard.id}`,
+        x: hazard.x + xOffset,
+        y: hazard.y,
+        w: hazard.w,
+        h: hazard.h,
+      });
     }
 
-    // Segments are stitched left to right, and each segment's own spots are
-    // already x-sorted, so concatenating keeps the whole word's spot pool
-    // ordered left to right too.
-    const orderedSpots = placed.flatMap((segment) => segment.spots);
-    const chosen = orderedSpots.slice(0, Math.min(wanted, orderedSpots.length));
-    const markerSpot = chosen[0];
-    const remaining = chosen.slice(1);
+    const rawSpots = CANDIDATE_SPOTS[templateIndex];
+    const safeSpots = rawSpots.filter((s) => isSafeFromHazards(s.x, ITEM_SIZE, template.hazards));
+    const spotCandidates = safeSpots.length >= 4 ? safeSpots : rawSpots;
+    const supports = [...template.solids, ...template.oneWayPlatforms];
+    const reachableSpots = spotCandidates.filter((s) => isTapReachable(s, supports));
+    const usableSpots = (reachableSpots.length > 0 ? reachableSpots : spotCandidates)
+      .map((s) => ({ x: s.x + xOffset, y: s.y }))
+      .sort((a, b) => a.x - b.x);
 
-    const distractorCount = Math.max(0, Math.min(desiredDistractors, remaining.length - letters.length));
-    const letterSlotCount = Math.min(letters.length, remaining.length);
+    placed.push({ spots: usableSpots });
+    pooledSpotCount += usableSpots.length;
+    geometryCursor += 1;
 
-    // Randomly choose which remaining slots are distractors; the rest, taken
-    // in their existing left-to-right order, carry the word's letters in
-    // order — spellable in sequence while distractors are scattered among them.
-    const distractorPositions = new Set(
-      shuffle(
-        Array.from({ length: remaining.length }, (_, i) => i),
-        random,
-      ).slice(0, distractorCount),
-    );
+    // Only budget-worth of segments strictly needed; loop condition above
+    // re-checks pooledSpotCount, this just avoids an infinite spin if a
+    // template ever produced zero usable spots.
+    if (usableSpots.length === 0 && placed.length >= SPOTS_PER_GEOMETRY_SEGMENT_BUDGET) break;
+  }
 
-    const neighbourLetters = new Set([
-      ...letters,
-      ...Array.from(wordEntries[wordIndex - 1]?.label ?? ''),
-      ...Array.from(wordEntries[wordIndex + 1]?.label ?? ''),
-    ]);
-    const distractorPool = ALPHABET.filter((letter) => !neighbourLetters.has(letter));
-    const distractorLetters = shuffle(distractorPool, random).slice(0, distractorCount);
+  // Segments are stitched left to right, and each segment's own spots are
+  // already x-sorted, so concatenating keeps the whole spot pool ordered left
+  // to right too.
+  const orderedSpots = placed.flatMap((segment) => segment.spots);
+  const chosen = orderedSpots.slice(0, Math.min(wanted, orderedSpots.length));
 
-    items.push({
-      id: `explore-item-w${wordIndex}-marker`,
-      segmentIndex: wordIndex,
-      kind: 'discovery',
-      type: 'discovery',
-      label: word.label,
-      fact: word.fact,
-      x: markerSpot.x,
-      y: markerSpot.y,
-      w: ITEM_SIZE,
-      h: ITEM_SIZE,
-    });
+  const distractorCount = Math.max(0, Math.min(desiredDistractors, chosen.length - letters.length));
+  const letterSlotCount = Math.min(letters.length, chosen.length);
 
-    let letterCursor = 0;
-    let distractorCursor = 0;
-    for (let i = 0; i < remaining.length; i += 1) {
-      const spot = remaining[i];
-      if (distractorPositions.has(i) && distractorCursor < distractorCount) {
-        items.push({
-          id: `explore-item-w${wordIndex}-d${distractorCursor}`,
-          segmentIndex: wordIndex,
-          kind: 'letter',
-          type: 'distractor',
-          label: distractorLetters[distractorCursor] ?? 'X',
-          x: spot.x,
-          y: spot.y,
-          w: ITEM_SIZE,
-          h: ITEM_SIZE,
-        });
-        distractorCursor += 1;
-      } else if (letterCursor < letterSlotCount) {
-        items.push({
-          id: `explore-item-w${wordIndex}-l${letterCursor}`,
-          segmentIndex: wordIndex,
-          kind: 'letter',
-          type: 'target',
-          label: letters[letterCursor],
-          letterIndex: letterCursor,
-          x: spot.x,
-          y: spot.y,
-          w: ITEM_SIZE,
-          h: ITEM_SIZE,
-        });
-        letterCursor += 1;
-      }
+  // Randomly choose which slots are distractors; the rest, taken in their
+  // existing left-to-right order, carry the word's letters in order —
+  // spellable in sequence while distractors are scattered among them.
+  const distractorPositions = new Set(
+    shuffle(
+      Array.from({ length: chosen.length }, (_, i) => i),
+      random,
+    ).slice(0, distractorCount),
+  );
+
+  const wordLetters = new Set(letters);
+  const distractorPool = ALPHABET.filter((letter) => !wordLetters.has(letter));
+  const distractorLetters = shuffle(distractorPool, random).slice(0, distractorCount);
+
+  let letterCursor = 0;
+  let distractorCursor = 0;
+  for (let i = 0; i < chosen.length; i += 1) {
+    const spot = chosen[i];
+    if (distractorPositions.has(i) && distractorCursor < distractorCount) {
+      items.push({
+        id: `explore-item-d${distractorCursor}`,
+        kind: 'letter',
+        type: 'distractor',
+        label: distractorLetters[distractorCursor] ?? 'X',
+        x: spot.x,
+        y: spot.y,
+        w: ITEM_SIZE,
+        h: ITEM_SIZE,
+      });
+      distractorCursor += 1;
+    } else if (letterCursor < letterSlotCount) {
+      items.push({
+        id: `explore-item-l${letterCursor}`,
+        kind: 'letter',
+        type: 'target',
+        label: letters[letterCursor],
+        letterIndex: letterCursor,
+        x: spot.x,
+        y: spot.y,
+        w: ITEM_SIZE,
+        h: ITEM_SIZE,
+      });
+      letterCursor += 1;
     }
   }
 
@@ -215,7 +184,7 @@ export function buildExploreCourse(
 
   return deepFreeze({
     schemaVersion: 1,
-    id: 'explore-quintal-das-descobertas',
+    id: `explore-${word.id}`,
     name: 'Quintal das Descobertas',
     tileset: 'placeholder',
     viewport: { width: 960, height: 540 },
@@ -223,7 +192,7 @@ export function buildExploreCourse(
     background: 'bg:primavera-lago',
     music: null,
     playerStart: { x: 96, y: 406 },
-    checkpoint: { ...checkpoints[0] },
+    checkpoint: { x: 96, y: 406 },
     camera: {
       startX: 0,
       maxX: Math.max(0, worldWidth - 960),
@@ -237,7 +206,6 @@ export function buildExploreCourse(
     decorations: [],
     worldWidth,
     worldHeight,
-    checkpoints,
-    words: wordEntries,
+    word,
   });
 }

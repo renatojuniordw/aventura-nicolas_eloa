@@ -119,6 +119,14 @@ export class SpeechNarrator {
     return this.speak(`Encontre a palavra ${clean.toLowerCase()}`);
   }
 
+  /** Opens an Explorar phase: "Vamos montar a palavra Gato". */
+  speakWordTarget(word: string): boolean {
+    const clean = word.trim();
+    if (!clean) return false;
+    const lower = clean.toLowerCase();
+    return this.speak(`Vamos montar a palavra ${lower.charAt(0).toUpperCase()}${lower.slice(1)}`);
+  }
+
   /**
    * Speaks a target syllable or letter clearly.
    * Single letters are pronounced as "Letra X" to prevent TTS reading "X maiúsculo".

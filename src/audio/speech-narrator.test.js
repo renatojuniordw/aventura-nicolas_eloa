@@ -43,6 +43,13 @@ describe('SpeechNarrator', () => {
     expect(utterance.pitch).toBeGreaterThan(1);
   });
 
+  it('announces an Explorar word with a capitalised, spoken-friendly phrase', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+    expect(narrator.speakWordTarget('GATO')).toBe(true);
+    expect(mockSynth.speak.mock.calls[0][0].text).toBe('Vamos montar a palavra Gato');
+    expect(narrator.speakWordTarget('  ')).toBe(false);
+  });
+
   it('respects isMuted when muted is true', () => {
     const narrator = new SpeechNarrator({
       synth: mockSynth,
