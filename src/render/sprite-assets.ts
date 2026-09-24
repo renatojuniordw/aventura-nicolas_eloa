@@ -13,7 +13,7 @@ export const CHECKPOINT_BOUNDS = Object.freeze({ sx: 134, sy: 46, sw: 256, sh: 4
 export const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 70, sy: 23, sw: 363, sh: 457 });
 
 /** On-screen size of the finish portal, in world pixels. */
-export const FINISH_PORTAL_SIZE = Object.freeze({ w: 86, h: 84 });
+export const FINISH_PORTAL_SIZE = Object.freeze({ w: 130, h: 126 });
 
 /** Portal distance from the world's right edge, and from its floor (the ground row). */
 const FINISH_PORTAL_RIGHT_MARGIN = 130;

@@ -115,8 +115,8 @@ describe('SpriteRenderer', () => {
     const start = portalCall(0.2);
     const done = portalCall(1);
     // args: image, sx, sy, sw, sh, dx, dy, dw, dh
-    expect(done[7]).toBe(86);
-    expect(done[8]).toBe(84);
+    expect(done[7]).toBe(130);
+    expect(done[8]).toBe(126);
     expect(start[7]).toBeLessThan(done[7]);
     // The bottom edge stays on the ground while it grows.
     expect(start[6] + start[8]).toBeCloseTo(done[6] + done[8]);

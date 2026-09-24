@@ -143,6 +143,24 @@ describe('GameScene explore (word phase)', () => {
     });
   });
 
+  it('shows the portal at once: ring, label and grow-in start on the very frame the last letter is collected', () => {
+    const game = makeFakeGame();
+    const scene = enterExplore(game);
+    for (let i = 0; i < 3; i += 1) collectTarget(scene);
+    expect(game.effects.spawnRing).not.toHaveBeenCalled();
+
+    collectTarget(scene);
+
+    const { finish } = scene.level;
+    // On screen right away: within the ~620px the camera shows ahead of the player.
+    expect(finish.x).toBeLessThan(scene.player.body.x + 620);
+    expect(game.effects.spawnRing).toHaveBeenCalledTimes(1);
+    expect(game.effects.spawnFloatingText).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 'Portal!', expect.any(String));
+
+    scene.update(0.2);
+    expect(scene.level.portalReveal).toBeGreaterThan(0);
+  });
+
   it('plays the portal exit: player swallowed, burst, then the victory screen', () => {
     const game = makeFakeGame();
     const scene = enterExplore(game);

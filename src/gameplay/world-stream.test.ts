@@ -165,9 +165,9 @@ describe('WorldStream', () => {
       expect(stream.sealed).toBe(true);
       expect(stream.level.portalActive).toBe(true);
       expect(stream.level.finish).toEqual(finish);
-      // Beyond the screen the player can currently see, but not absurdly far.
-      expect(finish.x).toBeGreaterThan(playerX + 960);
-      expect(finish.x).toBeLessThan(playerX + 1500);
+      // Close enough to be on screen at once (the view shows ~620px ahead of the player), but not on top of them.
+      expect(finish.x).toBeGreaterThan(playerX + 300);
+      expect(finish.x + PORTAL_SIZE.w).toBeLessThan(playerX + 620);
       // Sits on the ground row.
       expect(finish.y + PORTAL_SIZE.h).toBe(448);
       // The world now ends: camera stops, nothing generated beyond it.

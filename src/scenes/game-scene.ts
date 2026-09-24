@@ -80,7 +80,6 @@ export class GameScene extends Scene {
   private _shake = 0;
   /** True once the last target is collected: the world is sealed and the portal is the only way out. */
   portalOpen = false;
-  private _portalIntroPlayed = false;
   private _terrainVersion = -1;
   private _gameOverJumpGesture = new JumpConfirmGesture();
 
@@ -137,7 +136,6 @@ export class GameScene extends Scene {
     this._playerHidden = false;
     this._shake = 0;
     this.portalOpen = false;
-    this._portalIntroPlayed = false;
     this._terrainVersion = -1;
     this.speedrun = null;
     this.exploreRun = null;
@@ -299,7 +297,6 @@ export class GameScene extends Scene {
     this.levelManager.update(this.player);
     this._updateStream(dt);
     this.camera.follow(this.player.body);
-    this._checkPortalIntro();
     this._shake = Math.max(0, this._shake - dt);
     this.hudModel.update(dt);
     this.game.effects.update(dt);
@@ -308,7 +305,7 @@ export class GameScene extends Scene {
   /** Keeps the endless world generated ahead of the player and the respawn point on their segment. */
   private _updateStream(dt: number): void {
     this.stream.update(this.player.body.x);
-    if (this._portalIntroPlayed) this.stream.tick(dt);
+    this.stream.tick(dt);
 
     const checkpoint = this.stream.checkpointFor(this.player.body.x);
     if (checkpoint.x !== this.levelManager.getRespawnPoint().x) this.levelManager.setCheckpoint(checkpoint);
@@ -323,17 +320,12 @@ export class GameScene extends Scene {
     this.camera.maxX = this.level.camera.maxX;
   }
 
-  /** The portal grows into being the first time it scrolls into view. */
-  private _checkPortalIntro(): void {
-    const finish = this.level.finish;
-    if (!this.portalOpen || this._portalIntroPlayed || !finish) return;
-    if (finish.x > this.camera.x + this.camera.viewport.width) return;
-
-    this._portalIntroPlayed = true;
+  /** The portal pops into being, already on screen: ring, sparkles, label and a short shake. */
+  private _playPortalIntro(finish: Point): void {
     const cx = finish.x + PORTAL_SIZE.w / 2;
     const cy = finish.y + PORTAL_SIZE.h / 2;
-    this.game.effects.spawnRing(cx, cy, 32);
-    this.game.effects.spawnPuff(cx, cy, 18, '#b9f2ff');
+    this.game.effects.spawnRing(cx, cy, 36);
+    this.game.effects.spawnPuff(cx, cy, 20, '#b9f2ff');
     this.game.effects.spawnFloatingText?.(cx, finish.y - 14, 'Portal!', '#b9f2ff');
     this._shake = 0.35;
   }
@@ -535,8 +527,9 @@ export class GameScene extends Scene {
   private _openPortal(): void {
     if (this.portalOpen) return;
     this.portalOpen = true;
-    this.stream.spawnPortal(this.player.body.x);
+    const finish = this.stream.spawnPortal(this.player.body.x);
     this._syncTerrain();
+    this._playPortalIntro(finish);
     this.hudModel.setObjective('Corra até o portal!');
     this.game.narrator?.speak?.('O portal abriu! Corra até ele!');
   }

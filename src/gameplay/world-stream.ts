@@ -27,16 +27,16 @@ const FIRST_TARGET_MIN_AHEAD = 250;
 /** The letter is re-offered among the nearest few free spots ahead, picked at random. */
 const RESPAWN_SPOT_CHOICES = 4;
 const MAX_PLACEMENT_EXTENSIONS = 4;
-/** The world is cut this far ahead of the player (just past the right edge of the screen). */
-const PORTAL_CUT_AHEAD = 1000;
+/** The world is cut this far ahead of the player: inside the visible ~620px, so the portal shows up at once. */
+const PORTAL_CUT_AHEAD = 420;
 /** Flat arrival ground laid after the cut, and where the portal stands on it. */
-const ARRIVAL_GROUND_WIDTH = 1400;
-const PORTAL_OFFSET_IN_ARRIVAL = 250;
-const PORTAL_APPEAR_SECONDS = 0.9;
+const ARRIVAL_GROUND_WIDTH = 1200;
+const PORTAL_OFFSET_IN_ARRIVAL = 40;
+const PORTAL_APPEAR_SECONDS = 0.6;
 const VIEWPORT_WIDTH = 960;
 
 /** Finish portal footprint in world pixels (mirrors `render/sprite-assets.ts`). */
-export const PORTAL_SIZE = Object.freeze({ w: 86, h: 84 });
+export const PORTAL_SIZE = Object.freeze({ w: 130, h: 126 });
 /** Ground row the portal stands on (world height 540 minus the 92px ground band). */
 const PORTAL_FLOOR_Y = 448;
 
