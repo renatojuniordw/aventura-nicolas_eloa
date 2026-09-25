@@ -214,6 +214,9 @@ src/
 │   ├── keyboard-adapter.ts      # DOM (teclado) → ações. Zero lógica de jogo.
 │   ├── touch-adapter.ts         # DOM (Pointer Events) → ações. Zero lógica de jogo.
 │   ├── composite-adapter.ts     # combina vários adaptadores (Composite)
+│   ├── phone-adapter.ts         # WebSocket (celular) → ações semânticas
+│   ├── auto-run-adapter.ts      # emite MOVE_RIGHT contínuo para o modo celular
+│   ├── haptics.ts               # vibração tátil nativa no celular
 │   └── input-manager.ts         # facade: isActionHeld / consumePressed / setAdapter
 ├── physics/
 │   ├── aabb.ts                  # geometria pura de caixas
@@ -227,6 +230,8 @@ src/
 │   ├── level-manager.ts         # itens, perigos, queda dentro da fase
 │   ├── world-stream.ts          # mundo infinito: trechos sob demanda, alvo que reaparece, portal
 │   ├── stream-courses.ts        # fábricas por modo (explorar, corrida A→Z, lição)
+│   ├── explore-run.ts           # estado e jornada de palavras no modo Explorar
+│   ├── support-policy.ts        # política de níveis de apoio (assistido, padrão, desafio)
 │   ├── speedrun-course.ts       # peças compartilhadas: modelos, pontos de letra, regras de alcance
 │   └── speedrun-run.ts          # progresso de uma corrida (letra atual, relógio, dica)
 ├── render/
@@ -241,6 +246,13 @@ src/
 │   ├── curriculum.json          # fonte de verdade do conteúdo pedagógico
 │   ├── curriculum-model.ts      # expande currículo em lições (usado também pelo gerador)
 │   ├── curriculum.ts            # visão de runtime do currículo
+│   ├── curriculum-embeddings.json # representações vetoriais de conteúdo
+│   ├── embedding-select.ts      # busca e similaridade semântica
+│   ├── word-bank.ts             # banco de palavras para o modo Explorar
+│   ├── word-phases.ts           # fases de palavras e jornada
+│   ├── discoveries.ts           # ilustrações e descobertas do caderno
+│   ├── letter-reference.ts      # palavras de referência das letras A–Z
+│   ├── letter-reference-words.json # vocabulário de associação (“A de amigo”)
 │   ├── level-loader.ts          # valida e normaliza uma fase
 │   ├── level-registry.ts        # indexa todos os arquivos de fase
 │   ├── text-utils.ts            # normalização de texto (acentos, caixa)
@@ -257,23 +269,46 @@ src/
 │   ├── profile-store.ts         # perfis de jogador
 │   ├── active-profile.ts        # política "quem joga" (consentimento, perfil padrão)
 │   ├── progress-store.ts        # progresso por perfil
-│   └── audio-settings-store.ts  # preferência de volume/mudo
+│   ├── audio-settings-store.ts  # preferência de volume/mudo
+│   └── experience-settings-store.ts # apoio, alto contraste, texto ampliado e redução de movimento
 ├── net/
-│   └── phone-control-coordinator.ts  # controle por celular: adaptador de input + pausa ao cair
+│   ├── phone-control-coordinator.ts # controle por celular: adaptador de input + pausa ao cair
+│   └── session-code.ts          # códigos aleatórios e seguros de sessão
+├── controle/                    # app do celular (controle remoto com acelerômetro)
+│   ├── index.ts                 # tela do celular e conexão com o servidor
+│   ├── jump-detector.ts         # detector de pulo por limiares do acelerômetro
+│   ├── session-recorder.ts      # gravação de séries temporais de sensores
+│   ├── session-replay.ts        # reprodução determinística de sessões de pulo
+│   ├── threshold-storage.ts     # persistência de calibração do sensor
+│   ├── threshold-tuner.ts       # ajuste interativo de limiares
+│   ├── sensor-time.ts           # temporização precisa de amostras de sensor
+│   └── status-message.ts        # mensagens amigáveis de status na tela do celular
 ├── audio/
-│   └── audio-manager.ts         # mute/volume + registro de música e efeitos
+│   ├── audio-manager.ts         # mute/volume/categorias + Web Audio API
+│   └── speech-narrator.ts       # sintetizador de voz com palavras de referência
 ├── ui/
 │   ├── dom.ts                   # helpers de DOM (textContent, nunca innerHTML)
 │   ├── menu.ts                  # orquestra qual tela React está montada (sem React)
 │   ├── overlay-input.ts         # CONFIRM/BACK e gesto de pulo → tela de overlay
 │   ├── hooks.ts                 # useFullscreen / usePwaInstallable
 │   ├── touch-controls.ts        # D-pad + botão de pulo em DOM (deliberadamente sem React)
+│   ├── mobile-presentation.ts   # regras de orientação e exibição mobile
+│   ├── live-announcer.ts        # anúncios ARIA para leitores de tela
+│   ├── fullscreen.ts            # controle da API de tela cheia
+│   ├── pwa-install.ts           # fluxo seguro de instalação PWA
+│   ├── pwa-update.ts            # atualização coordenada do service worker
 │   ├── pixel-logo.ts            # logo em SVG
 │   └── screens/                 # telas de menu em React/TSX
 │       ├── mount-screen.ts      # monta um <ReactNode> num container DOM (+ buildScreen)
 │       ├── menu-button.tsx      # botão padrão dos overlays
 │       ├── main-menu.tsx / character-picker.tsx / lesson-picker.tsx
 │       ├── pause.tsx / game-over.tsx / victory.tsx
+│       ├── settings-v2.tsx      # configurações de áudio, acessibilidade e apoio
+│       ├── discoveries-book.tsx # caderno de descobertas ilustrado
+│       ├── session-summary.tsx  # resumo pedagógico da jornada de exploração
+│       ├── phone-control-dialog.tsx # diálogo de pareamento com QR Code
+│       ├── fullscreen-prompt.tsx # convite de tela cheia
+│       ├── celebration-canvas.tsx # efeito comemorativo nas vitórias
 │       └── privacy-notice.tsx   # aviso parental (LGPD)
 └── scenes/
     ├── boot-scene.ts
@@ -281,12 +316,22 @@ src/
     ├── game-scene.ts
     └── victory-scene.ts
 
+signaling/                       # Servidor de sinalização WebSocket do celular
+├── package.json
+└── src/
+    ├── server.js                # servidor Socket.io
+    ├── room-manager.js          # ciclo de vida de salas e repasse de pulos
+    └── session-id.js            # validação de IDs de sessão
+
 tools/
 ├── generate-levels.mts          # gera as fases a partir do currículo
-├── asset-generation-log.json    # log de geração da arte (fora de public/: não vai para o build)
-└── generate-pwa-icons.mjs       # gera os ícones do PWA
+├── generate-embeddings.mts      # gera embeddings semânticos para o currículo
+├── generate-pwa-icons.mjs       # gera os ícones do PWA
+├── replay-session.mts           # ferramenta de CLI para teste de dados de pulo
+├── export-obsidian.mjs          # exporta documentação sincronizada para o Obsidian
+└── asset-generation-log.json    # log de geração da arte (fora de public/: não vai para o build)
 
-public/assets/    arte de produção (pixel art, WebP ~1,5 MB): personagens, cenários, itens
+public/assets/    arte de produção (pixel art, WebP ~1,5 MB): personagens, cenários, itens, palavras
 public/fonts/     fonte self-hosted (OFL 1.1)
 public/icons/     ícones do PWA
 docker/           Nginx do contêiner + Nginx de proxy reverso da VPS

@@ -33,13 +33,18 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 | Comando                     | O que faz                                              |
 | ---------------------------- | ------------------------------------------------------- |
 | `npm run dev`                 | Servidor de desenvolvimento com recarga automática       |
-| `npm test`                    | Roda os 489 testes                                       |
+| `npm test`                    | Roda os 735 testes em 81 arquivos                       |
 | `npm run test:watch`          | Testes em modo observador                                 |
 | `npm run typecheck`           | Checa os tipos TypeScript (`tsc --noEmit`)               |
 | `npm run build`                | Gera a versão de produção em `dist/` (inclui o PWA)      |
 | `npm run preview`              | Serve a versão de produção localmente                     |
 | `npm run generate:levels`     | Regenera as fases a partir do currículo                   |
+| `npm run generate:embeddings` | Gera embeddings semânticos do currículo                  |
 | `npm run generate:pwa-icons`  | Regenera os ícones do PWA (`public/icons/`)               |
+| `npm run replay:session`      | Executa replay de sessão gravada de sensores do celular   |
+| `npm run export:obsidian`     | Exporta notas e documentações para o vault do Obsidian    |
+| `npm --prefix signaling test` | Roda os 22 testes do servidor de sinalização WebSocket    |
+| `npm --prefix signaling start`| Inicia o servidor de sinalização WebSocket na porta 3001  |
 
 ---
 
@@ -112,19 +117,24 @@ Todo o conteúdo é **dado**: acrescentar palavras é editar
 
 Toda a documentação está em [`docs/`](docs/README.md), em português:
 
-| Documento                                                         | Assunto                                                                    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [01 — Arquitetura](docs/01-arquitetura.md)                        | Camadas, fluxo de dados, laço de jogo, cenas                               |
-| [02 — Gameplay e controles](docs/02-gameplay-e-controles.md)      | Regras, vidas, movimento, progressão, controles de toque                    |
-| [03 — Abstração de input](docs/03-abstracao-de-input.md)          | **Documento central**: teclado e toque sem lógica de jogo, e o caminho para o ESP32 |
-| [04 — Modelo de conteúdo](docs/04-modelo-de-conteudo.md)          | Schemas de currículo, fases e save                                         |
-| [05 — SOLID e padrões](docs/05-solid-e-padroes-de-projeto.md)     | Onde cada princípio vive no código                                         |
-| [06 — Estratégia de testes](docs/06-estrategia-de-testes.md)      | O que é testado, como e checklist de QA                                    |
-| [07 — Plano por fases](docs/07-plano-de-desenvolvimento-fases.md) | Roadmap e critérios de aceite                                              |
-| [08 — Evolução futura](docs/08-evolucao-futura.md)                | Pulo duplo, poderes, som, ESP32                                             |
-| [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md)  | Termos, nomes e regras de código                                           |
-| [10 — Privacidade e LGPD](docs/10-privacidade-e-lgpd.md)          | Quais dados o jogo guarda, consentimento parental e direitos               |
-| [11 — Mobile, PWA e deploy](docs/11-mobile-pwa-e-deploy.md)       | Controles de toque, PWA/offline, build Docker e Nginx em produção          |
+| Documento                                                                           | Assunto                                                                    |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [01 — Arquitetura](docs/01-arquitetura.md)                                          | Camadas, fluxo de dados, laço de jogo, cenas e estrutura                     |
+| [02 — Gameplay e controles](docs/02-gameplay-e-controles.md)                        | Regras, vidas, movimento, progressão, modos e acessibilidade                |
+| [03 — Abstração de input](docs/03-abstracao-de-input.md)                            | Teclado, toque, celular e caminho para ESP32 sem lógica de jogo no hardware |
+| [04 — Modelo de conteúdo](docs/04-modelo-de-conteudo.md)                            | Schemas de currículo, fases, saves e palavras de referência                  |
+| [05 — SOLID e padrões](docs/05-solid-e-padroes-de-projeto.md)                       | Onde cada princípio e padrão vive no código                                 |
+| [06 — Estratégia de testes](docs/06-estrategia-de-testes.md)                        | O que é testado, como, testes de arquitetura e checklist de QA               |
+| [07 — Plano por fases](docs/07-plano-de-desenvolvimento-fases.md)                   | Roadmap, fases implementadas (0–11) e próximas fases planejadas              |
+| [08 — Evolução futura](docs/08-evolucao-futura.md)                                  | Pulo duplo, poderes, pacotes de voz e hardware ESP32                         |
+| [09 — Glossário e convenções](docs/09-glossario-e-convencoes.md)                    | Termos pedagógicos, convenções de nomes e de código                          |
+| [10 — Privacidade e LGPD](docs/10-privacidade-e-lgpd.md)                            | Quais dados o jogo guarda, consentimento parental e direitos                 |
+| [11 — Mobile, PWA e deploy](docs/11-mobile-pwa-e-deploy.md)                         | Controles de toque, PWA/offline, build Docker e Nginx em produção            |
+| [12 — Controle por celular](docs/12-controle-por-celular.md)                        | Sensor de pulo via acelerômetro, pareamento QR code e WebSocket              |
+| [13 — Revisão UX e arquitetura](docs/13-revisao-ux-arquitetura.md)                  | Acessibilidade, histórico de UX e evolução de componentes                    |
+| [14 — Plano app Android (Capacitor)](docs/14-plano-app-android-capacitor.md)        | Empacotamento híbrido com Capacitor para lojas Google Play e iOS             |
+| [15 — Plano melhorias pós-streaming](docs/15-plano-melhorias-pos-streaming.md)      | Invariantes do mundo infinito, estabilidade e refinamentos pedagógicos       |
+| [16 — Letras com palavras de referência](docs/16-plano-letras-com-palavras-de-referencia.md) | Narração pedagógica A–Z associando cada letra a uma palavra fixa      |
 
 ---
 

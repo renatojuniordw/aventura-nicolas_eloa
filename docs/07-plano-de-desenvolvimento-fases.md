@@ -1,8 +1,8 @@
 # 07 — Plano de desenvolvimento por fases
 
-Roadmap do projeto, com entregáveis e critérios de aceite. As fases 0 a 8 estão
-**concluídas** nesta versão; o hardware (ESP32) é o próximo passo natural, mas não está
-em desenvolvimento.
+Roadmap do projeto, com entregáveis e critérios de aceite. As fases 0 a 11 estão
+**concluídas** nesta versão; o app nativo via Capacitor (`docs/14`) e o hardware (ESP32)
+são os próximos passos planejados.
 
 Marcação: ✅ concluído · 🔜 próximo · 💡 planejado (fora do escopo atual)
 
@@ -220,9 +220,85 @@ VPS. Detalhes completos em [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.
 
 ---
 
-## Fase 9 — Hardware: ESP32 💡
+## Fase 9 — Controle por celular (WebSocket + Acelerômetro) ✅
 
-**Objetivo:** controlar o jogo com sensores e botões físicos.
+**Objetivo:** transformar um celular Android preso ao corpo da criança em controle de pulo. Detalhes completos em [12 — Controle por celular](12-controle-por-celular.md).
+
+**Entregáveis**
+
+- `signaling/`: servidor WebSocket com Socket.io isolado, gerenciador de salas (`RoomManager`), validação de códigos de sessão e rate-limiting.
+- `src/input/phone-adapter.ts`: adaptador de entrada plugado via `CompositeAdapter`, disparando `Actions.JUMP`.
+- `src/input/auto-run-adapter.ts`: corrida contínua (`Actions.MOVE_RIGHT`) durante o modo celular.
+- `src/controle/`: aplicação web do celular com calibração e detecção de pico por acelerômetro (`jump-detector.ts`), gravação de séries temporais (`session-recorder.ts`) e replay determinístico (`session-replay.ts`).
+- `src/net/phone-control-coordinator.ts`: orquestração do pareamento por QR Code e pausa automática da partida caso o celular caia.
+
+**Critérios de aceite**
+
+- ✅ Nenhuma regra de colisão, física ou lógica de fase foi alterada.
+- ✅ Celular e TV sincronizam via WebSocket sem expor stream contínuo de sensores fora da rede local.
+- ✅ Pausa automática protege a criança caso o aparelho se desconecte.
+- ✅ Cobertura completa de testes automatizados no cliente e no servidor de sinalização.
+
+---
+
+## Fase 10 — Mundo contínuo, Explorar e Corrida do Alfabeto ✅
+
+**Objetivo:** experiência fluida sem cortes abruptos de tela, introdução do modo Explorar (palavras) e da Corrida do Alfabeto (A–Z contínuo). Detalhes em [02 — Gameplay](02-gameplay-e-controles.md) e [15 — Melhorias pós-streaming](15-plano-melhorias-pos-streaming.md).
+
+**Entregáveis**
+
+- `src/gameplay/world-stream.ts`: geração incremental de trechos sob demanda à frente do jogador, com descarte de segmentos distantes para limitar memória.
+- Reposicionamento inteligente de alvos: se o jogador ultrapassa a letra sem coletar, ela reaparece adiante.
+- Portal de vitória: corte plano do terreno e transição suave ao final de cada objetivo pedagógico.
+- Trilha de palavras no modo Explorar (`src/gameplay/explore-run.ts`) com jornadas curtas de até 3 palavras e resumo ilustrado.
+- Caderno de descobertas (`src/content/discoveries.ts`, `src/ui/screens/discoveries-book.tsx`) com 30 ilustrações SVG locais integradas ao PWA offline.
+
+**Critérios de aceite**
+
+- ✅ O mundo mantém contagem de objetos estável em sessões longas.
+- ✅ Distratores se mantêm coerentes com a resposta ativa.
+- ✅ Chegada ao portal é segura e fecha estados de gameplay sem duplicar vitórias ou derrotas.
+
+---
+
+## Fase 11 — Acessibilidade, Níveis de Apoio e Narração de Letras ✅
+
+**Objetivo:** apoio pedagógico adaptado à autonomia de cada criança e acessibilidade integral. Detalhes em [16 — Letras com palavras de referência](16-plano-letras-com-palavras-de-referencia.md).
+
+**Entregáveis**
+
+- `src/gameplay/support-policy.ts`: três níveis de apoio selecionáveis nas configurações (*assistido*, *padrão*, *desafio*).
+  - *Assistido*: seta sobre o alvo, repetição automática da instrução e erros de leitura não retiram corações.
+  - *Desafio*: mais distratores na tela e letras vizinhas no alfabeto.
+- `src/content/letter-reference-words.json` e `letter-reference.ts`: vocabulário A–Z associando cada letra a uma palavra fixa (“A de amigo”).
+- `src/audio/speech-narrator.ts`: sintetizador de voz integrado com narração pedagógica, palavras de referência, fila de áudio com prioridades e repetição.
+- Acessibilidade visual e motora: alto contraste, texto ampliado no Canvas e HUD, redução de movimento (sem tremor de tela nem flashes) e suporte a leitores de tela via `live-announcer.ts`.
+
+**Critérios de aceite**
+
+- ✅ A narração por voz funciona em todos os níveis de apoio sem bloquear a partida.
+- ✅ Dificuldade motora permanece estável e independente do apoio pedagógico.
+- ✅ O HUD e menus respondem imediatamente às preferências persistidas em `experience-settings-store.ts`.
+
+---
+
+## Fase 12 — App nativo Android/iOS via Capacitor 💡
+
+**Objetivo:** publicação nas lojas Google Play e Apple App Store a partir de projeto empacotado com Capacitor. Planejamento completo em [14 — Plano app Android Capacitor](14-plano-app-android-capacitor.md).
+
+**Tarefas**
+
+1. Criar repositório separado derivado da base web estável.
+2. Configurar Capacitor com `@capacitor/android` e plugins de orientação de tela, haptics e ciclo de vida.
+3. Migrar persistência de preferências para armazenamento nativo seguro.
+4. Gravar áudios profissionais de voz para substituir `speechSynthesis` nas lojas.
+5. Iniciar teste fechado no Google Play Console conforme requisitos da Families Policy.
+
+---
+
+## Fase 13 — Hardware: ESP32 💡
+
+**Objetivo:** controlar o jogo com sensores e botões físicos plugados via Web Serial ou Bluetooth Low Energy (BLE).
 
 Seguir o roteiro de [03 — Abstração de input](03-abstracao-de-input.md#7-como-plugar-o-esp32-no-futuro-o-caminho-exato).
 
@@ -231,27 +307,19 @@ Seguir o roteiro de [03 — Abstração de input](03-abstracao-de-input.md#7-com
 1. Definir o protocolo de mensagens (`{ "button": "jump", "pressed": true }`).
 2. Firmware no ESP32 enviando por BLE ou Web Serial.
 3. `src/input/esp32-adapter.ts` implementando `InputAdapter`.
-4. Trocar uma linha em `main.ts` (o `CompositeAdapter` já existe — ver [03 §7.5](03-abstracao-de-input.md#75-teclado-e-esp32-ou-toque-ao-mesmo-tempo)).
-5. Tela de conexão/estado do dispositivo.
-
-**Critérios de aceite**
-
-- Nenhum arquivo de gameplay, física ou render foi alterado.
-- Os testes existentes continuam passando sem modificação.
-- Dá para jogar usando apenas o hardware.
+4. Plugar no `CompositeAdapter` já existente em `main.ts`.
+5. Tela de status e pareamento do dispositivo.
 
 ---
 
-## Fase 10 — Ideias de longo prazo 💡
+## Fase 14 — Ideias de longo prazo 💡
 
 - **Pulo duplo** como novo `PlayerState` (ver [08](08-evolucao-futura.md)).
 - **Poderes `E`/`Q`**: as ações já estão reservadas no vocabulário de entrada.
-- **Som**: registrar os arquivos de efeito/trilha na infraestrutura já pronta (Fase 5).
-- **Modo dois jogadores** na mesma tela.
-- **Relatório para pais/professores**: quais letras a criança mais erra.
-- **Síntese de voz** para ler o objetivo em voz alta (apoio à alfabetização).
-- **Editor de fases** reaproveitando o `level-loader` como validador.
-- **HTTPS na VPS** via `certbot` (o `docker/nginx-vps.conf` já está preparado para isso).
+- **Pacotes de som e vozes gravadas**: estúdio profissional com vozes infantis e efeitos sonoros ricos.
+- **Modo cooperativo dois jogadores** na mesma tela.
+- **Relatório para pais/professores**: estatísticas agregadas de progresso e dificuldades por família silábica.
+- **Editor visual de fases** reaproveitando `level-loader` como validador de geometria.
 
 ---
 

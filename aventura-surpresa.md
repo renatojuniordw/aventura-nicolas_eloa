@@ -10,5 +10,5 @@ Modo local de cinco etapas com revisão adaptativa, terrenos variados e eventos 
 
 A adaptação usa regras locais; embeddings e criação por texto ficam para uma evolução posterior.
 
-Verificação final: 625 testes em 75 arquivos, typecheck, build/PWA e diff sem erros.
+Verificação atualizada: 735 testes em 81 arquivos no cliente (mais 22 testes no servidor de sinalização), typecheck, build/PWA e diff sem erros.
 Navegador: menu e fase em desktop e viewport 844×390; descoberta da abelha por eventos de teclado, sem erros de execução reportados.

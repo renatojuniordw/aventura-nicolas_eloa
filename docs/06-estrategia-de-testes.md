@@ -1,14 +1,15 @@
 # 06 — Estratégia de testes
 
-**470 testes** em **67 arquivos**, rodando em cerca de 1 segundo.
+**735 testes** em **81 arquivos** no motor/cliente, rodando em cerca de 3 segundos, mais **22 testes** em **2 arquivos** no servidor de sinalização WebSocket (`signaling/`).
 
 A estratégia é simples e deliberada: **testar lógica pura sem DOM** e ter **um** teste de
 integração que prova que as peças se conectam. O DOM aparece só onde o DOM *é* o
 comportamento sob teste (ver seção 4).
 
 ```bash
-npm test            # roda tudo uma vez
-npm run test:watch  # modo observador durante o desenvolvimento
+npm test                     # roda todos os 735 testes do cliente
+npm run test:watch           # modo observador durante o desenvolvimento
+npm --prefix signaling test  # roda os 22 testes do servidor de sinalização
 ```
 
 ---
@@ -44,14 +45,18 @@ contam chamadas, não pegariam.
 | `core/event-bus.test.js`                |      5 | Assinatura, cancelamento, `once`, remoção durante o despacho               |
 | `core/game-loop.test.js`                |      6 | Timestep fixo: 0,5 s → 30 passos; 10 s → limitado a 5 e descarta o resto   |
 | `core/scene-manager.test.js`            |      5 | `enter`/`exit` na ordem certa, evento de troca, cena inexistente           |
-| `input/keyboard-keymap.test.js`         |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado              |
-| `input/input-manager.test.js`           |      9 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
-| `input/touch-adapter.test.js`           |      5 | Pointer down/up, cancel/leave soltam a ação, cada botão na sua ação, idempotência do `attach` |
-| `input/composite-adapter.test.js`       |      3 | Anexa/destaca todos os filhos, qualquer fonte filha comanda o mesmo `InputManager` |
-| `ui/touch-controls.test.js`             |      3 | Botões esquerda/direita/pulo mapeados às ações certas, `show()`/`hide()` preservam os elementos |
-| `app-lifecycle.test.js`                 |      3 | `blur`/`visibilitychange` limpam o input e pausam; grafo montado (jsdom)   |
 | `core/lifecycle.test.js`                |      3 | `blur` limpa input e avisa; aba visível avisa; o áudio destrava só no primeiro toque (jsdom) |
 | `core/asset-manager.test.js`            |      4 | Cache por nome, não recarrega o que já tem, requisições simultâneas compartilhadas, retenta após falha |
+| `app-lifecycle.test.js`                 |      3 | `blur`/`visibilitychange` limpam o input e pausam; grafo montado (jsdom)   |
+| `input/keyboard-keymap.test.js`         |      8 | Mapeamento por `code`, teclas não mapeadas, teclado remapeado              |
+| `input/keyboard-adapter.dom.test.js`    |      5 | DOM keydown/keyup, prevenção de rolagem padrão, disparo de ações           |
+| `input/input-manager.test.js`           |     11 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
+| `input/touch-adapter.test.js`           |      5 | Pointer down/up, cancel/leave soltam a ação, cada botão na sua ação        |
+| `input/composite-adapter.test.js`       |      4 | Anexa/destaca todos os filhos, qualquer fonte filha comanda o mesmo `InputManager` |
+| `input/phone-adapter.test.js`           |      5 | Ações do celular via transporte, despacho semântico e desconexão           |
+| `input/auto-run-adapter.test.js`        |      4 | Corrida contínua sem intervenção motora durante modo celular               |
+| `input/haptics.test.js`                 |      8 | Vibração tátil segura com fallback sem falhar em navegadores sem suporte   |
+| `ui/touch-controls.test.js`             |      3 | Botões esquerda/direita/pulo mapeados às ações certas, `show()`/`hide()` preservam elementos |
 
 ### 2.2 Física e regras de jogo
 
@@ -61,70 +66,105 @@ contam chamadas, não pegariam.
 | `physics/physics-engine.test.js`            |     12 | Gravidade, velocidade terminal, colisão nos 4 lados, plataforma de mão única, broad-phase |
 | `gameplay/player/player-controller.test.js` |     12 | Pulo só no chão, tempo de coiote, buffer de pulo, pulo curto, transições      |
 | `gameplay/lives-manager.test.js`            |      4 | Perda de coração, esgotamento anunciado uma vez, nunca negativo               |
-| `gameplay/level-manager.test.js`            |      8 | Coleta única, perigo ao entrar, queda anunciada uma vez, checkpoint           |
+| `gameplay/level-manager.test.js`            |     16 | Coleta única, perigo ao entrar, queda anunciada uma vez, checkpoints          |
+| `gameplay/world-stream.test.ts`             |     15 | Mundo contínuo, alvo que reaparece à frente, janela de retenção, chegada ao portal |
+| `gameplay/stream-courses.test.ts`           |      7 | Fábricas de percurso por modo (Aprender, Explorar, Corrida do Alfabeto)       |
+| `gameplay/explore-run.test.ts`              |      3 | Jornada de exploração de até 3 palavras, avanço de letras e persistência      |
+| `gameplay/support-policy.test.ts`           |      4 | Níveis de apoio pedagógico (assistido, padrão, desafio) e suas regras         |
 | `gameplay/speedrun-course.test.js`          |      1 | Regra de distância segura entre letra e perigo                                |
-| `gameplay/world-stream.test.ts`             |     15 | Mundo infinito, alvo reaparece adiante, um alvo vivo por vez, alcance por toque, portal |
+| `gameplay/speedrun-run.test.js`             |      4 | Letra atual, avanço sequencial A–Z, cronômetro pausável e dica de ritmo       |
 
 ### 2.3 Conteúdo
 
-| Arquivo                            | Testes | O que garante                                                            |
-| ---------------------------------- | -----: | ------------------------------------------------------------------------ |
-| `content/text-utils.test.js`       |      8 | Acentos, cedilha, caixa, espaços, entrada inválida                       |
-| `content/answer-validator.test.js` |      7 | Acerto, acento, variantes, rejeição de distratores                       |
-| `content/level-loader.test.js`     |     12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas |
-| `content/curriculum.test.js`       |     14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos   |
+| Arquivo                               | Testes | O que garante                                                            |
+| ------------------------------------- | -----: | ------------------------------------------------------------------------ |
+| `content/text-utils.test.js`          |      8 | Acentos, cedilha, caixa, espaços, entrada inválida                       |
+| `content/answer-validator.test.js`    |      7 | Acerto, acento, variantes, rejeição de distratores                       |
+| `content/characters.test.js`          |      3 | Identificadores, nomes e paletas dos 4 personagens jogáveis              |
+| `content/level-loader.test.js`        |     12 | Defaults, conversão do mapa em retângulos, rejeição de fases malformadas |
+| `content/curriculum.test.js`          |     14 | 152 fases existem, 1 alvo por fase, distratores rejeitados, ids únicos   |
+| `content/letter-reference.test.js`    |     14 | Mapeamento das 26 letras para palavras de referência (“A de amigo”)      |
+| `content/word-phases.test.ts`         |      4 | Fases de palavras, progressão fonética e integridade do banco            |
+| `content/discoveries.test.ts`         |      3 | Caderno de descobertas, ilustrações SVG locais para todas as palavras    |
+| `content/embedding-select.test.ts`    |      9 | Busca e seleção semântica de lições com base em similaridade de embeddings |
 
 ### 2.4 Persistência
 
-| Arquivo                                  | Testes | O que garante                                                                 |
-| ---------------------------------------- | -----: | ----------------------------------------------------------------------------- |
-| `persistence/migration.test.js`          |      9 | Primeira execução, migração v0→v1, save corrompido, versão futura             |
-| `persistence/persistence.test.js`        |     18 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial, tempo do Speed Run |
-| `persistence/audio-settings-store.test.js` |    4 | Padrões, round-trip, recuperação de JSON corrompido, limite de volume         |
+| Arquivo                                   | Testes | O que garante                                                                 |
+| ----------------------------------------- | -----: | ----------------------------------------------------------------------------- |
+| `persistence/migration.test.js`           |      9 | Primeira execução, migração v0→v1, save corrompido, versão futura             |
+| `persistence/persistence.test.js`         |     18 | Round-trip, melhores estrelas, isolamento entre perfis, liberação sequencial  |
+| `persistence/active-profile.test.js`       |      5 | Perfil ativo, criação sob consentimento parental, adoção e renomeação         |
+| `persistence/audio-settings-store.test.js`|      4 | Padrões, round-trip, recuperação de JSON corrompido, limites de volume        |
+| `persistence/experience-settings-store.test.js` | 3 | Nível de apoio, alto contraste, texto ampliado e redução de movimento         |
+| `persistence/learning.test.js`            |      5 | Registro de tentativas, acertos e dificuldades recentes por aluno             |
 
 ### 2.5 Render e HUD
 
 | Arquivo                         | Testes | O que garante                                                                    |
 | ------------------------------- | -----: | -------------------------------------------------------------------------------- |
-| `render/camera.test.js`         |      6 | Conversão mundo→tela, limite de rolagem, suavização                              |
+| `render/camera.test.js`         |      7 | Conversão mundo→tela, limite de rolagem, suavização e clamp horizontal           |
 | `render/canvas-renderer.test.js`|      9 | Offset da câmera, inset de meio pixel, espelhamento (`flipX`), espaço de tela    |
-| `render/sprite-assets.test.js`  |      7 | Recortes por número, `resolveBackgroundKey` e seus ramos de fallback             |
-| `render/sprites.test.js`        |      4 | Parallax, token da letra, checkpoint e portal do fim                             |
-| `render/asset-plan.test.js`     |      4 | Todo asset planejado existe em `public/`, cobertura de todas as chaves de fundo, só as poses jogáveis, uma fase pede só o seu fundo |
-| `render/effects.test.js`        |      5 | Partículas nascem, caem, morrem; desenho sem canvas real                         |
-| `render/hud-model.test.js`      |      6 | Corações, mensagem que aparece e desaparece, cronômetro do Speed Run             |
+| `render/sprite-assets.test.js`  |     10 | Recortes por número, `resolveBackgroundKey` e seus ramos de fallback             |
+| `render/sprites.test.js`        |      8 | Parallax, token da letra, checkpoint e portal do fim                             |
+| `render/asset-plan.test.js`     |      4 | Todo asset planejado existe em `public/`, cobertura de fundos e personagens      |
+| `render/effects.test.js`        |     10 | Partículas nascem, caem, morrem; confetes e feedback comemorativo sem tela real  |
+| `render/hud-model.test.js`      |      7 | Corações, mensagem que aparece e desaparece, cronômetro do Speed Run             |
+| `render/hud.test.js`            |      4 | Desenho acessível do HUD, suporte a texto ampliado e contraste                   |
 
 ### 2.6 Áudio
 
 | Arquivo                            | Testes | O que garante                                                          |
 | ---------------------------------- | -----: | ---------------------------------------------------------------------- |
-| `audio/audio-manager.test.js`      |      7 | Estado inicial, mudo/volume aplicados ao `Audio` criado, troca de faixa |
+| `audio/audio-manager.test.js`      |      7 | Estado inicial, volumes por categoria (música/efeitos/voz), destravamento mobile |
+| `audio/speech-narrator.test.js`    |     13 | Narração das lições, fila com interrupt, palavras de referência A–Z   |
 
-### 2.7 Cenas e telas
+### 2.7 Controle por celular e sinalização
 
 | Arquivo                                   | Testes | O que garante                                                                   |
 | ----------------------------------------- | -----: | ------------------------------------------------------------------------------- |
-| `scenes/boot-scene.test.js`               |      4 | Pré-carrega só itens/objetos + personagem padrão (**sem** fundos, retratos ou o outro personagem), tolerância a falha de carga, transição única |
-| `gameplay/speedrun-run.test.js`           |      6 | Letra atual, avanço até a última, relógio, letra "à frente", ritmo da dica |
-| `persistence/active-profile.test.js`      |      5 | Perfil ativo, adoção do primeiro perfil, **consentimento antes de criar**, renomear "Jogador" |
-| `net/phone-control-coordinator.test.js`   |      7 | Troca de adaptador ao parear, pausa se o celular cai, restaura teclado/toque no `stop` |
-| `ui/overlay-input.test.js`                |      4 | CONFIRM/BACK, um pulo confirma, dois pulos voltam |
-| `scenes/menu-scene.test.js`               |     16 | **Fluxo de consentimento parental**, criação/renomeação de perfil, Speed Run, rótulo da próxima descoberta |
-| `scenes/game-scene.test.js`               |     14 | Acerto/erro, ordem do Speed Run, perigo, fim de maratona, pausa e game over      |
-| `scenes/victory-scene.test.js`            |     11 | Vitória normal e do Speed Run, `hasNext`, ações de cada botão                    |
-| `ui/screens/pause.test.js`                |     10 | Passos da pausa, aviso específico por modo, mudo, passo desconhecido (jsdom)     |
-| `ui/screens/privacy-notice.test.js`       |      3 | Aviso parental e que ele **não** é dispensável (jsdom)                           |
-| `ui/screens/celebration-canvas.test.js`   |      1 | Recorte seguro quando não existe `document` (SSR)                               |
-| `ui/screens/celebration-canvas.dom.test.js` |    4 | Loop de `requestAnimationFrame`, `stop` cancela, avanço da grade 2×2 (jsdom)    |
-| `ui/pixel-logo.test.js`                   |      3 | SVG do logo com título, `aria-label` e acentuação (jsdom)                       |
+| `controle/jump-detector.test.js`          |      7 | Detecção de pulo por limiar de aceleração e debounce temporal                   |
+| `controle/session-recorder.test.js`       |      6 | Gravação de séries temporais de sensores com timestamps precisos                |
+| `controle/session-replay.test.js`         |      9 | Replay determinístico de sessões gravadas para validação contínua de pulo      |
+| `controle/threshold-storage.test.js`      |      5 | Armazenamento seguro de calibração do sensor no dispositivo                     |
+| `controle/controle-params.test.js`        |      4 | Parsing de parâmetros de URL para pareamento por QR code                        |
+| `controle/sensor-time.test.js`            |      2 | Marcação de tempo monotonicamente crescente para séries temporais               |
+| `controle/status-message.test.js`         |     11 | Mensagens claras de estado (conectado, calibrando, pulando) na tela do celular   |
+| `net/phone-control-coordinator.test.js`   |      7 | Pareamento, troca automática de adaptador e pausa do jogo se celular desconectar|
+| `net/session-code.test.js`                |      3 | Geração de códigos amigáveis e seguros para salas de pareamento                 |
+| `net/signaling-socket.test.js`            |      4 | Transporte de sinalização via Socket.io com reconexão resiliente                |
+| `signaling/src/room-manager.test.js`      |     18 | Pareamento controller↔viewer, expiração, salas isoladas e rate limiting         |
+| `signaling/src/session-id.test.js`        |      4 | Validação e sanitização rigorosa de códigos de sessão de pareamento             |
 
-### 2.8 Transversais
+### 2.8 Cenas, telas e UI
+
+| Arquivo                                   | Testes | O que garante                                                                   |
+| ----------------------------------------- | -----: | ------------------------------------------------------------------------------- |
+| `scenes/boot-scene.test.js`               |      4 | Pré-carrega só itens/objetos + personagem padrão, tolerância a falha de carga   |
+| `scenes/menu-scene.test.js`               |     16 | Fluxo de consentimento parental, seleção de perfil, Speed Run e descobertas      |
+| `scenes/game-scene.test.js`               |     14 | Acerto/erro, ordem do Speed Run, perigo, fim de maratona, pausa e game over      |
+| `scenes/victory-scene.test.js`            |     11 | Vitória normal e do Speed Run, navegação sequencial e ações de botões           |
+| `ui/screens/pause.test.js`                |     10 | Passos da pausa, aviso por modo, áudio e recuperação sem perder input (jsdom)   |
+| `ui/screens/privacy-notice.test.js`       |      3 | Aviso parental e consentimento obrigatório na primeira execução (jsdom)         |
+| `ui/screens/character-picker.test.js`     |      2 | Escolha interativa de personagens com foco acessível e preview                  |
+| `ui/screens/discoveries.test.tsx`         |      3 | Renderização da grade do caderno de descobertas e filtros de progresso          |
+| `ui/screens/celebration-canvas.test.js`   |      1 | Recorte seguro quando não existe `document` (SSR)                               |
+| `ui/screens/celebration-canvas.dom.test.js` |    4 | Loop de animação de comemoração, stop e avanço da grade (jsdom)                 |
+| `ui/pixel-logo.test.js`                   |      3 | SVG do logo com título, `aria-label` e acentuação correta                       |
+| `ui/overlay-input.test.js`                |      4 | Navegação de overlays via teclado/controle (pulo confirma, duplo pulo volta)   |
+| `ui/live-announcer.test.js`               |      2 | Anúncios de acessibilidade para leitores de tela sem repetições redundantes     |
+| `ui/mobile-presentation.test.js`          |      1 | Regras de apresentação para telas mobile e orientação em paisagem               |
+| `ui/fullscreen.test.js`                   |      6 | Solicitação e encerramento de tela cheia com tratamento de permissões           |
+| `ui/pwa-install.test.js`                  |      3 | Convite de instalação do PWA e instruções customizadas para iOS                 |
+| `ui/pwa-update.test.js`                   |      8 | Atualização segura do service worker sem interrupção de gameplay                |
+
+### 2.9 Transversais
 
 | Arquivo                | Testes | O que garante                              |
 | ---------------------- | -----: | ------------------------------------------ |
 | `architecture.test.js` |      5 | **As regras de arquitetura** (ver seção 3) |
 | `public-assets.test.js` |      1 | Todo caminho `/assets`, `/icons` ou `/fonts` usado em CSS, HTML e código existe em `public/` |
-| `integration.test.js`  |     11 | **O jogo inteiro**, em jsdom (ver seção 4) |
+| `integration.test.js`  |     12 | **O jogo inteiro**, em jsdom (ver seção 4) |
 
 ---
 

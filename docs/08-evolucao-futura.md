@@ -80,52 +80,30 @@ poder (novo campo no `HudModel`).
 
 ---
 
-## 3. Som
+## 3. Som e narração por voz — infraestrutura e síntese implementadas ✅
 
-**Ponto de extensão:** um `SoundManager` que se inscreve nos **mesmos eventos** já emitidos.
+O jogo já conta com `AudioManager` (`src/audio/audio-manager.ts`) e `SpeechNarrator`
+(`src/audio/speech-narrator.ts`):
 
-```js
-// src/audio/sound-manager.ts
-export class SoundManager {
-  constructor({ bus, library }) {
-    this._bus = bus;
-    this._library = library;
-    bus.on(Events.ITEM_COLLECTED, () => this.play('collect'));
-    bus.on(Events.ANSWER_CORRECT, () => this.play('correct'));
-    bus.on(Events.ANSWER_WRONG, () => this.play('wrong'));
-    bus.on(Events.LIVES_DEPLETED, () => this.play('gameOver'));
-    bus.on(Events.LEVEL_COMPLETE, () => this.play('victory'));
-  }
-  play(name) { /* WebAudio ou HTMLAudioElement */ }
-}
-```
+- **Volumes por categoria**: controle independente de volume geral, música, efeitos sonoros (SFX) e voz/narração, com persistência em `audio-settings-store.ts`.
+- **Efeitos de áudio procedural**: Web Audio API sintetiza tons de pulo, acerto, erro e comemoração sem exigir o carregamento prévio de arquivos pesados.
+- **Síntese de voz com palavras de referência**: `SpeechNarrator` lê as instruções com apoio fonético (“A de amigo”) via `letter-reference-words.json`.
 
-A `GameScene` **não sabe** que existe som. Ela já anuncia os fatos; o gerenciador de áudio
-apenas escuta. Nenhum arquivo de gameplay é tocado.
-
-Música por unidade: o campo `music` já existe no schema da fase (hoje `null`), previsto
-exatamente para isso.
+**Próxima evolução planejada:**
+Substituir o sintetizador do navegador (`speechSynthesis`) por um pacote de áudios
+gravados em estúdio com atores e crianças, garantindo consistência sonora impecável em
+qualquer modelo de smartphone nas lojas de aplicativos (ver [14](14-plano-app-android-capacitor.md)).
 
 ---
 
-## 4. Controles por toque — já implementado ✅
+## 4. Controles por toque e celular — já implementados ✅
 
-Diferente das outras seções deste documento, esta já não é mais planejamento: o toque foi
-adicionado exatamente pelo ponto de extensão previsto aqui, sem tocar em gameplay, física
-ou render.
+- **Toque**: `src/input/touch-adapter.ts` traduz Pointer Events de botões virtuais em ações semânticas.
+- **Controle por celular**: `src/input/phone-adapter.ts` recebe ações de pulo disparadas pelo acelerômetro de um Android acoplado à criança e encaminhadas via WebSocket pelo servidor de sinalização (`signaling/`).
+- **Composição**: `src/input/composite-adapter.ts` combina teclado, toque e celular simultaneamente.
+- **Corrida automática**: `src/input/auto-run-adapter.ts` conduz o personagem automaticamente para a frente no modo celular.
 
-- `src/input/touch-adapter.ts` implementa `InputAdapter`, traduzindo Pointer Events de
-  botões na tela em ações semânticas.
-- `src/input/composite-adapter.ts` combina teclado **e** toque ao mesmo tempo (ver
-  [03 §7.5](03-abstracao-de-input.md#75-teclado-e-esp32-ou-toque-ao-mesmo-tempo) e
-  [03 §8](03-abstracao-de-input.md#8-um-segundo-adaptador-já-em-produção-o-toque)).
-- `src/ui/touch-controls.ts` desenha os botões; a detecção de dispositivo de toque
-  (`matchMedia('(pointer: coarse)')`) decide só se eles aparecem, nunca a lógica do jogo.
-
-Detalhes de uso e de PWA em [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md).
-
-**O que NÃO mudou:** `gameplay/`, `physics/`, `render/`, `game-scene.ts`, testes de
-gameplay existentes.
+Nenhum arquivo de física, colisão ou gameplay precisou ser alterado para suportar essas fontes.
 
 ---
 
@@ -174,18 +152,22 @@ retângulo cuja posição muda por quadro — o núcleo da colisão continua o m
 
 ---
 
-## 8. Acessibilidade
+## 8. Acessibilidade — recursos entregues ✅ e próximos passos 💡
 
-| Melhoria | Ponto de extensão |
-|---|---|
-| Narração do objetivo | Um `SpeechManager` inscrito em `lesson.started` |
-| Alto contraste | Variáveis de cor já centralizadas em `config.ts` e no CSS |
-| Escala de fonte | `hud.ts` recebe o tamanho por parâmetro |
-| Teclas remapeáveis | `DEFAULT_KEYMAP` já é um parâmetro de `translateKey` e do adaptador |
-| Modo com mais corações | `GAMEPLAY.startingLives` |
-| Modo sem perigos | Campo por fase; o `level-manager` simplesmente ignora a lista |
+Grande parte do plano de acessibilidade já foi implementada na Fase 11:
 
-Todas essas são **mudanças de dado ou de uma camada só** — nenhuma exige reescrever regras.
+| Recurso | Estado | Onde vive |
+|---|---|---|
+| Narração por voz do objetivo e palavras | ✅ Entregue | `src/audio/speech-narrator.ts` e `letter-reference.ts` |
+| Níveis de apoio (*assistido*, *padrão*, *desafio*) | ✅ Entregue | `src/gameplay/support-policy.ts` |
+| Alto contraste e modo noturno | ✅ Entregue | `src/persistence/experience-settings-store.ts` e CSS |
+| Escala de fonte e texto ampliado no Canvas/HUD | ✅ Entregue | `src/render/hud.ts` e classes DOM |
+| Redução de movimento (sem tremor/flashes) | ✅ Entregue | `effects.ts`, `sprites.ts` e CSS |
+| Leitores de tela (ARIA Live Announcer) | ✅ Entregue | `src/ui/live-announcer.ts` |
+| Teclas totalmente remapeáveis | 💡 Futuro | `src/input/keyboard-keymap.ts` (API pronta, falta UI) |
+| Navegação espacial completa em tela para leitor de tela | 💡 Futuro | Interação tátil/espacial no Canvas para deficientes visuais severos |
+
+Todas essas melhorias respeitaram a regra de não alterar regras físicas nem colisão do jogo.
 
 ---
 
