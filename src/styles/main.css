@@ -1496,3 +1496,65 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   min-width: 44px;
   min-height: 44px;
 }
+
+/* Local word illustrations share a quiet paper background in every context. */
+.word-picture {
+  display: block;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  margin: 8px auto;
+  border-radius: 20px;
+}
+.hud-word-picture {
+  position: absolute;
+  top: 16%;
+  left: 2%;
+  margin: 0;
+  width: 15%;
+  max-width: 144px;
+  text-align: center;
+  pointer-events: none;
+}
+.hud-word-picture .word-picture {
+  width: clamp(40px, 8vw, 88px);
+  height: auto;
+  margin: 0 auto 4px;
+  border: 2px solid #326855;
+}
+.hud-word-picture figcaption {
+  color: #fff;
+  background: #203632;
+  border-radius: 6px;
+  padding: 4px;
+  font: bold clamp(10px, 1.3vw, 14px) 'Trebuchet MS', sans-serif;
+}
+.discoveries-screen { width: min(100%, 1000px); }
+.discoveries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  width: 100%;
+}
+.discovery-card {
+  border: 2px solid #ffd479;
+  border-radius: 12px;
+  padding: 16px;
+  background: #203632;
+  color: #fbf4df;
+}
+.discovery-card h2 { overflow-wrap: anywhere; }
+.discovery-card .overlay-actions { flex-wrap: wrap; }
+.discovery-card button { min-height: 48px; }
+.journey-words {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+}
+.journey-words .word-picture { width: 72px; height: 72px; }
+.journey-words li { text-align: center; }

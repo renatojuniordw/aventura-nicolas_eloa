@@ -1,3 +1,4 @@
+import { JOURNEY_LENGTH } from '../../content/discoveries.js';
 import { useEffect, useRef } from 'react';
 import { buildScreen } from './mount-screen.js';
 import { MenuButton } from './menu-button.js';
@@ -35,6 +36,7 @@ interface MainMenuOptions {
   speedrunBestTime?: number | null;
   onPlay: () => void;
   onExplore?: () => void;
+  onOpenDiscoveries?: () => void;
   onSpeedrun: () => void;
   onSelectProfile?: (profileId: string) => void;
   onSelectCharacter?: (characterId: string) => void;
@@ -53,6 +55,7 @@ function MainMenuScreen({
   speedrunBestTime = null,
   onPlay,
   onExplore,
+  onOpenDiscoveries,
   onSpeedrun,
   onOpenCharacterPicker,
   onOpenSettings,
@@ -147,8 +150,9 @@ function MainMenuScreen({
                 {speedrunText}
               </MenuButton>
               {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
-                <strong>Explorar</strong><small>Monte palavras, letra por letra</small>
+                <strong>Explorar</strong><small>Jornadas de até {JOURNEY_LENGTH} palavras</small>
               </MenuButton>}
+              {onOpenDiscoveries && <MenuButton className="btn-util" onClick={onOpenDiscoveries}>Caderno de descobertas</MenuButton>}
               <div className="menu-meta-row home-meta-row">
                 <MenuButton className="btn-util" onClick={onOpenSettings}>
                   ⚙️ Configurações

@@ -1,3 +1,4 @@
+import { JOURNEY_LENGTH, journeyWords } from '../content/discoveries.js';
 import { Scene } from '../core/scene.js';
 import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
 import { COLORS } from '../core/config.js';
@@ -17,6 +18,7 @@ interface VictoryParams {
   bestTime?: number;
   totalLetters?: number;
   wordId?: string;
+  journey?: readonly string[];
 }
 
 /**
@@ -39,6 +41,7 @@ export class VictoryScene extends Scene {
     bestTime = 0,
     totalLetters = 26,
     wordId,
+    journey = [],
   }: VictoryParams = {}): void {
     this._jumpGesture.reset();
     const profile = this.game.profiles.getActiveProfile();
@@ -63,15 +66,24 @@ export class VictoryScene extends Scene {
       const nextPhaseId = profile ? this.game.progress.getNextLesson(profile.id, WORD_PHASE_ORDER) : null;
       const nextWordId = getWordByPhaseId(nextPhaseId)?.id ?? null;
       this.game.effects.spawnConfetti(this.game.renderer.width / 2, 140, 96);
+      const words = journeyWords([...journey, ...(word ? [word.id] : [])]);
+      const hasNext = Boolean(nextWordId) && nextWordId !== wordId;
+      const journeyComplete = words.length >= JOURNEY_LENGTH || !hasNext;
+      if (journeyComplete) {
+        this.game.narrator?.speak(`Jornada concluída! Você montou ${words.map(w => w.label.toLowerCase()).join(', ')}. Muito bem!`);
+      }
       this.game.menu.showExploreVictory({
+        illustration: word ?? undefined,
+        journeyWords: words,
+        journeyComplete,
         character: getCharacter(profile?.characterId),
         word: word?.label ?? '',
         fact: word?.fact ?? '',
         stars,
         mistakes,
-        hasNext: Boolean(nextWordId) && nextWordId !== wordId,
-        onNext: () => this.game.startExploration(nextWordId ?? undefined),
-        onReplay: () => this.game.startExploration(wordId),
+        hasNext,
+        onNext: () => this.game.startExploration(nextWordId ?? undefined, journeyComplete ? [] : words.map(w => w.id)),
+        onReplay: () => this.game.startExploration(wordId, journey),
         onMenu: () => this.game.scenes.switchTo('menu'),
       });
       return;
@@ -98,6 +110,7 @@ export class VictoryScene extends Scene {
   }
 
   override exit(): void {
+    this.game.narrator?.stop();
     this.game.menu.hide();
     this.game.effects.clear();
   }

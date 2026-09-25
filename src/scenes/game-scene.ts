@@ -15,6 +15,7 @@ import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { SpeedrunRun } from '../gameplay/speedrun-run.js';
 import { ALPHABET, createExploreStream, createLessonStream, createSpeedrunStream } from '../gameplay/stream-courses.js';
 import type { StreamItem, StreamLevel, WorldStream } from '../gameplay/world-stream.js';
+import { JOURNEY_LENGTH, journeyWords } from '../content/discoveries.js';
 import { ExploreRun } from '../gameplay/explore-run.js';
 import { supportPolicy, type SupportPolicy } from '../gameplay/support-policy.js';
 import { WORD_BANK } from '../content/word-bank.js';
@@ -220,6 +221,8 @@ export class GameScene extends Scene {
     this.game.hudControls.showPauseButton({
       onPause: () => this.togglePause(),
       onRepeat: () => this.repeatInstruction(),
+      word: this.exploreRun?.word,
+      journeyLabel: this.exploreRun ? `Palavra ${Math.min(JOURNEY_LENGTH, journeyWords(this.exploreRun.journey).length + 1)} de ${JOURNEY_LENGTH}` : undefined,
     });
     if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
@@ -760,6 +763,7 @@ export class GameScene extends Scene {
       this.game.scenes.switchTo('victory', {
         mode: 'explore',
         wordId: this.exploreRun.word.id,
+        journey: this.exploreRun.journey,
         mistakes: this.mistakes,
         stars: entry?.stars ?? 0,
       });
@@ -794,7 +798,7 @@ export class GameScene extends Scene {
     if (this.mode === 'speedrun') {
       this.game.startSpeedrun();
     } else if (this.mode === 'explore') {
-      this.game.startExploration(this.exploreRun?.word.id);
+      this.game.startExploration(this.exploreRun?.word.id, this.exploreRun?.journey);
     } else {
       this.game.scenes.switchTo('game', { lessonId: this.lesson.id });
     }

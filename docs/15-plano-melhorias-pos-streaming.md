@@ -231,3 +231,16 @@ Base reconfirmada antes das mudanças: 658 testes em 75 arquivos, typecheck e bu
 | 3.3 | Feito | Módulo de embeddings mantido como experimento offline; comentários (`embedding-select.ts`, `vite.config.js`) e `docs/14` alinhados ao bundle real. |
 | 3.4 | Pendente | Testes de navegador/atualização offline. |
 | 4.x, 5.x | Não iniciados | Opcionais / projeto Android separado. |
+
+### Complemento — caderno, imagens e jornadas (24/09/2026)
+
+O item **4.1** foi implementado: caderno por perfil com imagens, narração e repetição,
+aproveitando descobertas antigas e fases concluídas. A coleção distingue visitas de
+palavras montadas; não infere aprendizagem a partir desses dados, portanto a decisão
+mais ampla sobre evidências pedagógicas de 3.2 permanece pendente.
+
+A associação visual pendente em **2.3** foi implementada com 30 SVGs locais. Também
+foram acrescentadas jornadas do Explorar de até três palavras, encerradas com resumo
+ilustrado/narrado e opção explícita de continuar. Estado da jornada é temporário;
+o progresso das palavras continua salvo por perfil. Detalhes em `docs/02` e `docs/04`.
+Audição com crianças e validação visual em aparelhos reais continuam pendentes.

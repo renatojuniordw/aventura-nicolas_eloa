@@ -308,3 +308,46 @@ describe('game integration', () => {
     expect(scene.player.body.x).toBeCloseTo(collectedX, 0);
   });
 });
+
+describe('discovery journey integration', () => {
+  it('plays three words, stops at the summary, and replays from the notebook without moving the next pending word', () => {
+    const game = mountGame();
+    tick(game, 2);
+    game.profiles.recordParentalConsent();
+    const profile = game.profiles.createProfile('Eloá');
+    game.startExploration();
+    const words = [];
+    for (let index = 0; index < 3; index++) {
+      const scene = game.scenes.current;
+      words.push(scene.exploreRun.word.id);
+      expect(document.querySelector('.hud-word-picture img')?.getAttribute('src')).toBe(`/assets/words/${scene.exploreRun.word.id}.svg`);
+      expect(document.querySelector('.hud-word-picture')?.textContent).toContain(`Palavra ${index + 1} de 3`);
+      for (const _letter of scene.exploreRun.currentWordLetters) scene.onItemCollected(scene.stream.liveTarget);
+      enterPortal(scene);
+      tick(game, 160);
+      expect(game.scenes.currentName).toBe('victory');
+      if (index < 2) game.menu.triggerPrimary();
+    }
+    expect(document.querySelector('h1')?.textContent).toBe('Jornada concluída!');
+    expect(document.querySelectorAll('.journey-words li')).toHaveLength(3);
+    game.menu.triggerPrimary();
+    expect(game.scenes.currentName).toBe('menu');
+    const notebook = [...document.querySelectorAll('button')].find(b => b.textContent === 'Caderno de descobertas');
+    notebook.click();
+    expect(document.querySelectorAll('.discovery-card')).toHaveLength(3);
+    expect(game.profiles.getActiveProfile().id).toBe(profile.id);
+    const nextPhase = () => game.progress.getNextLesson(profile.id, ['palavra-sol', 'palavra-lua', 'palavra-bau', 'palavra-bola']);
+    const pending = nextPhase();
+    document.querySelector('.discovery-card button[aria-label^="Jogar"]').click();
+    expect(game.scenes.currentName).toBe('game');
+    expect(words).toContain(game.scenes.current.exploreRun.word.id);
+    expect(game.scenes.current.exploreRun.journey).toEqual([]);
+    expect(nextPhase()).toBe(pending);
+    game.scenes.switchTo('menu');
+    const other = game.profiles.createProfile('Nicolas');
+    game.profiles.setActiveProfile(other.id);
+    game.scenes.current.openDiscoveries();
+    expect(document.querySelectorAll('.discovery-card')).toHaveLength(0);
+    expect(document.querySelector('.discoveries-empty')).not.toBeNull();
+  });
+});

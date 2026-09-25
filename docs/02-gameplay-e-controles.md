@@ -238,3 +238,29 @@ A arte de produção (personagens, cenários, itens) já está em `public/assets
 - Botões do menu não roubam o foco do jogo, então o teclado continua funcionando depois
   de qualquer clique.
 - Errar sempre traz uma mensagem didática (`Esse era "E". Procure "A".`), nunca só um "errou".
+
+## 10. Palavras ilustradas, caderno e jornadas do Explorar
+
+- As 30 palavras do Explorar têm ilustrações SVG locais: aparecem ao lado da atividade,
+  nas vitórias e no caderno. A palavra completa continua sendo narrada ao abrir o portal.
+- O botão **Caderno de descobertas** no menu mostra somente palavras já visitadas ou
+  concluídas pelo jogador ativo. Cada cartão oferece **Ouvir** (palavra e curiosidade)
+  e **Jogar de novo**. Histórico antigo de visita aparece como “Palavra visitada”;
+  somente fases `palavra-*` concluídas recebem “Palavra montada”.
+- Repetir uma palavra concluída preserva o próximo objetivo pendente e as melhores
+  estrelas. O caderno vazio convida a explorar; trocar jogador troca a coleção.
+- Explorar inicia uma jornada de até **três palavras distintas**. Cada palavra ainda
+  termina no portal e salva o progresso individualmente. As vitórias intermediárias
+  oferecem “Próxima palavra”, repetição e retorno ao menu.
+- Na terceira palavra (ou antes, se a trilha acabar), há um resumo com as imagens,
+  palavras e narração. A ação principal passa a **Concluir e voltar ao menu**; começar
+  outra jornada é uma escolha explícita. A mensagem diz “Nesta jornada”, sem atribuir
+  o histórico a um dia ou declarar domínio pedagógico.
+- Recomeçar após derrota preserva as palavras anteriores da jornada. Repetir a última
+  palavra não a conta duas vezes. Voltar ao menu, abrir pelo caderno ou recarregar inicia
+  uma jornada nova; as palavras já concluídas permanecem salvas no perfil.
+- A aventura de letras/sílabas e a corrida do alfabeto mantêm seus fluxos.
+
+Validação automatizada cobre a jornada completa, caderno vazio, ouvir/repetir,
+compatibilidade com histórico, troca de perfil, reset, repetição e fim da trilha.
+Validação visual e audição em aparelhos reais permanecem pendentes.

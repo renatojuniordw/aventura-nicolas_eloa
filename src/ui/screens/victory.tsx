@@ -1,3 +1,6 @@
+import { JOURNEY_LENGTH } from '../../content/discoveries.js';
+import { WordPicture } from './word-picture.js';
+import type { WordEntry } from '../../content/word-bank.js';
 import { buildScreen } from './mount-screen.js';
 import { MenuButton } from './menu-button.js';
 import { POSE_FRAMES } from '../../content/atlas-meta.js';
@@ -127,6 +130,9 @@ export function buildSpeedrunVictoryScreen(options: SpeedrunVictoryOptions) {
 interface ExploreVictoryOptions {
   character?: Character | null;
   word: string;
+  illustration?: WordEntry;
+  journeyWords?: WordEntry[];
+  journeyComplete?: boolean;
   fact?: string;
   stars: number;
   mistakes: number;
@@ -139,6 +145,9 @@ interface ExploreVictoryOptions {
 function ExploreVictoryScreenView({
   character,
   word,
+  illustration,
+  journeyWords = [],
+  journeyComplete = false,
   fact = '',
   stars,
   mistakes,
@@ -151,25 +160,28 @@ function ExploreVictoryScreenView({
   const celebrateImage = character?.sprites?.celebrate;
   return (
     <div className="overlay">
-      <h1>Muito bem!</h1>
-      {celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
-      <h2>Você montou {word}</h2>
-      {fact ? <p>{fact}</p> : null}
-      <p>
-        {starRow}   ({mistakes} erro{mistakes === 1 ? '' : 's'})
-      </p>
+      <h1>{journeyComplete ? 'Jornada concluída!' : 'Muito bem!'}</h1>
+      {!journeyComplete && celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
+      {!journeyComplete && illustration && <WordPicture word={illustration} />}
+      {!journeyComplete && <h2>Você montou {word}</h2>}
+      {journeyComplete ? <section aria-label="Resumo da jornada">
+        <p>Nesta jornada você montou:</p>
+        <ul className="journey-words">{journeyWords.map(entry => <li key={entry.id}><WordPicture word={entry} /><strong>{entry.label}</strong></li>)}</ul>
+        <p>Seu progresso está salvo. Você pode descansar e voltar depois!</p>
+      </section> : <p>{journeyWords.length} de {JOURNEY_LENGTH} palavras da jornada concluídas</p>}
+      {!journeyComplete && fact ? <p>{fact}</p> : null}
+      {!journeyComplete && <p>{starRow} ({mistakes} erro{mistakes === 1 ? '' : 's'})</p>}
       <div className="overlay-actions">
+        {journeyComplete && <MenuButton className="primary" onClick={onMenu}>Concluir e voltar ao menu</MenuButton>}
         {hasNext ? (
-          <MenuButton className="primary" onClick={onNext}>
-            Próxima fase
+          <MenuButton className={journeyComplete ? undefined : "primary"} onClick={onNext}>
+            {journeyComplete ? 'Começar outra jornada' : 'Próxima palavra'}
           </MenuButton>
         ) : null}
         <MenuButton onClick={onReplay}>
-          Jogar de novo
+          {journeyComplete ? 'Repetir última palavra' : 'Jogar de novo'}
         </MenuButton>
-        <MenuButton onClick={onMenu}>
-          Menu
-        </MenuButton>
+        {!journeyComplete && <MenuButton onClick={onMenu}>Menu</MenuButton>}
       </div>
     </div>
   );
@@ -177,7 +189,7 @@ function ExploreVictoryScreenView({
 
 export function buildExploreVictoryScreen(options: ExploreVictoryOptions) {
   return buildScreen(<ExploreVictoryScreenView {...options} />, {
-    primary: options.hasNext ? options.onNext : options.onReplay,
+    primary: options.journeyComplete ? options.onMenu : options.hasNext ? options.onNext : options.onReplay,
     back: options.onMenu,
   });
 }

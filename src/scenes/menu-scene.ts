@@ -1,3 +1,5 @@
+import { discoveredWords } from '../content/discoveries.js';
+import { wordPhaseId } from '../content/word-phases.js';
 import { Actions } from '../input/actions.js';
 import { Scene } from '../core/scene.js';
 import { COLORS } from '../core/config.js';
@@ -48,6 +50,7 @@ export class MenuScene extends Scene {
   }
 
   override exit(): void {
+    this.game.narrator?.stop();
     this.game.menu.hide();
   }
 
@@ -85,6 +88,7 @@ export class MenuScene extends Scene {
       speedrunBestTime: activeProfile ? progress.getSpeedrunBestTime(activeProfile.id) : null,
       onPlay: () => this.playNext(),
       onExplore: () => this.startExplore(),
+      onOpenDiscoveries: () => this.openDiscoveries(),
       onSpeedrun: () => this.startSpeedrun(),
       onSelectProfile: (profileId: string) => {
         profiles.setActiveProfile(profileId);
@@ -97,6 +101,20 @@ export class MenuScene extends Scene {
       },
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenSettings: () => this.openSettings(),
+    });
+  }
+
+  openDiscoveries(): void {
+    const profile = this.game.profiles.getActiveProfile();
+    this.game.menu.showDiscoveries({
+      playerName: profile?.name ?? DEFAULT_PLAYER_NAME,
+      words: discoveredWords(profile).map(word => ({
+        word, completed: Boolean(profile?.progress[wordPhaseId(word.id)]?.completed),
+      })),
+      onListen: word => this.game.narrator?.speak(`${word.label.toLowerCase()}. ${word.fact}`),
+      onReplay: word => { this.game.narrator?.stop(); this.game.startExploration(word.id); },
+      onExplore: () => this.startExplore(),
+      onBack: () => { this.game.narrator?.stop(); this.render(); },
     });
   }
 

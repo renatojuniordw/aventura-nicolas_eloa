@@ -139,6 +139,7 @@ describe('GameScene explore (word phase)', () => {
     expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', {
       mode: 'explore',
       wordId: 'gato',
+      journey: [],
       mistakes: 0,
       stars: 3,
     });
@@ -194,7 +195,7 @@ describe('GameScene explore (word phase)', () => {
     expect(scene.mistakes).toBe(1);
 
     scene.restart();
-    expect(game.startExploration).toHaveBeenCalledWith('gato');
+    expect(game.startExploration).toHaveBeenCalledWith('gato', []);
   });
 });
 
@@ -726,5 +727,17 @@ describe('GameScene narration and accessibility', () => {
     expect(scene._flashAlpha).toBe(0);
     scene.update(0.5);
     expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', expect.objectContaining({ mode: 'explore' }));
+  });
+});
+
+describe('journey retry', () => {
+  it('keeps earlier words after defeat and still shows the current word image', () => {
+    const game = makeFakeGame({ startExploration: vi.fn() });
+    const word = WORD_BANK.find(entry => entry.id === 'gato');
+    const scene = new GameScene(game);
+    scene.enter({ mode: 'explore', exploreRun: new ExploreRun(word, undefined, 0, ['sol', 'bola']) });
+    expect(game.hudControls.showPauseButton).toHaveBeenCalledWith(expect.objectContaining({ word, journeyLabel: 'Palavra 3 de 3' }));
+    scene.restart();
+    expect(game.startExploration).toHaveBeenCalledWith('gato', ['sol', 'bola']);
   });
 });

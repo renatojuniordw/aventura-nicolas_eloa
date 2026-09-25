@@ -130,9 +130,9 @@ describe('VictoryScene', () => {
     expect(opts.hasNext).toBe(true);
 
     opts.onNext();
-    expect(game.startExploration).toHaveBeenCalledWith('bola');
+    expect(game.startExploration).toHaveBeenCalledWith('bola', ['gato']);
     opts.onReplay();
-    expect(game.startExploration).toHaveBeenCalledWith('gato');
+    expect(game.startExploration).toHaveBeenCalledWith('gato', []);
     opts.onMenu();
     expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
   });
@@ -204,5 +204,46 @@ describe('VictoryScene', () => {
     expect(renderer.clear).toHaveBeenCalledTimes(1);
     expect(renderer.setCamera).toHaveBeenCalledWith(0, 0);
     expect(game.effects.draw).toHaveBeenCalledWith(renderer);
+  });
+});
+describe('Explorar journeys', () => {
+  it('summarizes three distinct words, speaks them and starts a fresh journey on continue', () => {
+    const game = makeFakeGame({
+      progress: { getNextLesson: vi.fn(() => 'palavra-pipa') },
+      narrator: { speak: vi.fn(), stop: vi.fn() },
+    });
+    const scene = new VictoryScene(game);
+    scene.enter({ mode: 'explore', wordId: 'gato', journey: ['sol', 'bola'] });
+    const options = game.menu.showExploreVictory.mock.calls[0][0];
+    expect(options.journeyComplete).toBe(true);
+    expect(options.journeyWords.map(word => word.id)).toEqual(['sol', 'bola', 'gato']);
+    expect(game.narrator.speak).toHaveBeenCalledWith(expect.stringContaining('sol, bola, gato'));
+    options.onNext();
+    expect(game.startExploration).toHaveBeenCalledWith('pipa', []);
+    options.onMenu();
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('menu');
+    scene.exit();
+    expect(game.narrator.stop).toHaveBeenCalled();
+  });
+
+  it('finishes a shorter journey at the end of the trail', () => {
+    const game = makeFakeGame({ progress: { getNextLesson: vi.fn(() => null) } });
+    new VictoryScene(game).enter({ mode: 'explore', wordId: 'gato' });
+    const options = game.menu.showExploreVictory.mock.calls[0][0];
+    expect(options.journeyComplete).toBe(true);
+    expect(options.journeyWords.map(word => word.id)).toEqual(['gato']);
+    expect(options.hasNext).toBe(false);
+  });
+
+  it('replaying keeps previous completions without counting the same word twice', () => {
+    const game = makeFakeGame({ progress: { getNextLesson: vi.fn(() => 'palavra-pipa') } });
+    const scene = new VictoryScene(game);
+    scene.enter({ mode: 'explore', wordId: 'gato', journey: ['sol'] });
+    const options = game.menu.showExploreVictory.mock.calls[0][0];
+    expect(options.journeyComplete).toBe(false);
+    options.onReplay();
+    expect(game.startExploration).toHaveBeenCalledWith('gato', ['sol']);
+    scene.enter({ mode: 'explore', wordId: 'gato', journey: ['sol', 'gato'] });
+    expect(game.menu.showExploreVictory.mock.calls[1][0].journeyWords).toHaveLength(2);
   });
 });

@@ -19,6 +19,8 @@ export class ExploreRun {
     readonly word: WordEntry,
     readonly trail: TrailPosition = { position: 1, total: 1 },
     elapsed = 0,
+    /** Earlier word completions in the current short journey; never persisted as mastery. */
+    readonly journey: readonly string[] = [],
   ) {
     this.elapsed = elapsed;
   }

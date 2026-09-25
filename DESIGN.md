@@ -19,7 +19,9 @@ components:
 ## Overview
 Preservar personagens e pixel art; experiência acolhedora para qualquer idade.
 Três modos desde o início: Aventura (lições guiadas), Explorar (monta uma
-palavra por fase) e Corrida do alfabeto (A–Z cronometrada). Errar custa um
+palavra por fase) e Corrida do alfabeto (A–Z cronometrada). Explorar apresenta ilustrações locais e jornadas de até três palavras, com resumo
+e saída para descansar. O caderno de descobertas é um acesso secundário no menu.
+Errar custa um
 coração; no apoio assistido, errar a leitura não custa. O antigo quintal de
 exploração livre foi substituído e só existe como histórico em `docs/13`.
 ## Colors

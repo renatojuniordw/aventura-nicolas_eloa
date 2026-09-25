@@ -288,3 +288,25 @@ com a própria letra.
 `src/content/characters.ts` define os 4 personagens (id, nome, cores). É dado puro: o
 desenho do jogador lê as cores de lá, então **acrescentar um personagem é acrescentar uma
 entrada na lista**.
+
+## 9. Ilustrações, descobertas e jornada curta
+
+`src/content/discoveries.ts` associa cada entrada do `WORD_BANK` à ilustração
+`public/assets/words/<id>.svg`. São desenhos vetoriais criados para o projeto,
+sem fontes, imagens ou serviços externos. Ao adicionar uma palavra ao banco do
+Explorar, incluir também seu SVG (viewBox `0 0 128 128`); um teste exige cobertura
+de todo o banco. Não confundir esse banco com as palavras do currículo.
+
+O caderno deriva seus cartões da união de `Profile.discoveries` com as fases
+`palavra-<id>` concluídas em `Profile.progress`. IDs removidos do banco são ignorados,
+sem modificar o save. Visitas antigas não são convertidas em conclusões. Não há
+nova chave de armazenamento nem mudança de schema.
+
+`ExploreRun.journey` carrega, em memória, IDs das palavras anteriores da jornada.
+`startExploration(wordId?, journey?)` encaminha esse estado entre fases e tentativas;
+a vitória acrescenta a palavra atual, elimina duplicatas e encerra ao atingir
+`JOURNEY_LENGTH` (3), ou ao esgotar a trilha. A contagem é da sessão, não diária.
+A próxima fase continua sendo calculada a partir do progresso persistido.
+
+O cache PWA existente inclui `svg`; por isso as 30 ilustrações acompanham o app
+offline. A disponibilidade da voz offline depende da síntese instalada no aparelho.

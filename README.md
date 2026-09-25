@@ -67,6 +67,10 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
     mostra a palavra no topo e a narra ("Vamos montar a palavra Gato"); a criança coleta as
     letras em ordem e um quadro de letras vai sendo preenchido. O progresso de cada palavra
     é salvo junto com o das fases (ids `palavra-<id>`, ver `src/content/word-phases.ts`).
+- No **Explorar**, cada palavra tem uma ilustração e as partidas formam jornadas de até
+  três palavras. Ao terminar, um resumo ilustrado e narrado permite parar ou continuar.
+- O **Caderno de descobertas**, no menu, reúne as palavras de cada jogador, com imagem,
+  pronúncia e opção de jogar novamente. O histórico existente é aproveitado.
 - Em todos os modos o mundo é contínuo e, ao cumprir o objetivo, **surge um portal** à
   frente: a fase só termina ao entrar nele. Depois do objetivo nenhuma letra ou espinho
   tira coração no caminho até o portal.

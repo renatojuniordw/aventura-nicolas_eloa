@@ -1,3 +1,4 @@
+import { buildDiscoveriesScreen } from './screens/discoveries.js';
 import { buildFullscreenOffer } from './screens/fullscreen-offer.js';
 import { isFullscreenSupported, isFullscreen } from './fullscreen.js';
 import { isStandalone } from './pwa-install.js';
@@ -109,6 +110,10 @@ export class MenuOverlay {
   }
 
   // --- Screens -------------------------------------------------------------
+
+  showDiscoveries(options: Parameters<typeof buildDiscoveriesScreen>[0]): void {
+    this._show(buildDiscoveriesScreen, options);
+  }
 
   showMainMenu(options: Parameters<typeof buildMainMenuScreen>[0]): void {
     this._show(buildMainMenuScreen, options);

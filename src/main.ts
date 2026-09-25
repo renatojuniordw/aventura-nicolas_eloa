@@ -79,8 +79,8 @@ export interface GameContext {
   phoneControl: PhoneControlCoordinator;
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
-  /** Starts an Explorar phase; without `wordId`, the next unfinished word of the trail. */
-  startExploration(wordId?: string): void;
+  /** Starts a word (next pending by default); journey carries earlier completions in this session. */
+  startExploration(wordId?: string, journey?: readonly string[]): void;
   // `scenes` and `loop` can only be constructed once `game` itself exists
   // (SceneManager needs a `game` reference to hand to every Scene), so both
   // are attached right after this object is built, mutating it in place —
@@ -220,13 +220,13 @@ export function createGame({
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
     },
-    startExploration(wordId?: string) {
+    startExploration(wordId?: string, journey?: readonly string[]) {
       const profile = profiles.getActiveProfile();
       const phaseId = wordId
         ? wordPhaseId(wordId)
         : ((profile ? progress.getNextLesson(profile.id, WORD_PHASE_ORDER) : null) ?? WORD_PHASE_ORDER[0]);
       const word = getWordByPhaseId(phaseId) ?? WORD_BANK[0];
-      const exploreRun = new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
+      const exploreRun = new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)), 0, journey);
       scenes.switchTo('game', {
         mode: 'explore',
         exploreRun,

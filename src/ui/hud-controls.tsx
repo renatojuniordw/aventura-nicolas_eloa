@@ -1,3 +1,5 @@
+import { WordPicture } from './screens/word-picture.js';
+import type { WordEntry } from '../content/word-bank.js';
 import { mountScreen } from './screens/mount-screen.js';
 import { clear } from './dom.js';
 
@@ -7,9 +9,11 @@ import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChan
 interface PauseButtonOptions {
   onPause: () => void;
   onRepeat?: () => void;
+  word?: WordEntry;
+  journeyLabel?: string;
 }
 
-function HudControlsBar({ onPause, onRepeat }: PauseButtonOptions) {
+function HudControlsBar({ onPause, onRepeat, word, journeyLabel }: PauseButtonOptions) {
   const [fullscreen, setFullscreen] = useState(() => isFullscreen());
   const supported = isFullscreenSupported();
 
@@ -18,6 +22,8 @@ function HudControlsBar({ onPause, onRepeat }: PauseButtonOptions) {
   }, []);
 
   return (
+    <>
+    {word && <figure className="hud-word-picture"><WordPicture word={word} /><figcaption>{journeyLabel}</figcaption></figure>}
     <div className="hud-controls-bar">
       {onRepeat && <button className="hud-ctrl-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}>♫</button> }
       {supported && (
@@ -45,6 +51,7 @@ function HudControlsBar({ onPause, onRepeat }: PauseButtonOptions) {
         ⏸
       </button>
     </div>
+    </>
   );
 }
 
@@ -74,9 +81,9 @@ export class HudControls {
     this._root = root;
   }
 
-  showPauseButton({ onPause, onRepeat }: PauseButtonOptions): void {
+  showPauseButton(options: PauseButtonOptions): void {
     this._current?.cleanup();
-    const { node, cleanup } = mountScreen(<HudControlsBar onPause={onPause} onRepeat={onRepeat} />);
+    const { node, cleanup } = mountScreen(<HudControlsBar {...options} />);
     clear(this._root);
     this._root.append(node);
     this._current = { node, cleanup };
