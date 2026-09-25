@@ -144,4 +144,58 @@ describe('LevelManager', () => {
       expect(onPortal).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('never counts remaining items below zero when the world withdraws collected ones', () => {
+    const level = { ...LEVEL, items: [...LEVEL.items] };
+    const manager = new LevelManager({ level });
+    manager.update({ body: body(100, 100) });
+    level.items = level.items.filter((item) => item.id !== 'target');
+    expect(manager.remainingItems).toBe(1);
+    level.items = [];
+    expect(manager.remainingItems).toBe(0);
+  });
+
+  it('forgets collected ids once their items leave the world', () => {
+    const level = { ...LEVEL, items: [...LEVEL.items] };
+    const manager = new LevelManager({ level });
+    manager.update({ body: body(100, 100) });
+    expect(manager.collected.has('target')).toBe(true);
+    level.items = level.items.filter((item) => item.id !== 'target');
+    manager.pruneCollected();
+    expect(manager.collected.size).toBe(0);
+  });
+
+  it('does not collect an item that a listener withdrew during the same frame', () => {
+    const bus = new EventBus();
+    const level = {
+      ...LEVEL,
+      items: [
+        { id: 'a', type: 'target', label: 'A', x: 100, y: 100, w: 32, h: 32 },
+        { id: 'b', type: 'distractor', label: 'B', x: 110, y: 100, w: 32, h: 32 },
+      ],
+    };
+    const collected = [];
+    bus.on(Events.ITEM_COLLECTED, ({ item }) => {
+      collected.push(item.id);
+      // Reacting to 'a' replaces the world's items (as setTarget does), dropping 'b'.
+      level.items = level.items.filter((other) => other.id !== 'a' && other.id !== 'b');
+    });
+    const manager = new LevelManager({ level, bus });
+    manager.update({ body: body(100, 100) });
+    expect(collected).toEqual(['a']);
+  });
+
+  it('only takes the player into a fully grown portal', () => {
+    const bus = new EventBus();
+    const onPortal = vi.fn();
+    bus.on(Events.PORTAL_ENTERED, onPortal);
+    const level = { ...LEVEL, items: [], finish: { x: 400, y: 300 }, portalActive: true, portalReveal: 0.4 };
+    const manager = new LevelManager({ level, bus });
+    manager.update({ body: body(420, 320) });
+    expect(onPortal).not.toHaveBeenCalled();
+    level.portalReveal = 1;
+    manager.update({ body: body(420, 320) });
+    expect(onPortal).toHaveBeenCalledTimes(1);
+  });
 });
+

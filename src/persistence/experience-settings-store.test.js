@@ -18,4 +18,17 @@ describe('ExperienceSettingsStore', () => {
     expect(document.documentElement.dataset.textSize).toBe('large');
     expect(document.documentElement.dataset.colorVision).toBe('deuteranopia');
   });
+
+  it('reads settings once until the next write', () => {
+    const adapter = new MemoryStorageAdapter();
+    let reads = 0;
+    const counting = { ...adapter, read: (key) => { reads += 1; return adapter.read(key); }, write: (k, v) => adapter.write(k, v) };
+    const store = new ExperienceSettingsStore(counting);
+    store.read();
+    store.read();
+    expect(reads).toBe(1);
+    store.update({ largeText: true });
+    expect(store.read().largeText).toBe(true);
+  });
 });
+

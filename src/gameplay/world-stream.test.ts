@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { WorldStream, PORTAL_SIZE } from './world-stream.js';
-import { SEGMENT_WIDTH, isTapReachable } from './speedrun-course.js';
+import { WorldStream, PORTAL_SIZE, KEEP_BEHIND_SEGMENTS, templateSpots } from './world-stream.js';
+import { SEGMENT_WIDTH, TEMPLATE_IDS, isTapReachable } from './speedrun-course.js';
+import { createSpeedrunStream, speedrunDistractors, ALPHABET } from './stream-courses.js';
+import { getLevelData } from '../content/level-registry.js';
+import { loadLevel } from '../content/level-loader.js';
+import { PhysicsEngine } from '../physics/physics-engine.js';
+import { PlayerController } from './player/player-controller.js';
+import { overlap } from '../physics/aabb.js';
+import { GAMEPLAY } from '../core/config.js';
 
 /** Deterministic pseudo-random source so layouts are reproducible. */
 function seeded(seed: number) {
@@ -211,4 +218,236 @@ describe('WorldStream', () => {
       expect(targets(stream)).toHaveLength(0);
     });
   });
+
+  describe('bounded window (long runs)', () => {
+    it('keeps segments, geometry and items bounded however far the player runs', () => {
+      const stream = makeStream(11);
+      let maxSolids = 0;
+      let maxItems = 0;
+      let maxSegments = 0;
+      for (let x = 96; x < SEGMENT_WIDTH * 2000; x += 800) {
+        stream.update(x);
+        maxSolids = Math.max(maxSolids, stream.level.solids.length);
+        maxItems = Math.max(maxItems, stream.level.items.length);
+        maxSegments = Math.max(maxSegments, stream.segmentCount);
+        expect(targets(stream)).toHaveLength(1);
+      }
+      // Behind + the player's own + lookahead, plus the one placement may add.
+      expect(maxSegments).toBeLessThanOrEqual(KEEP_BEHIND_SEGMENTS + 1 + 2 + 2);
+      expect(maxSolids).toBeLessThan(400);
+      expect(maxItems).toBeLessThan(40);
+    });
+
+    it('closes the world with a wall where old segments were dropped, and the camera stops there', () => {
+      const stream = makeStream();
+      const playerX = SEGMENT_WIDTH * 10 + 500;
+      for (let x = 96; x <= playerX; x += 700) stream.update(x);
+      const dropX = (10 - KEEP_BEHIND_SEGMENTS) * SEGMENT_WIDTH;
+
+      expect(stream.level.camera.minX).toBe(dropX);
+      const wall = stream.level.solids.find((box) => box.x + box.w === dropX);
+      expect(wall).toBeDefined();
+      expect(wall!.y).toBeLessThan(0);
+      expect(wall!.y + wall!.h).toBe(stream.level.worldHeight);
+      // Nothing older than the window survives.
+      for (const box of [...stream.level.oneWayPlatforms, ...stream.level.hazards, ...stream.level.items]) {
+        expect(box.x).toBeGreaterThanOrEqual(dropX);
+      }
+    });
+
+    it('respawns on ground inside the window anywhere the player can be', () => {
+      const stream = makeStream(5);
+      for (let x = 96; x < SEGMENT_WIDTH * 30; x += 450) {
+        stream.update(x);
+        const point = stream.checkpointFor(x);
+        expect(point.x).toBeGreaterThanOrEqual(stream.level.camera.minX);
+        const ground = stream.level.solids.some(
+          (box) => box.y === 448 && point.x >= box.x && point.x + 30 <= box.x + box.w,
+        );
+        expect(ground, `checkpoint ${point.x}`).toBe(true);
+      }
+    });
+
+    it('stitches templates with ground on both sides of every seam', () => {
+      for (let seed = 1; seed <= 20; seed += 1) {
+        const stream = makeStream(seed);
+        stream.update(SEGMENT_WIDTH * 3);
+        const covered = (x: number) =>
+          stream.level.solids.some((box) => box.y === 448 && x >= box.x && x < box.x + box.w);
+        const firstSeam = Math.ceil(stream.level.camera.minX / SEGMENT_WIDTH) + 1;
+        for (let k = firstSeam; k * SEGMENT_WIDTH < stream.level.worldWidth; k += 1) {
+          expect(covered(k * SEGMENT_WIDTH - 16), `seed ${seed} seam ${k}`).toBe(true);
+          expect(covered(k * SEGMENT_WIDTH + 16), `seed ${seed} seam ${k}`).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe('target changes (alphabet marathon)', () => {
+    it('never leaves a distractor that is the current answer or outside its pool, A to Z', () => {
+      for (let seed = 1; seed <= 10; seed += 1) {
+        const stream = createSpeedrunStream({ random: seeded(seed) });
+        let x = 96;
+        for (const letter of ALPHABET.slice(1)) {
+          x += 700;
+          stream.update(x);
+          stream.setTarget(letter, x);
+          const pool = new Set(speedrunDistractors(letter));
+          for (const item of stream.level.items.filter((i) => i.type === 'distractor')) {
+            expect(item.label, `seed ${seed} target ${letter}`).not.toBe(letter);
+            expect(pool.has(item.label), `seed ${seed} target ${letter} has ${item.label}`).toBe(true);
+          }
+          expect(targets(stream)).toHaveLength(1);
+          expect(stream.liveTarget!.label).toBe(letter);
+        }
+      }
+    });
+
+    it('reports withdrawn distractors once, so the scene can pop the visible ones', () => {
+      const stream = createSpeedrunStream({ random: seeded(3) });
+      const c = stream.level.items.find((item) => item.label === 'C') ?? stream.level.items[0];
+      c.label = 'C';
+      c.type = 'distractor';
+      stream.drainWithdrawn();
+
+      stream.setTarget('B');
+      stream.setTarget('C');
+      const withdrawn = stream.drainWithdrawn();
+      expect(withdrawn.map((item) => item.id)).toContain(c.id);
+      expect(stream.level.items).not.toContain(c);
+      expect(stream.drainWithdrawn()).toEqual([]);
+    });
+
+    it('allows neighbour letters only when the challenge support asks for them', () => {
+      expect(speedrunDistractors('C')).not.toContain('B');
+      expect(speedrunDistractors('C')).not.toContain('D');
+      expect(speedrunDistractors('C', { allowNeighbourLetters: true })).toContain('B');
+      expect(speedrunDistractors('C', { allowNeighbourLetters: true })).not.toContain('C');
+    });
+  });
+
+  describe('target availability', () => {
+    it('still places the target when every spot ahead is taken, withdrawing a distractor for it', () => {
+      const stream = makeStream();
+      const internals = stream as unknown as { _segments: { spots: { x: number; y: number }[] }[] };
+      // Occupy every known spot with a distractor.
+      const spots = internals._segments.flatMap((segment) => segment.spots);
+      stream.level.items = spots.map((spot, i) => ({
+        id: `filler-${i}`, kind: 'letter', type: 'distractor' as const, label: 'X', x: spot.x, y: spot.y, w: 32, h: 32,
+      }));
+      // No room to grow either: pretend the world cannot extend.
+      const extend = (stream as unknown as { _extendTo: (x: number) => void });
+      const original = extend._extendTo;
+      extend._extendTo = () => {};
+      stream.drainWithdrawn();
+
+      stream.setTarget('B', 96);
+
+      expect(targets(stream)).toHaveLength(1);
+      expect(stream.drainWithdrawn().length).toBeGreaterThan(0);
+      extend._extendTo = original;
+    });
+
+    it('re-offers a target on the next update if none is in the world', () => {
+      const stream = makeStream();
+      stream.level.items = stream.level.items.filter((item) => item.type !== 'target');
+      stream.update(500);
+      expect(targets(stream)).toHaveLength(1);
+      expect(stream.liveTarget!.x).toBeGreaterThanOrEqual(500 + 900);
+    });
+
+    it('works with an empty distractor pool', () => {
+      const stream = new WorldStream({ id: 't', name: 't', target: 'A', distractorPool: () => [], random: seeded(2) });
+      for (let x = 96; x < SEGMENT_WIDTH * 8; x += 900) stream.update(x);
+      expect(stream.level.items.filter((item) => item.type === 'distractor')).toHaveLength(0);
+      expect(targets(stream)).toHaveLength(1);
+    });
+
+    it('has tap-reachable spots in every template, at least the two kept free for the target', () => {
+      TEMPLATE_IDS.forEach((id, index) => {
+        const template = loadLevel(getLevelData(id)!) as unknown as Parameters<typeof templateSpots>[1];
+        const spots = templateSpots(index, template);
+        const supports = [...template.solids, ...template.oneWayPlatforms];
+        // "Degraus" has only two: it then gets no distractors, and the target always fits.
+        expect(spots.length, id).toBeGreaterThanOrEqual(2);
+        for (const spot of spots) expect(isTapReachable(spot, supports), `${id} ${spot.x}`).toBe(true);
+      });
+    });
+
+    it('lets the real player physics touch every spot with one quick tap, and never by just walking', () => {
+      const physics = new PhysicsEngine();
+      TEMPLATE_IDS.forEach((id, index) => {
+        const template = loadLevel(getLevelData(id)!) as unknown as Parameters<typeof templateSpots>[1];
+        const level = { solids: template.solids, oneWayPlatforms: template.oneWayPlatforms };
+        for (const spot of templateSpots(index, template)) {
+          const item = { x: spot.x - GAMEPLAY.itemPickupMargin, y: spot.y - GAMEPLAY.itemPickupMargin, w: 32 + GAMEPLAY.itemPickupMargin * 2, h: 32 + GAMEPLAY.itemPickupMargin * 2 };
+          const player = new PlayerController({ x: spot.x + 1, y: 0, physics });
+          // Let the player land on whatever is under the spot.
+          for (let i = 0; i < 120; i += 1) player.update(1 / 60, level);
+          let touchedStanding = false;
+          for (let i = 0; i < 30; i += 1) {
+            player.update(1 / 60, level);
+            touchedStanding ||= overlap(player.body, item);
+          }
+          expect(touchedStanding, `${id} ${spot.x}: reachable without jumping`).toBe(false);
+
+          player.jump();
+          player.holdJump(false);
+          let touched = false;
+          for (let i = 0; i < 90; i += 1) {
+            player.update(1 / 60, level);
+            touched ||= overlap(player.body, item);
+          }
+          expect(touched, `${id} ${spot.x}: not reached by a tap`).toBe(true);
+        }
+      });
+    });
+  });
+
+  describe('portal arrival', () => {
+    it('is idempotent: opening twice keeps the same portal and world', () => {
+      const stream = makeStream();
+      const first = stream.spawnPortal(800);
+      const width = stream.level.worldWidth;
+      const second = stream.spawnPortal(1500);
+      expect(second).toEqual(first);
+      expect(stream.level.worldWidth).toBe(width);
+    });
+
+    it('clears every letter, so nothing can cost a heart after the objective', () => {
+      const stream = makeStream();
+      stream.drainWithdrawn();
+      const before = stream.level.items.length;
+      stream.spawnPortal(800);
+      expect(stream.level.items).toEqual([]);
+      expect(stream.drainWithdrawn()).toHaveLength(before);
+    });
+
+    it('keeps the whole portal inside the camera when the camera lags behind the player', () => {
+      const stream = makeStream();
+      const playerX = 2400;
+      const visibleRight = playerX + 450; // camera still easing toward the player
+      const finish = stream.spawnPortal(playerX, { visibleRight });
+      expect(finish.x + PORTAL_SIZE.w).toBeLessThanOrEqual(visibleRight);
+      expect(finish.x).toBeGreaterThan(playerX + 100);
+    });
+
+    it('respawns on the arrival ground once past the cut, and on preserved ground before it', () => {
+      const stream = makeStream(4);
+      const playerX = SEGMENT_WIDTH + 1800;
+      stream.update(playerX);
+      const finish = stream.spawnPortal(playerX);
+      const ground = (x: number) =>
+        stream.level.solids.some((box) => box.y === 448 && x >= box.x && x + 30 <= box.x + box.w);
+
+      const past = stream.checkpointFor(finish.x);
+      expect(past.x).toBeLessThan(finish.x);
+      expect(ground(past.x)).toBe(true);
+
+      const before = stream.checkpointFor(playerX);
+      expect(before.x).toBeLessThan(finish.x);
+      expect(ground(before.x)).toBe(true);
+    });
+  });
 });
+

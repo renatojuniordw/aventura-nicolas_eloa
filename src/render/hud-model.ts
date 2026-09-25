@@ -44,6 +44,8 @@ export class HudModel {
   /** Letters of the word being spelled (Explorar); empty hides the board. */
   wordLetters: string[];
   revealedCount: number;
+  /** Assisted support: which way the off-screen letter to find is, and its name; null hides the pointer. */
+  targetPointer: { direction: 'left' | 'right'; label: string } | null;
 
   constructor({
     objective = '',
@@ -66,6 +68,11 @@ export class HudModel {
     this.feedback = { kind: FeedbackKind.NONE, message: '', timer: 0 };
     this.wordLetters = [];
     this.revealedCount = 0;
+    this.targetPointer = null;
+  }
+
+  setTargetPointer(pointer: { direction: 'left' | 'right'; label: string } | null): void {
+    this.targetPointer = pointer;
   }
 
   setWordBoard(letters: readonly string[], revealedCount: number): void {

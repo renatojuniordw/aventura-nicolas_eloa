@@ -58,16 +58,24 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 - **Acertar** comemora e conclui a fase. **Errar** custa um coração (são 3).
 - **Cair em um buraco não custa coração** — o personagem volta para o mesmo lugar.
 - Segurar o pulo faz o personagem subir mais; soltar cedo encurta o pulo.
-- **Speed Run**: no menu, o modo corrida encadeia o alfabeto de A a Z e cronometra o
-  melhor tempo por jogador.
-- **Explorar**: uma trilha de fases de palavra, da mais curta para a mais longa. Cada fase
-  mostra a palavra no topo e a narra ("Vamos montar a palavra Gato"); a criança coleta as
-  letras em ordem e um quadro de letras vai sendo preenchido. Na última letra vem a vitória
-  com o botão **Próxima fase**. O progresso de cada palavra é salvo junto com o das fases
-  (ids `palavra-<id>`, ver `src/content/word-phases.ts`).
-- Em **Configurações**, é possível escolher apoio assistido, padrão ou desafios
-  opcionais, ajustar voz/música/efeitos e ativar alto contraste, texto ampliado,
-  redução de movimento ou cores adaptadas.
+- **Três modos** no menu:
+  - **Começar/Continuar aventura** (Aprender): as lições do currículo em ordem — letra,
+    sílaba ou palavra por fase.
+  - **Corrida do alfabeto** (Speed Run): encadeia o alfabeto de A a Z sem parar e cronometra
+    o melhor tempo por jogador. O relógio para ao entrar no portal e não conta a pausa.
+  - **Explorar**: uma trilha de fases de palavra, da mais curta para a mais longa. Cada fase
+    mostra a palavra no topo e a narra ("Vamos montar a palavra Gato"); a criança coleta as
+    letras em ordem e um quadro de letras vai sendo preenchido. O progresso de cada palavra
+    é salvo junto com o das fases (ids `palavra-<id>`, ver `src/content/word-phases.ts`).
+- Em todos os modos o mundo é contínuo e, ao cumprir o objetivo, **surge um portal** à
+  frente: a fase só termina ao entrar nele. Depois do objetivo nenhuma letra ou espinho
+  tira coração no caminho até o portal.
+- Em **Configurações**, o **nível de apoio** muda a partida seguinte: *assistido* (seta
+  sobre a letra, instrução repetida, erro de leitura não tira coração), *padrão* (como
+  sempre) ou *desafio* (mais letras, inclusive vizinhas no alfabeto). Também é possível
+  ajustar voz/música/efeitos e ativar alto contraste, texto ampliado (também no HUD do
+  jogo), redução de movimento (sem tremor, sucção ou flash no portal) ou cores adaptadas.
+  O botão ♫ do HUD repete a instrução falada.
 - Em celular/tablet os controles de toque aparecem automaticamente (detecção por
   `matchMedia('(pointer: coarse)')`); teclado e toque podem ficar ativos ao mesmo tempo
   (útil em notebooks conversíveis). Menus funcionam em retrato e paisagem; as atividades

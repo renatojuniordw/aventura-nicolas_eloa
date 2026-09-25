@@ -11,6 +11,12 @@ export interface SettingsOptions {
   onExperienceChange: (patch: Partial<ExperienceSettings>) => void;
 }
 
+const SUPPORT_HELP: Record<SupportLevel, string> = {
+  assisted: 'Uma seta aponta a letra certa, a instrução é repetida e errar a letra não tira coração (espinhos ainda tiram).',
+  standard: 'A voz diz a próxima letra; errar a letra tira um coração.',
+  challenge: 'Mais letras espalhadas, inclusive vizinhas no alfabeto, e a próxima letra não é falada.',
+};
+
 function VolumeControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return <label className="settings-control"><span>{label}</span><input aria-label={`Volume de ${label}`} type="range" min="0" max="1" step="0.05" value={value} onChange={(event) => onChange(Number(event.currentTarget.value))}/><output>{Math.round(value * 100)}%</output></label>;
 }
@@ -29,9 +35,10 @@ function SettingsScreen(options: SettingsOptions) {
       <VolumeControl label="voz" value={options.audio.voiceVolume} onChange={(v) => options.onAudioChange('voice', v)}/>
     </section>
     <section className="settings-section" aria-labelledby="support-title"><h3 id="support-title">Nível de apoio</h3>
-      <label className="settings-select">Como ajudar durante a brincadeira<select value={options.experience.supportLevel} onChange={(e) => options.onExperienceChange({ supportLevel: e.currentTarget.value as SupportLevel })}>
-        <option value="assisted">Assistido — voz e setas</option><option value="standard">Padrão — dicas quando precisar</option><option value="challenge">Desafios opcionais de leitura</option>
+      <label className="settings-select">Como ajudar durante a brincadeira<select aria-describedby="support-help" value={options.experience.supportLevel} onChange={(e) => options.onExperienceChange({ supportLevel: e.currentTarget.value as SupportLevel })}>
+        <option value="assisted">Assistido — seta, voz e sem perder coração ao errar</option><option value="standard">Padrão — como sempre foi</option><option value="challenge">Desafio — mais letras parecidas</option>
       </select></label>
+      <p id="support-help" className="settings-help">{SUPPORT_HELP[options.experience.supportLevel]} Vale a partir da próxima fase.</p>
     </section>
     <section className="settings-section" aria-labelledby="access-title"><h3 id="access-title">Acessibilidade</h3>
       <Toggle label="Alto contraste" checked={options.experience.highContrast} onChange={(v) => options.onExperienceChange({ highContrast: v })}/>

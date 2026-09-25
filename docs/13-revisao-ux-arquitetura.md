@@ -2,6 +2,15 @@
 
 Data: 24/09/2026. Diagnóstico inicial e acompanhamento da implementação.
 
+> **Documento histórico.** O "Quintal de descobertas" (exploração livre, sem
+> corações nem derrota) descrito na seção 4 foi **substituído** a partir de
+> `8878d62`, `150056c` e `e6b6dfd`: hoje **Explorar** monta uma palavra por fase,
+> letra por letra, com corações e portal no fim. O quintal, seus seis objetos
+> interativos e as "perguntas opcionais de leitura" não existem mais. O
+> comportamento vigente dos três modos e dos níveis de apoio está em
+> [02 — Gameplay](02-gameplay-e-controles.md) e no README; o trabalho seguinte
+> está em [15 — Plano pós-streaming](15-plano-melhorias-pos-streaming.md).
+
 ## Atualização após mudança para o clone local
 
 O projeto foi clonado em `~/Documents/aventura-nicolas_eloa`, fora do iCloud.
@@ -173,7 +182,7 @@ Referência: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum
 
 ## 4. Novo modo: Quintal de descobertas
 
-### Estado implementado
+### Estado implementado (histórico — removido, ver nota no topo)
 
 O primeiro recorte agora está disponível no menu como **Explorar o quintal**. É uma
 área segura, curta e revisitada livremente. A criança anda e pula; cada
@@ -202,7 +211,7 @@ O próximo passo é validar com crianças e responsáveis: ela entende que pode 
 adulto? Repete uma interação espontaneamente? A voz acompanha a ação sem
 atrasar? Consegue sair e retornar sozinha?
 
-### Evolução de apoio e acessibilidade
+### Evolução de apoio e acessibilidade (histórico)
 
 O quintal agora desenha figuras próprias em pixel art e cada objeto tem uma reação
 visual diferente. O modo assistido mostra a próxima descoberta com uma seta; o padrão

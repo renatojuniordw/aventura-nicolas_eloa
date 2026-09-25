@@ -14,7 +14,8 @@
     "generate:levels": "node --import ./tools/register-ts-hook.mjs tools/generate-levels.mts",
     "generate:embeddings": "node --import ./tools/register-ts-hook.mjs tools/generate-embeddings.mts",
     "generate:pwa-icons": "node tools/generate-pwa-icons.mjs",
-    "replay:session": "node --import ./tools/register-ts-hook.mjs tools/replay-session.mts"
+    "replay:session": "node --import ./tools/register-ts-hook.mjs tools/replay-session.mts",
+    "export:obsidian": "node tools/export-obsidian.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

@@ -1,8 +1,7 @@
 import { overlap, type Box } from '../physics/aabb.js';
-import { GAMEPLAY } from '../core/config.js';
+import { GAMEPLAY, PORTAL_SIZE } from '../core/config.js';
 import { Events, type EventBus } from '../core/event-bus.js';
 import type { Body } from '../physics/physics-engine.js';
-import { PORTAL_SIZE } from './world-stream.js';
 
 function inflate(box: Box, margin: number): Box {
   return { x: box.x - margin, y: box.y - margin, w: box.w + margin * 2, h: box.h + margin * 2 };
@@ -35,7 +34,8 @@ export interface Level {
   /** Portal position; only meaningful once `portalActive` is true. */
   finish?: Point;
   portalActive?: boolean;
-  [key: string]: unknown;
+  /** 0 -> 1 while the portal grows in; the portal only takes the player once it is complete. */
+  portalReveal?: number;
 }
 
 interface LevelManagerOptions {
@@ -76,8 +76,18 @@ export class LevelManager {
     );
   }
 
+  /** Items still in the world and not collected (a streamed world withdraws items, so count what is there). */
   get remainingItems(): number {
-    return this.level.items.length - this.collected.size;
+    return this.level.items.filter((item) => !this.collected.has(item.id)).length;
+  }
+
+  /** Forgets collected ids whose items have left the world, so the set stays bounded in an endless level. */
+  pruneCollected(): void {
+    if (this.collected.size === 0) return;
+    const present = new Set(this.level.items.map((item) => item.id));
+    for (const id of this.collected) {
+      if (!present.has(id)) this.collected.delete(id);
+    }
   }
 
   getRespawnPoint(): Point {
@@ -103,8 +113,12 @@ export class LevelManager {
   }
 
   private _checkItems(body: Body): void {
-    for (const item of this.level.items) {
+    const items = this.level.items;
+    for (const item of items) {
       if (this.collected.has(item.id)) continue;
+      // A listener may have reshaped the world mid-loop (new target, portal):
+      // an item withdrawn by that reaction must not be collected from the stale list.
+      if (this.level.items !== items && !this.level.items.includes(item)) continue;
       if (overlap(body, inflate(item, GAMEPLAY.itemPickupMargin))) {
         this.collected.add(item.id);
         this._bus?.emit(Events.ITEM_COLLECTED, { item });
@@ -128,6 +142,8 @@ export class LevelManager {
   private _checkPortal(body: Body): void {
     const { finish, portalActive } = this.level;
     if (!portalActive || !finish || this._portalReported) return;
+    // Only a fully grown portal takes the player in, so drawing and collision always agree.
+    if ((this.level.portalReveal ?? 1) < 1) return;
     if (overlap(body, { x: finish.x, y: finish.y, w: PORTAL_SIZE.w, h: PORTAL_SIZE.h })) {
       this._portalReported = true;
       this._bus?.emit(Events.PORTAL_ENTERED, {});

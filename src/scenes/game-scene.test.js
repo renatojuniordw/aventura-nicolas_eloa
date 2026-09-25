@@ -86,8 +86,9 @@ function enterExplore(game, wordId = 'gato') {
 /** Collects the one live target, as the player touching it would. */
 const collectTarget = (scene) => scene.onItemCollected(scene.stream.liveTarget);
 
-/** Steps into the portal like a player running into it, then lets the exit animation play out. */
+/** Steps into the (fully grown) portal like a player running into it would. */
 function walkIntoPortal(scene) {
+  scene.stream.tick(1);
   const { finish } = scene.level;
   scene.player.body.x = finish.x;
   scene.player.body.y = finish.y;
@@ -474,4 +475,233 @@ it.each([['word', 'palavra'], ['syllable', 'sílaba'], ['letter', 'letra']])('de
   scene.lesson = { ...scene.lesson, type };
   scene.onItemCollected({ id: 'wrong', label: 'BOLA', value: 'BOLA', type: 'distractor', x: 0, y: 0, w: 32, h: 32 });
   expect(narrator.speak).toHaveBeenCalledWith(expect.stringContaining(`Essa é a ${noun} bola`));
+});
+
+function preferences({ supportLevel = 'standard', reducedMotion = false } = {}) {
+  return {
+    supportLevel: () => supportLevel,
+    reducedMotion: () => reducedMotion,
+    largeText: () => false,
+    highContrast: () => false,
+  };
+}
+
+function makeNarrator() {
+  return {
+    speak: vi.fn(),
+    speakPraise: vi.fn(),
+    speakLessonTarget: vi.fn(),
+    speakWordTarget: vi.fn(),
+    stop: vi.fn(),
+  };
+}
+
+describe('GameScene terminal states and metrics', () => {
+  it('stops the marathon clock when the player enters the portal: the exit animation never counts', () => {
+    const game = makeFakeGame();
+    const scene = enterSpeedrun(game);
+    scene.speedrun.currentIndex = 25;
+    scene.lesson = { id: 'alfabeto-z', target: 'Z', objective: 'Colete a letra Z' };
+    scene.validator = new AnswerValidator(scene.lesson);
+    scene.stream.setTarget('Z');
+    collectTarget(scene);
+
+    walkIntoPortal(scene);
+    expect(scene.status).toBe('won');
+    const frozen = scene.speedrunElapsed;
+    scene.update(1);
+    expect(scene.speedrunElapsed).toBe(frozen);
+  });
+
+  it('excludes paused time from the marathon clock', () => {
+    const scene = enterSpeedrun(makeFakeGame());
+    scene.update(0.5);
+    const before = scene.speedrunElapsed;
+    scene.pause();
+    scene.update(3);
+    expect(scene.speedrunElapsed).toBe(before);
+  });
+
+  it('ignores hazards and heart loss once the run is over', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    collectTarget(scene);
+    walkIntoPortal(scene);
+    expect(scene.status).toBe('won');
+    const lives = scene.lives.lives;
+
+    scene.onHazardHit();
+    game.bus.emit(Events.LIVES_DEPLETED, {});
+
+    expect(scene.lives.lives).toBe(lives);
+    expect(scene.status).toBe('won');
+    expect(game.menu.showGameOver).not.toHaveBeenCalled();
+  });
+
+  it('does not charge a heart for hazards on the way to the portal, only sends the player back', () => {
+    const scene = enterNormalLesson(makeFakeGame());
+    collectTarget(scene);
+    expect(scene.portalOpen).toBe(true);
+    const respawn = vi.spyOn(scene, 'respawn');
+
+    scene.onHazardHit();
+
+    expect(scene.lives.lives).toBe(scene.lives.maxLives);
+    expect(respawn).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores any collection after the objective is done, so a leftover letter cannot cost the phase', () => {
+    const scene = enterNormalLesson(makeFakeGame());
+    const distractor = scene.level.items.find((item) => item.type === 'distractor');
+    collectTarget(scene);
+    scene.lives.loseHeart();
+    scene.lives.loseHeart();
+
+    scene.onItemCollected(distractor);
+
+    expect(scene.mistakes).toBe(0);
+    expect(scene.lives.lives).toBe(1);
+    expect(scene.status).toBe('running');
+  });
+
+  it('emits the victory only once, even if the portal is reported twice', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    collectTarget(scene);
+    walkIntoPortal(scene);
+    scene.onPortalEntered();
+    scene.winLevel({ viaPortal: true });
+    scene.update(3);
+    scene.update(3);
+    expect(game.scenes.switchTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pops the distractors the stream withdrew on the screen', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    const visible = scene.level.items.find((item) => item.type === 'distractor');
+    scene.camera.x = visible.x - 100;
+    game.effects.spawnPuff.mockClear();
+
+    collectTarget(scene);
+
+    expect(game.effects.spawnPuff).toHaveBeenCalledWith(visible.x + visible.w / 2, visible.y + visible.h / 2, 10, '#ffffff');
+  });
+});
+
+describe('GameScene support levels', () => {
+  it('assisted: a wrong letter counts as a mistake but costs no heart', () => {
+    const scene = enterExplore(makeFakeGame({ preferences: preferences({ supportLevel: 'assisted' }) }));
+    const distractor = scene.level.items.find((item) => item.type === 'distractor');
+    scene.onItemCollected(distractor);
+    expect(scene.mistakes).toBe(1);
+    expect(scene.lives.lives).toBe(scene.lives.maxLives);
+  });
+
+  it('assisted: hazards still cost a heart (motor difficulty is not a reading mistake)', () => {
+    const scene = enterNormalLesson(makeFakeGame({ preferences: preferences({ supportLevel: 'assisted' }) }));
+    scene.onHazardHit();
+    expect(scene.lives.lives).toBe(scene.lives.maxLives - 1);
+  });
+
+  it('standard and challenge: a wrong letter costs a heart', () => {
+    for (const supportLevel of ['standard', 'challenge']) {
+      const scene = enterExplore(makeFakeGame({ preferences: preferences({ supportLevel }) }));
+      scene.onItemCollected(scene.level.items.find((item) => item.type === 'distractor'));
+      expect(scene.lives.lives, supportLevel).toBe(scene.lives.maxLives - 1);
+    }
+  });
+
+  it('assisted: names the off-screen letter at the screen edge', () => {
+    const scene = enterExplore(makeFakeGame({ preferences: preferences({ supportLevel: 'assisted' }) }));
+    scene.update(0.016);
+    const target = scene.stream.liveTarget;
+    const onScreen = target.x <= scene.camera.x + scene.camera.viewport.width;
+    expect(scene.hudModel.targetPointer).toEqual(onScreen ? null : { direction: 'right', label: 'G' });
+
+    const standard = enterExplore(makeFakeGame());
+    standard.update(0.016);
+    expect(standard.hudModel.targetPointer).toBeNull();
+  });
+
+  it('assisted: repeats the instruction after a while without progress', () => {
+    const narrator = makeNarrator();
+    const scene = enterExplore(makeFakeGame({ narrator, preferences: preferences({ supportLevel: 'assisted' }) }));
+    narrator.speakWordTarget.mockClear();
+    for (let i = 0; i < 11 * 60; i += 1) scene.update(1 / 60);
+    expect(narrator.speakWordTarget).toHaveBeenCalledWith('GATO');
+    expect(narrator.speak).toHaveBeenCalledWith('Agora a letra g', { interrupt: false });
+  });
+
+  it('builds the next run with the policy distractor count', () => {
+    const game = makeFakeGame({ preferences: preferences({ supportLevel: 'challenge' }) });
+    const scene = new GameScene(game);
+    scene.enter({ mode: 'speedrun' });
+    expect(scene.support.allowNeighbourLetters).toBe(true);
+    expect(scene.support.distractorsPerSegment).toBe(4);
+  });
+});
+
+describe('GameScene narration and accessibility', () => {
+  it('offers "ouvir novamente" in the HUD, speaking the current instruction', () => {
+    const narrator = makeNarrator();
+    const game = makeFakeGame({ narrator });
+    const scene = enterExplore(game);
+    collectTarget(scene);
+    const { onRepeat } = game.hudControls.showPauseButton.mock.calls[0][0];
+    narrator.speakWordTarget.mockClear();
+    narrator.speak.mockClear();
+
+    onRepeat();
+
+    expect(narrator.speakWordTarget).toHaveBeenCalledWith('GATO');
+    expect(narrator.speak).toHaveBeenCalledWith('Agora a letra a', { interrupt: false });
+  });
+
+  it('queues the next letter and the finished word after the praise instead of cutting it off', () => {
+    const narrator = makeNarrator();
+    const scene = enterExplore(makeFakeGame({ narrator }));
+    collectTarget(scene);
+    expect(narrator.speakPraise).toHaveBeenCalled();
+    expect(narrator.speak).toHaveBeenCalledWith('Agora a letra a', { interrupt: false });
+
+    for (let i = 0; i < 3; i += 1) collectTarget(scene);
+    expect(narrator.speak).toHaveBeenLastCalledWith(
+      'Você montou a palavra gato! O portal abriu, corra até ele!',
+      { interrupt: false },
+    );
+  });
+
+  it('challenge: does not narrate the next letter', () => {
+    const narrator = makeNarrator();
+    const scene = enterExplore(makeFakeGame({ narrator, preferences: preferences({ supportLevel: 'challenge' }) }));
+    collectTarget(scene);
+    expect(narrator.speak).not.toHaveBeenCalledWith('Agora a letra a', expect.anything());
+  });
+
+  it('mirrors objective and feedback to the screen-reader announcer', () => {
+    const announcer = { announce: vi.fn(), reset: vi.fn() };
+    const scene = enterExplore(makeFakeGame({ announcer }));
+    expect(announcer.reset).toHaveBeenCalled();
+    expect(announcer.announce).toHaveBeenCalledWith('Monte a palavra: GATO');
+    collectTarget(scene);
+    expect(announcer.announce).toHaveBeenCalledWith('Boa! Agora a letra A!');
+  });
+
+  it('reduced motion: no shake, no suction, no flash on the portal', () => {
+    const game = makeFakeGame({ preferences: preferences({ reducedMotion: true }) });
+    const scene = enterExplore(game);
+    for (let i = 0; i < 4; i += 1) collectTarget(scene);
+    expect(scene._shake).toBe(0);
+
+    walkIntoPortal(scene);
+    expect(scene.status).toBe('won');
+    expect(game.effects.spawnSuction).not.toHaveBeenCalled();
+    const bodyX = scene.player.body.x;
+    scene.update(0.5);
+    expect(scene.player.body.x).toBe(bodyX);
+    expect(scene._flashAlpha).toBe(0);
+    scene.update(0.5);
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('victory', expect.objectContaining({ mode: 'explore' }));
+  });
 });

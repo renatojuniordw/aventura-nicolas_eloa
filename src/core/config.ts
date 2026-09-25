@@ -61,6 +61,12 @@ export const GAMEPLAY = Object.freeze({
   itemPickupMargin: 12,
 });
 
+/**
+ * Finish portal footprint in world pixels. Shared by the world generator, the
+ * collision check (`LevelManager`) and the renderer, so all three agree.
+ */
+export const PORTAL_SIZE = Object.freeze({ w: 130, h: 126 });
+
 export const COLORS = Object.freeze({
   sky: '#9bd3f5',
   ground: '#6b4a2b',

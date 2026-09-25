@@ -28,6 +28,18 @@ export const Events = Object.freeze({
 
 export type EventName = (typeof Events)[keyof typeof Events];
 
+/** Minimal shape of a world item as reported by `LevelManager` (kept structural so core imports no gameplay module). */
+export interface CollectedItemPayload {
+  id: string;
+  type: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind?: string;
+}
+
 /**
  * Payload shape per event. Some payloads are still `unknown` because the
  * modules that emit them (lesson/item/hazard shapes) haven't been typed yet
@@ -38,7 +50,7 @@ export interface EventPayloadMap {
   [Events.APP_BLURRED]: undefined;
   [Events.APP_FOCUSED]: undefined;
   [Events.LESSON_STARTED]: { lesson: unknown };
-  [Events.ITEM_COLLECTED]: { item: unknown };
+  [Events.ITEM_COLLECTED]: { item: CollectedItemPayload };
   [Events.ANSWER_CORRECT]: unknown;
   [Events.ANSWER_WRONG]: unknown;
   [Events.LIVES_CHANGED]: { lives: number; maxLives: number };

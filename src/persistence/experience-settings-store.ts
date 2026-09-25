@@ -24,9 +24,17 @@ const SUPPORT_LEVELS = new Set<SupportLevel>(['assisted', 'standard', 'challenge
 const COLOR_VISION_MODES = new Set<ColorVisionMode>(['default', 'deuteranopia', 'protanopia', 'tritanopia']);
 
 export class ExperienceSettingsStore {
+  /** Parsed settings, kept until the next write: the game reads them every frame. */
+  private _cache: ExperienceSettings | null = null;
+
   constructor(private readonly adapter: StorageAdapter) {}
 
   read(): ExperienceSettings {
+    if (!this._cache) this._cache = this._parse();
+    return { ...this._cache };
+  }
+
+  private _parse(): ExperienceSettings {
     const raw = this.adapter.read(EXPERIENCE_SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_EXPERIENCE_SETTINGS };
     try {
@@ -45,6 +53,7 @@ export class ExperienceSettingsStore {
 
   write(value: ExperienceSettings): void {
     this.adapter.write(EXPERIENCE_SETTINGS_KEY, JSON.stringify(value));
+    this._cache = null;
     this.apply(value);
   }
 

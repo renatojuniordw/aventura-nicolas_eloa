@@ -80,7 +80,7 @@ Nada disso é aplicado no projeto atual.
 4. **Multi-toque:** testar em aparelho real segurar ▶ e tocar pulo (`TouchAdapter`, `pointerleave`).
 5. **Wake lock:** manter a tela ligada durante o jogo.
 6. **Fala pt-BR com áudio gravado:** a voz do `speechSynthesis` (`src/audio/speech-narrator.ts`) varia entre aparelhos. Gravar (ou gerar com uma ferramenta de voz) os áudios das letras, sílabas e palavras e registrá-los no `AudioManager`, que hoje não tem nenhum arquivo cadastrado. Manter o `speechSynthesis` só como fallback. Concluir antes da Fase 3.
-7. **Peso do bundle:** carregar `embeddings-data` sob demanda, para reduzir o APK e o tempo de abertura.
+7. **Peso do bundle:** medir o bundle do projeto copiado antes de otimizar. Em `e257445` o chunk `embeddings-data` nem é emitido (nenhum módulo do jogo importa `content/embedding-select.ts`); os maiores chunks são `main` (~348 kB) e `curriculum-data` (~427 kB, ~10 kB gzip). Só carregar embeddings sob demanda se alguma funcionalidade passar a usá-los.
 
 ## Fase 2 — Capacitor + Android
 

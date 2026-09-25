@@ -2,11 +2,11 @@ import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
 import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
 import { Events } from '../core/event-bus.js';
-import { GAMEPLAY } from '../core/config.js';
+import { GAMEPLAY, PORTAL_SIZE } from '../core/config.js';
 import { PhysicsEngine } from '../physics/physics-engine.js';
 import { PlayerController } from '../gameplay/player/player-controller.js';
 import { LivesManager } from '../gameplay/lives-manager.js';
-import { LevelManager, type Level, type LevelItem, type Point } from '../gameplay/level-manager.js';
+import { LevelManager, type LevelItem, type Point } from '../gameplay/level-manager.js';
 import { AnswerValidator } from '../content/answer-validator.js';
 import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
@@ -14,8 +14,9 @@ import { lessonAssets } from '../render/asset-plan.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
 import { SpeedrunRun } from '../gameplay/speedrun-run.js';
 import { ALPHABET, createExploreStream, createLessonStream, createSpeedrunStream } from '../gameplay/stream-courses.js';
-import { PORTAL_SIZE, type WorldStream } from '../gameplay/world-stream.js';
+import type { StreamItem, StreamLevel, WorldStream } from '../gameplay/world-stream.js';
 import { ExploreRun } from '../gameplay/explore-run.js';
+import { supportPolicy, type SupportPolicy } from '../gameplay/support-policy.js';
 import { WORD_BANK } from '../content/word-bank.js';
 import { wordPhaseId, wordPhasePosition } from '../content/word-phases.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
@@ -27,6 +28,8 @@ import { pumpMenuKeys, pumpOverlayInput } from '../ui/overlay-input.js';
 /** Portal exit timeline (seconds): the player is swallowed, then the screen whitens into the victory. */
 const PORTAL_SWALLOW_AT = 0.55;
 const PORTAL_WIN_SECONDS = 1.7;
+/** Reduced motion: no suction, burst or flash — the player just steps in and the phase closes. */
+const PORTAL_WIN_SECONDS_CALM = 0.9;
 
 const Status = Object.freeze({
   RUNNING: 'running',
@@ -37,14 +40,7 @@ const Status = Object.freeze({
 
 type StatusValue = (typeof Status)[keyof typeof Status];
 
-/** Level shape plus the extra fields game-scene reads (playerStart, camera, viewport, name). */
-interface GameLevel extends Level {
-  name: string;
-  playerStart: Point;
-  viewport: unknown;
-  camera: { maxX: number; startX: number; smoothing: number };
-  worldWidth: number;
-}
+type FeedbackKindValue = (typeof FeedbackKind)[keyof typeof FeedbackKind];
 
 interface EnterParams {
   lessonId?: string;
@@ -76,15 +72,20 @@ export class GameScene extends Scene {
   private _winTimer = 0;
   private _winElapsed = 0;
   private _winViaPortal = false;
+  private _winCalm = false;
+  /** Set once `finishLevel` ran: results are recorded and the victory shown exactly once. */
+  private _finished = false;
   private _playerHidden = false;
   private _shake = 0;
   /** True once the last target is collected: the world is sealed and the portal is the only way out. */
   portalOpen = false;
   private _terrainVersion = -1;
   private _gameOverJumpGesture = new JumpConfirmGesture();
+  /** Seconds since the last correct answer (or repeated instruction), for assisted auto-repeat. */
+  private _sinceProgress = 0;
 
   stream!: WorldStream;
-  level!: GameLevel;
+  level!: StreamLevel;
   lesson!: Lesson;
   validator!: AnswerValidator;
   levelManager!: LevelManager;
@@ -93,6 +94,8 @@ export class GameScene extends Scene {
   camera!: Camera;
   hudModel!: HudModel;
   character: ReturnType<typeof getCharacter> | null = null;
+  /** What the "Nível de apoio" setting changes in this run; read once at entry. */
+  support: SupportPolicy = supportPolicy('standard');
 
   /** Progress through the A-to-Z run; null outside speedrun mode. */
   speedrun: SpeedrunRun | null = null;
@@ -119,6 +122,10 @@ export class GameScene extends Scene {
     if (this.speedrun) this.speedrun.elapsed = seconds;
   }
 
+  private get _reducedMotion(): boolean {
+    return this.game.preferences?.reducedMotion() ?? false;
+  }
+
   override enter({
     lessonId,
     mode = 'normal',
@@ -133,22 +140,27 @@ export class GameScene extends Scene {
     this._winTimer = 0;
     this._winElapsed = 0;
     this._winViaPortal = false;
+    this._winCalm = false;
+    this._finished = false;
     this._playerHidden = false;
     this._shake = 0;
+    this._sinceProgress = 0;
     this.portalOpen = false;
     this._terrainVersion = -1;
     this.speedrun = null;
     this.exploreRun = null;
+    this.support = supportPolicy(this.game.preferences?.supportLevel());
+    const { distractorsPerSegment, allowNeighbourLetters } = this.support;
 
     if (this.mode === 'speedrun') {
-      this.stream = stream ?? createSpeedrunStream();
+      this.stream = stream ?? createSpeedrunStream({ distractorsPerSegment, allowNeighbourLetters });
       this.speedrun = new SpeedrunRun(ALPHABET, undefined, speedrunState?.elapsed ?? 0);
 
       this.lesson = this._letterLesson(this.speedrun.currentLetter, 0);
       this.validator = new AnswerValidator(this.lesson);
     } else if (this.mode === 'explore') {
       const word = exploreRun?.word ?? WORD_BANK.find((entry) => entry.id === wordId) ?? WORD_BANK[0];
-      this.stream = stream ?? createExploreStream(word);
+      this.stream = stream ?? createExploreStream(word, { distractorsPerSegment });
       this.exploreRun = exploreRun ?? new ExploreRun(word, wordPhasePosition(wordPhaseId(word.id)));
 
       this.lesson = this._letterLesson(this.exploreRun.currentLetter, 0);
@@ -157,11 +169,11 @@ export class GameScene extends Scene {
       const lesson = this.game.curriculum.getLesson(lessonId);
       if (!lesson) throw new Error(`Unknown lesson: ${lessonId}`);
       this.lesson = lesson;
-      this.stream = stream ?? createLessonStream(lesson);
+      this.stream = stream ?? createLessonStream(lesson, { distractorsPerSegment });
       this.validator = new AnswerValidator(lesson);
     }
 
-    this.level = this.stream.level as unknown as GameLevel;
+    this.level = this.stream.level;
     this.levelManager = new LevelManager({ level: this.level, bus: this.game.bus });
     this.lives = new LivesManager({ lives: GAMEPLAY.startingLives, bus: this.game.bus });
 
@@ -171,7 +183,8 @@ export class GameScene extends Scene {
       physics: this.physics,
     });
     this.camera = new Camera({
-      viewport: this.level.viewport as never,
+      viewport: this.level.viewport,
+      minX: this.level.camera.minX,
       maxX: this.level.camera.maxX,
       startX: this.level.camera.startX,
       smoothing: this.level.camera.smoothing,
@@ -181,12 +194,9 @@ export class GameScene extends Scene {
     const isSpeedrun = this.mode === 'speedrun';
     const isExplore = this.mode === 'explore';
     const progressText = this.speedrun?.progressText ?? this.exploreRun?.progressText ?? '';
-    const objective = isExplore
-      ? `Monte a palavra: ${this.exploreRun!.currentWord.label}`
-      : this.lesson.objective;
 
     this.hudModel = new HudModel({
-      objective,
+      objective: '',
       levelName: this.level.name,
       lives: this.lives.lives,
       maxLives: this.lives.maxLives,
@@ -195,6 +205,8 @@ export class GameScene extends Scene {
       timer: this.speedrunElapsed,
       speedrunProgress: progressText,
     });
+    this.game.announcer?.reset();
+    this._setObjective(isExplore ? `Monte a palavra: ${this.exploreRun!.currentWord.label}` : this.lesson.objective);
     if (this.exploreRun) this._syncExploreBoard(this.exploreRun);
     this.character = getCharacter(this.game.profiles.getActiveProfile()?.characterId);
     // Fire-and-forget like the boot preload: until the images land, SpriteRenderer
@@ -205,12 +217,16 @@ export class GameScene extends Scene {
 
     this._syncTerrain();
     this._subscribe();
-    this.game.hudControls.showPauseButton({ onPause: () => this.togglePause() });
+    this.game.hudControls.showPauseButton({
+      onPause: () => this.togglePause(),
+      onRepeat: () => this.repeatInstruction(),
+    });
     if (this.game.device?.isTouch) this.game.touchControls.show();
     this.game.bus.emit(Events.LESSON_STARTED, { lesson: this.lesson });
     tryLockLandscape().catch(() => {});
     if (this.exploreRun) {
       this.game.narrator?.speakWordTarget(this.exploreRun.word.label);
+      if (this.support.narrateNextLetter) this._speakNextLetter(this.exploreRun.currentLetter);
     } else if (this.lesson?.target) {
       this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
@@ -273,16 +289,9 @@ export class GameScene extends Scene {
       return;
     }
 
-    if (this.mode === 'speedrun') {
-      this.speedrun?.tick(dt);
-      this.hudModel.setTimer(this.speedrunElapsed);
-    } else if (this.mode === 'explore') {
-      // No visible clock for Explorar (showTimer: false); ticked anyway so the
-      // future-item hint keeps its normal pacing, same as speedrun's.
-      this.exploreRun?.tick(dt);
-    }
-
     if (this.status === Status.WON) {
+      // The clock stopped when the player entered the portal: the exit
+      // animation never counts toward a record.
       this._winTimer -= dt;
       this._winElapsed += dt;
       if (this._winViaPortal) this._updatePortalEntry(dt);
@@ -292,9 +301,19 @@ export class GameScene extends Scene {
       return;
     }
 
+    if (this.mode === 'speedrun') {
+      this.speedrun?.tick(dt);
+      this.hudModel.setTimer(this.speedrunElapsed);
+    } else if (this.mode === 'explore') {
+      this.exploreRun?.tick(dt);
+    }
+    this._tickAssistedRepeat(dt);
+
     this._applyInput();
     this.player.update(dt, this.level);
     this.levelManager.update(this.player);
+    // A reaction above (hazard, last letter + portal, game over) may have ended the run this frame.
+    if (this.status !== Status.RUNNING) return;
     this._updateStream(dt);
     this.camera.follow(this.player.body);
     this._shake = Math.max(0, this._shake - dt);
@@ -306,10 +325,12 @@ export class GameScene extends Scene {
   private _updateStream(dt: number): void {
     this.stream.update(this.player.body.x);
     this.stream.tick(dt);
+    this._popWithdrawn();
 
     const checkpoint = this.stream.checkpointFor(this.player.body.x);
     if (checkpoint.x !== this.levelManager.getRespawnPoint().x) this.levelManager.setCheckpoint(checkpoint);
     this._syncTerrain();
+    this._updateTargetPointer();
   }
 
   /** The renderer caches grass strips per terrain; refresh them whenever the stream added or dropped ground. */
@@ -317,7 +338,40 @@ export class GameScene extends Scene {
     if (this._terrainVersion === this.stream.terrainVersion) return;
     this._terrainVersion = this.stream.terrainVersion;
     this.game.sprites.setLevel(this.level);
+    this.camera.minX = this.level.camera.minX;
     this.camera.maxX = this.level.camera.maxX;
+    this.levelManager.pruneCollected();
+  }
+
+  /** Letters the stream withdrew (now-wrong distractors, the portal clearing the way) pop softly where visible. */
+  private _popWithdrawn(): void {
+    const left = this.camera.x;
+    const right = left + this.camera.viewport.width;
+    for (const item of this.stream.drainWithdrawn()) {
+      if (this.levelManager.collected.has(item.id)) continue;
+      if (item.x + item.w < left || item.x > right) continue;
+      this.game.effects.spawnPuff(item.x + item.w / 2, item.y + item.h / 2, 10, '#ffffff');
+    }
+  }
+
+  /** The uncollected target the player should be looking for, if any. */
+  private get _pendingTarget(): StreamItem | undefined {
+    const live = this.stream.liveTarget;
+    return live && !this.levelManager.collected.has(live.id) ? live : undefined;
+  }
+
+  /** Assisted support: name the letter at the screen edge while it is off-screen. */
+  private _updateTargetPointer(): void {
+    const target = this.support.highlightTarget && !this.portalOpen ? this._pendingTarget : undefined;
+    if (!target) {
+      this.hudModel.setTargetPointer(null);
+      return;
+    }
+    const left = this.camera.x;
+    const right = left + this.camera.viewport.width;
+    if (target.x > right) this.hudModel.setTargetPointer({ direction: 'right', label: target.label });
+    else if (target.x + target.w < left) this.hudModel.setTargetPointer({ direction: 'left', label: target.label });
+    else this.hudModel.setTargetPointer(null);
   }
 
   /** The portal pops into being, already on screen: ring, sparkles, label and a short shake. */
@@ -327,13 +381,18 @@ export class GameScene extends Scene {
     this.game.effects.spawnRing(cx, cy, 36);
     this.game.effects.spawnPuff(cx, cy, 20, '#b9f2ff');
     this.game.effects.spawnFloatingText?.(cx, finish.y - 14, 'Portal!', '#b9f2ff');
-    this._shake = 0.35;
+    if (!this._reducedMotion) this._shake = 0.35;
   }
 
   /** Portal entry: the player is drawn into the portal, then a burst and a white flash close the phase. */
   private _updatePortalEntry(dt: number): void {
     const finish = this.level.finish;
     if (!finish) return;
+    if (this._winCalm) {
+      // Reduced motion: no pull, no burst, no shake — the player simply disappears into the portal.
+      this._playerHidden = true;
+      return;
+    }
     const body = this.player.body;
     const targetX = finish.x + PORTAL_SIZE.w / 2 - body.w / 2;
     const targetY = finish.y + PORTAL_SIZE.h / 2 - body.h / 2;
@@ -351,16 +410,16 @@ export class GameScene extends Scene {
     }
   }
 
-  /** 0 -> 1 white overlay over the end of the portal exit. */
+  /** 0 -> 1 white overlay over the end of the portal exit (never with reduced motion). */
   private get _flashAlpha(): number {
-    if (!this._winViaPortal) return 0;
+    if (!this._winViaPortal || this._winCalm) return 0;
     const fadeStart = PORTAL_SWALLOW_AT + 0.2;
     return Math.min(1, Math.max(0, (this._winElapsed - fadeStart) / (PORTAL_WIN_SECONDS - fadeStart)));
   }
 
   override draw(renderer: CanvasRenderer): void {
     this.game.sprites.drawBackground(renderer, this.camera?.x ?? 0);
-    const shake = this._shake > 0 ? this._shake * 14 : 0;
+    const shake = this._shake > 0 && !this._reducedMotion ? this._shake * 14 : 0;
     renderer.setCamera(
       this.camera.x + (shake ? (Math.random() - 0.5) * shake : 0),
       this.camera.y + (shake ? (Math.random() - 0.5) * shake : 0),
@@ -369,6 +428,7 @@ export class GameScene extends Scene {
     // The single checkpoint flag follows the player's segment.
     this.game.sprites.drawObjects(renderer, this.level, [this.levelManager.getRespawnPoint()]);
     this.game.sprites.drawItems(renderer, this.level.items, this.levelManager.collected);
+    this._drawTargetHighlight(renderer);
     this.game.sprites.drawHazards(renderer, this.level.hazards);
     if (!this._playerHidden) this.game.sprites.drawPlayer(renderer, this.player, this.character);
     this.game.effects.draw(renderer);
@@ -391,6 +451,18 @@ export class GameScene extends Scene {
     this.game.hud.draw(this.hudModel);
   }
 
+  /** Assisted support: an arrow (a shape, not only a colour) points down at the letter to find. */
+  private _drawTargetHighlight(renderer: CanvasRenderer): void {
+    if (!this.support.highlightTarget || this.portalOpen || this.status !== Status.RUNNING) return;
+    const target = this._pendingTarget;
+    if (!target) return;
+    const bob = this._reducedMotion ? 0 : Math.sin(Date.now() / 200) * 4;
+    const x = target.x + target.w / 2;
+    const y = target.y - 26 + bob;
+    renderer.worldText?.('▼', x, y + 2, { color: '#1b2430', font: 'bold 30px sans-serif' });
+    renderer.worldText?.('▼', x, y, { color: '#ffd166', font: 'bold 26px sans-serif' });
+  }
+
   // --- Input -> semantic player calls --------------------------------------
 
   /**
@@ -410,26 +482,71 @@ export class GameScene extends Scene {
     this.player.holdJump(this.game.input.isActionHeld(Actions.JUMP));
   }
 
+  // --- HUD + screen reader ---------------------------------------------------
+
+  private _setObjective(text: string): void {
+    this.hudModel.setObjective(text ?? '');
+    this.game.announcer?.announce(text ?? '');
+  }
+
+  private _showFeedback(kind: FeedbackKindValue, message: string, duration: number): void {
+    this.hudModel.showFeedback(kind, message, duration);
+    this.game.announcer?.announce(message);
+  }
+
+  // --- Narration --------------------------------------------------------------
+
+  private _speakNextLetter(letter: string): void {
+    this.game.narrator?.speak?.(`Agora a letra ${letter.toLowerCase()}`, { interrupt: false });
+  }
+
+  /** Speaks the current instruction again (the HUD's "Ouvir novamente" button, or assisted auto-repeat). */
+  repeatInstruction(): void {
+    if (this.status !== Status.RUNNING && this.status !== Status.PAUSED) return;
+    this._sinceProgress = 0;
+    const narrator = this.game.narrator;
+    if (!narrator) return;
+    if (this.portalOpen) {
+      narrator.speak('Corra até o portal!');
+      return;
+    }
+    if (this.exploreRun) {
+      narrator.speakWordTarget(this.exploreRun.word.label);
+      this._speakNextLetter(this.exploreRun.currentLetter);
+      return;
+    }
+    narrator.speakLessonTarget(this.lesson.target, this.lesson.type);
+  }
+
+  private _tickAssistedRepeat(dt: number): void {
+    const after = this.support.repeatInstructionAfter;
+    if (after === null || this.portalOpen) return;
+    this._sinceProgress += dt;
+    if (this._sinceProgress >= after) this.repeatInstruction();
+  }
+
   // --- Event reactions ------------------------------------------------------
 
   private _subscribe(): void {
-    const on = <T,>(event: string, handler: (payload: T) => void) =>
-      this._unsubscribers.push(this.game.bus.on(event as never, handler as never));
-
-    on<{ item: LevelItem }>(Events.ITEM_COLLECTED, ({ item }) => this.onItemCollected(item));
-    on(Events.HAZARD_HIT, () => this.onHazardHit());
-    on(Events.PORTAL_ENTERED, () => this.onPortalEntered());
-    on(Events.PLAYER_FELL, () => this.respawn());
-    on<{ lives: number; maxLives: number }>(Events.LIVES_CHANGED, ({ lives, maxLives }) => {
-      this.hudModel.setLives(lives);
-      this.hudModel.maxLives = maxLives;
-    });
-    on(Events.LIVES_DEPLETED, () => this.onGameOver());
-    on(Events.APP_BLURRED, () => this.pause());
+    const bus = this.game.bus;
+    this._unsubscribers.push(
+      bus.on(Events.ITEM_COLLECTED, ({ item }) => this.onItemCollected(item)),
+      bus.on(Events.HAZARD_HIT, () => this.onHazardHit()),
+      bus.on(Events.PORTAL_ENTERED, () => this.onPortalEntered()),
+      bus.on(Events.PLAYER_FELL, () => this.respawn()),
+      bus.on(Events.LIVES_CHANGED, ({ lives, maxLives }) => {
+        this.hudModel.setLives(lives);
+        this.hudModel.maxLives = maxLives;
+      }),
+      bus.on(Events.LIVES_DEPLETED, () => this.onGameOver()),
+      bus.on(Events.APP_BLURRED, () => this.pause()),
+    );
   }
 
-  onItemCollected(item: LevelItem & { label?: string; kind?: string; fact?: string }): void {
+  onItemCollected(item: LevelItem & { kind?: string; fact?: string }): void {
     if (this.status !== Status.RUNNING) return;
+    // The objective is done: nothing left to answer on the way to the portal.
+    if (this.portalOpen) return;
 
     const { ok } = this.validator.validate(item);
     const centerX = item.x + item.w / 2;
@@ -453,6 +570,7 @@ export class GameScene extends Scene {
     centerX: number,
     centerY: number,
   ): void {
+    this._sinceProgress = 0;
     if (profile) this.game.progress.recordAnswer(profile.id, true);
     this.game.effects.spawnConfetti(centerX, centerY, 56);
     this.game.effects.spawnFloatingText?.(centerX, centerY - 25, '+10 Muito bem!', '#ffd479');
@@ -469,11 +587,7 @@ export class GameScene extends Scene {
       return;
     }
 
-    this.hudModel.showFeedback(
-      FeedbackKind.CORRECT,
-      'Muito bem! Você encontrou!',
-      GAMEPLAY.wrongFeedbackDuration,
-    );
+    this._showFeedback(FeedbackKind.CORRECT, 'Muito bem! Você encontrou!', GAMEPLAY.wrongFeedbackDuration);
     this._openPortal();
   }
 
@@ -484,21 +598,19 @@ export class GameScene extends Scene {
       this.lesson = this._letterLesson(nextLetter, run.currentIndex);
       this.validator = new AnswerValidator(this.lesson);
       this.stream.setTarget(nextLetter, this.player.body.x);
+      this._popWithdrawn();
 
-      this.hudModel.setObjective(this.lesson.objective ?? '');
+      this._setObjective(this.lesson.objective ?? '');
       this.hudModel.setSpeedrunProgress(run.progressText);
-      this.hudModel.showFeedback(
-        FeedbackKind.CORRECT,
-        `Boa! Agora letra ${nextLetter}!`,
-        0.8,
-      );
-      this.game.narrator?.speakLessonTarget(nextLetter, 'letter');
+      this._showFeedback(FeedbackKind.CORRECT, `Boa! Agora letra ${nextLetter}!`, 0.8);
+      // Queued after the praise instead of cutting it off.
+      this.game.narrator?.speakLessonTarget(nextLetter, 'letter', { interrupt: false });
       // Continuous! The player does NOT stop, does NOT reload scene, keeps running!
       return;
     }
 
     // Collected Z! Only the portal is left.
-    this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Z! Corra até o portal!', 1.5);
+    this._showFeedback(FeedbackKind.CORRECT, 'Z! Corra até o portal!', 1.5);
     this._openPortal();
   }
 
@@ -515,23 +627,31 @@ export class GameScene extends Scene {
       this.lesson = this._letterLesson(run.currentLetter, run.currentLetterIndex);
       this.validator = new AnswerValidator(this.lesson);
       this.stream.setTarget(run.currentLetter, this.player.body.x);
-      this.hudModel.showFeedback(FeedbackKind.CORRECT, 'Boa! Continue!', 0.6);
+      this._popWithdrawn();
+      this._showFeedback(FeedbackKind.CORRECT, `Boa! Agora a letra ${run.currentLetter}!`, 0.8);
+      if (this.support.narrateNextLetter) this._speakNextLetter(run.currentLetter);
       return;
     }
 
-    this.hudModel.showFeedback(FeedbackKind.CORRECT, `Você montou ${run.word.label}! Corra até o portal!`, 1.5);
-    this._openPortal();
+    const word = run.word.label;
+    this._showFeedback(FeedbackKind.CORRECT, `Você montou ${word}! Corra até o portal!`, 1.5);
+    this._openPortal(`Você montou a palavra ${word.toLowerCase()}! O portal abriu, corra até ele!`);
   }
 
   /** Last target collected: seal the world with an arrival stretch and the portal; the phase ends only inside it. */
-  private _openPortal(): void {
+  private _openPortal(announcement = 'O portal abriu! Corra até ele!'): void {
     if (this.portalOpen) return;
     this.portalOpen = true;
-    const finish = this.stream.spawnPortal(this.player.body.x);
+    const finish = this.stream.spawnPortal(this.player.body.x, {
+      visibleRight: this.camera.x + this.camera.viewport.width,
+    });
+    this._popWithdrawn();
     this._syncTerrain();
     this._playPortalIntro(finish);
-    this.hudModel.setObjective('Corra até o portal!');
-    this.game.narrator?.speak?.('O portal abriu! Corra até ele!');
+    this.hudModel.setTargetPointer(null);
+    this._setObjective('Corra até o portal!');
+    // Queued after the praise, so neither cancels the other.
+    this.game.narrator?.speak?.(announcement, { interrupt: false });
   }
 
   onPortalEntered(): void {
@@ -539,7 +659,7 @@ export class GameScene extends Scene {
     this.winLevel({ viaPortal: true });
   }
 
-  /** Wrong-answer flow: count the mistake, cost a heart, show guidance. */
+  /** Wrong-answer flow: count the mistake, cost a heart (unless assisted), show guidance. */
   private _handleWrongAnswer(
     item: LevelItem & { label?: string },
     profile: { id: string } | null,
@@ -548,11 +668,11 @@ export class GameScene extends Scene {
   ): void {
     this.mistakes += 1;
     if (profile) this.game.progress.recordAnswer(profile.id, false);
-    this.lives.loseHeart();
+    if (this.support.wrongAnswerCostsHeart) this.lives.loseHeart();
     vibrateWarning();
     this.game.effects.spawnPuff(centerX, centerY, 14, '#ff5d73');
     this.game.effects.spawnFloatingText?.(centerX, centerY - 20, 'Ops!', '#ff5d73');
-    this.hudModel.showFeedback(
+    this._showFeedback(
       FeedbackKind.WRONG,
       `Ops! Esse era "${item.label}". Procure "${this.lesson.target}".`,
       GAMEPLAY.wrongFeedbackDuration,
@@ -564,18 +684,18 @@ export class GameScene extends Scene {
   }
 
   onHazardHit(): void {
-    this.lives.loseHeart();
+    if (this.status !== Status.RUNNING) return;
+    // After the objective the way to the portal only sends the player back, never ends the run.
+    if (!this.portalOpen) this.lives.loseHeart();
+    if (this.status !== Status.RUNNING) return;
     vibrateWarning();
-    this.hudModel.showFeedback(
-      FeedbackKind.WRONG,
-      'Ai! Cuidado!',
-      GAMEPLAY.wrongFeedbackDuration,
-    );
+    this._showFeedback(FeedbackKind.WRONG, 'Ai! Cuidado!', GAMEPLAY.wrongFeedbackDuration);
     this.respawn();
   }
 
   /** Falling costs no heart — the player just returns to the checkpoint. */
   respawn(): void {
+    if (this.status === Status.WON) return;
     this.player.reset(this.levelManager.getRespawnPoint());
     this.levelManager.resetTransientState();
     this.camera.snapTo(this.player.body);
@@ -583,15 +703,22 @@ export class GameScene extends Scene {
   }
 
   winLevel({ viaPortal = false }: { viaPortal?: boolean } = {}): void {
+    if (this.status === Status.WON || this.status === Status.GAME_OVER) return;
     this.status = Status.WON;
     this._winElapsed = 0;
     this._winViaPortal = viaPortal;
+    this._winCalm = viaPortal && this._reducedMotion;
+    this.hudModel.setTargetPointer(null);
     vibrateVictory();
     if (this.mode === 'speedrun' || this.mode === 'explore') {
       this.game.narrator?.speakPraise('Parabéns!');
     }
     const centerX = this.player.body.x + this.player.body.w / 2;
     if (viaPortal) {
+      if (this._winCalm) {
+        this._winTimer = PORTAL_WIN_SECONDS_CALM;
+        return;
+      }
       // The suction pulls the player in; the burst and the flash follow (see _updatePortalEntry).
       this._winTimer = PORTAL_WIN_SECONDS;
       this.game.effects.spawnSuction(centerX, this.player.body.y + this.player.body.h / 2);
@@ -602,6 +729,8 @@ export class GameScene extends Scene {
   }
 
   finishLevel(): void {
+    if (this._finished) return;
+    this._finished = true;
     const profile = this.game.profiles.getActiveProfile();
 
     if (this.mode === 'speedrun') {
@@ -649,7 +778,9 @@ export class GameScene extends Scene {
   }
 
   onGameOver(): void {
+    if (this.status === Status.WON || this.status === Status.GAME_OVER) return;
     this.status = Status.GAME_OVER;
+    this.hudModel.setTargetPointer(null);
     this._gameOverJumpGesture.reset();
     this.game.menu.showGameOver({
       lesson: this.lesson,

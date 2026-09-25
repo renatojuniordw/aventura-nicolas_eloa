@@ -106,25 +106,25 @@ export class SpeechNarrator {
    * Speaks a lesson objective with friendly pedagogical phrasing in pt-BR.
    * Eliminates the cold "X maiúsculo" artifact by contextualizing the letter.
    */
-  speakLessonTarget(target: string, type: string = 'letter'): boolean {
+  speakLessonTarget(target: string, type: string = 'letter', options: { interrupt?: boolean } = {}): boolean {
     const clean = target.trim();
     if (!clean) return false;
 
     if (type === 'letter' || clean.length === 1) {
-      return this.speak(`Encontre a letra ${clean.toLowerCase()}`);
+      return this.speak(`Encontre a letra ${clean.toLowerCase()}`, options);
     }
     if (type === 'syllable') {
-      return this.speak(`Encontre a sílaba ${clean.toLowerCase()}`);
+      return this.speak(`Encontre a sílaba ${clean.toLowerCase()}`, options);
     }
-    return this.speak(`Encontre a palavra ${clean.toLowerCase()}`);
+    return this.speak(`Encontre a palavra ${clean.toLowerCase()}`, options);
   }
 
   /** Opens an Explorar phase: "Vamos montar a palavra Gato". */
-  speakWordTarget(word: string): boolean {
+  speakWordTarget(word: string, options: { interrupt?: boolean } = {}): boolean {
     const clean = word.trim();
     if (!clean) return false;
     const lower = clean.toLowerCase();
-    return this.speak(`Vamos montar a palavra ${lower.charAt(0).toUpperCase()}${lower.slice(1)}`);
+    return this.speak(`Vamos montar a palavra ${lower.charAt(0).toUpperCase()}${lower.slice(1)}`, options);
   }
 
   /**

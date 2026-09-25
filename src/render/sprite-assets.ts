@@ -4,6 +4,7 @@
  * margins). Data only — no drawing — so asset mapping evolves here without
  * touching `SpriteRenderer`.
  */
+import { PORTAL_SIZE } from '../core/config.js';
 
 // Exact visual bounds for trimmed pixel art assets, in the pixels of the
 // shipped 504x504 sheets (the 1254x1254 originals scaled by 504/1254, edges
@@ -12,8 +13,8 @@ export const LETTER_CARRIER_BOUNDS = Object.freeze({ sx: 103, sy: 112, sw: 298, 
 export const CHECKPOINT_BOUNDS = Object.freeze({ sx: 134, sy: 46, sw: 256, sh: 426 });
 export const FINISH_PORTAL_BOUNDS = Object.freeze({ sx: 70, sy: 23, sw: 363, sh: 457 });
 
-/** On-screen size of the finish portal, in world pixels. */
-export const FINISH_PORTAL_SIZE = Object.freeze({ w: 130, h: 126 });
+/** On-screen size of the finish portal, in world pixels (same footprint the collision check uses). */
+export const FINISH_PORTAL_SIZE = PORTAL_SIZE;
 
 /** Portal distance from the world's right edge, and from its floor (the ground row). */
 const FINISH_PORTAL_RIGHT_MARGIN = 130;

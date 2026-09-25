@@ -53,7 +53,6 @@ interface RenderLevel {
   portalActive?: boolean;
   /** 0 -> 1 while the portal grows into view; undefined means fully shown. */
   portalReveal?: number;
-  [key: string]: unknown;
 }
 
 interface CharacterLike {

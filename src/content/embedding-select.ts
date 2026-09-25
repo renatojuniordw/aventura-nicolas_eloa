@@ -2,10 +2,14 @@ import embeddings from './embeddings.generated.json';
 
 type EmbeddingMap = Record<string, number[]>;
 
-// `embeddings.generated.json` is produced offline by `npm run generate:embeddings`
-// (see tools/generate-embeddings.mts) and may be absent or incomplete in a
-// fresh checkout — every lookup below degrades to plain seeded-random instead
-// of throwing, so `npm test`/`npm run dev` never depend on having run it.
+// Offline experiment, not used by the game yet: nothing outside this module's
+// tests imports it, so the ~3MB vectors never reach the bundle (the
+// `embeddings-data` chunk in vite.config.js is only emitted once a game module
+// imports this file). `embeddings.generated.json` is committed and regenerated
+// with `npm run generate:embeddings` (tools/generate-embeddings.mts); the
+// import is static, so the file must exist. It may be *incomplete*, though:
+// ids without a vector fall back to uniform weight instead of throwing.
+// Any future in-game use needs pedagogical review and should load it lazily.
 const EMBEDDINGS: EmbeddingMap = (embeddings as EmbeddingMap) ?? {};
 
 export function cosineSimilarity(a: number[], b: number[]): number {
@@ -24,9 +28,7 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 /**
- * Deterministic seeded PRNG (LCG), the same recurrence used by
- * `gameplay/surprise-level.ts`'s terrain shuffle: `state = imul(state, 1664525) + 1013904223`.
- * Kept local here since no shared export of it exists elsewhere yet.
+ * Deterministic seeded PRNG (LCG): `state = imul(state, 1664525) + 1013904223`.
  */
 export function createSeededRandom(seed: number): () => number {
   let state = seed >>> 0;

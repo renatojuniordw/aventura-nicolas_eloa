@@ -1,14 +1,5 @@
 import type { WordEntry } from '../content/word-bank.js';
 
-/** Minimum seconds between "not yet" hints while touching a blocked item. */
-export const FUTURE_HINT_INTERVAL = 1.2;
-
-interface ItemLike {
-  kind?: string;
-  type?: string;
-  letterIndex?: number;
-}
-
 interface TrailPosition {
   position: number;
   total: number;
@@ -23,7 +14,6 @@ interface TrailPosition {
 export class ExploreRun {
   currentLetterIndex = 0;
   elapsed: number;
-  private _lastHintAt = -Infinity;
 
   constructor(
     readonly word: WordEntry,
@@ -52,22 +42,6 @@ export class ExploreRun {
 
   tick(dt: number): void {
     this.elapsed += dt;
-  }
-
-  /** True when `item` is a target letter that comes later than the one expected now. */
-  isAhead(item: ItemLike): boolean {
-    if (item.kind !== 'letter') return false;
-    return item.type === 'target' && item.letterIndex != null && item.letterIndex > this.currentLetterIndex;
-  }
-
-  /**
-   * The touched blocked item stays overlapped for many frames: true at most
-   * once per hint window, so the caller shows the hint once, not every frame.
-   */
-  claimFutureHint(): boolean {
-    if (this.elapsed - this._lastHintAt < FUTURE_HINT_INTERVAL) return false;
-    this._lastHintAt = this.elapsed;
-    return true;
   }
 
   /** Advances the expected-letter pointer; true once the whole word is spelled. */

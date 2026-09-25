@@ -48,4 +48,14 @@ describe('Camera', () => {
     camera.follow({ x: 500, w: 30 });
     expect(camera.x).toBe(0);
   });
+
+  it('never scrolls left of minX (the wall of an endless world)', () => {
+    const camera = new Camera({ viewport, minX: 4000, maxX: Number.POSITIVE_INFINITY });
+    camera.snapTo({ x: 3900, w: 30 });
+    expect(camera.x).toBe(4000);
+    camera.minX = 5000;
+    camera.follow({ x: 4000, w: 30 });
+    expect(camera.x).toBe(5000);
+  });
 });
+

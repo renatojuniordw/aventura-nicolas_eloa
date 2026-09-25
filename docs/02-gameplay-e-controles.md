@@ -21,9 +21,50 @@ pela fase existem vários itens; **um deles é a resposta certa** e os outros s�
 O mundo é **infinito** (`world-stream.ts`): trechos dos 4 cenários-modelo são gerados sob demanda,
 sempre à frente do jogador. Só existe **um alvo vivo por vez**; se o jogador passa direto sem
 pegar, o alvo é retirado e **reaparece adiante** (fora da tela), com outras letras no meio. O
-alvo é sempre posicionado onde um toque rápido no pulo o alcança (`isTapReachable`), e os
-distratores excluem a letra atual e suas vizinhas no alfabeto (corrida) ou as letras da palavra
-(explorar). O *checkpoint* acompanha o trecho em que o jogador está.
+alvo é sempre posicionado onde um toque rápido no pulo o alcança (`isTapReachable`, conferido
+também com a física real nos testes), e os distratores excluem a letra atual e suas vizinhas no
+alfabeto (corrida) ou as letras da palavra (explorar). O *checkpoint* acompanha o trecho em que o
+jogador está.
+
+Invariantes do mundo contínuo (cobertos por `world-stream.test.ts`):
+
+- **Memória limitada**: só ficam em memória 2 trechos atrás do jogador, o trecho atual e 2 à
+  frente. Trechos mais antigos são descartados e uma parede fecha o mundo ali; a câmera não
+  mostra além dela (`camera.minX`). Os IDs coletados saem junto (`LevelManager.pruneCollected`).
+- **Distratores coerentes**: quando o alvo muda (corrida), letras espalhadas para um alvo
+  anterior que o novo alvo proíbe — inclusive a própria resposta — são retiradas, com um
+  "puf" discreto quando visíveis. Nenhum rótulo de distrator vale como resposta.
+- **Alvo sempre disponível**: se não há posição livre, o alvo toma a posição mais próxima
+  adiante (retirando o distrator dela); se não houver posição alguma, é oferecido de novo no
+  quadro seguinte. A extensão do mundo por tentativa é limitada.
+- **Chegada ao portal**: ao cumprir o objetivo, todas as letras restantes somem, o mundo é
+  cortado dentro da área visível da câmera e surge um chão plano com o portal. Depois disso
+  coletas são ignoradas e espinhos só devolvem ao checkpoint (sem coração). O portal só aceita
+  a entrada depois de crescer por completo, e abrir de novo não muda nada.
+
+### Modos
+
+| Modo (menu) | Objetivo | Fim |
+|---|---|---|
+| Começar/Continuar aventura (Aprender) | A letra, sílaba ou palavra da lição atual do currículo | Portal após o acerto |
+| Corrida do alfabeto | A a Z em sequência, cronometrado | Portal após o Z; o tempo para ao entrar no portal |
+| Explorar | Montar uma palavra, letra por letra (quadro de letras no topo) | Portal após a última letra |
+
+### Nível de apoio (Configurações)
+
+Lido ao entrar na fase (`src/gameplay/support-policy.ts`). Ajuda pedagógica fica separada da
+dificuldade motora: espinhos e quedas se comportam igual em todos os níveis.
+
+| | Assistido | Padrão | Desafio |
+|---|---|---|---|
+| Erro de leitura tira coração | Não | Sim | Sim |
+| Seta sobre a letra e aviso na borda quando fora da tela | Sim | Não | Não |
+| Instrução repetida sozinha após 10 s sem progresso | Sim | Não | Não |
+| Voz diz a próxima letra (Explorar) | Sim | Sim | Não |
+| Distratores por trecho | 2 | 3 | 4 |
+| Vizinhas no alfabeto como distratores (corrida) | Não | Não | Sim |
+
+O botão ♫ do HUD repete a instrução em qualquer nível.
 
 O objetivo pedagógico é reconhecer letras, sílabas e palavras — então errar não deve ser
 punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.
@@ -64,11 +105,25 @@ estiver em retrato (ver [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)
 ## 3. Vidas e feedback
 
 - A criança começa com **3 corações**.
-- **Acerto**: confete, mensagem "Muito bem! Você encontrou!" e a fase é concluída.
+- **Acerto**: confete e mensagem "Muito bem! Você encontrou!"; no último acerto surge o portal, e a fase termina ao entrar nele.
 - **Erro**: perde 1 coração, uma explosão de partículas vermelhas e a mensagem
   `Ops! Esse era "X". Procure "Y".` — a mensagem **ensina** em vez de só punir.
 - **Queda em buraco**: **não** custa coração; volta ao checkpoint.
+- **Espinhos**: custam 1 coração ("Ai! Cuidado!") e devolvem ao checkpoint — exceto depois de
+  cumprido o objetivo, quando só devolvem.
 - **Sem corações**: tela de "Acabaram os corações", com opções de tentar de novo ou ir ao menu.
+- Depois de vitória ou derrota nenhuma colisão tem efeito (a cena fecha os estados terminais).
+
+### Acessibilidade na partida
+
+- **Movimento reduzido** (sistema ou jogo): sem tremor de câmera, sem sucção e sem flash branco
+  no portal — o personagem apenas entra e a fase fecha.
+- **Texto ampliado** e **alto contraste** também valem para o HUD desenhado no Canvas; textos
+  longos encolhem para caber em vez de cortar.
+- Objetivo e mensagens de acerto/erro são repetidos numa região ARIA *live* (`ui/live-announcer.ts`)
+  para leitores de tela, sem repetir a mesma frase a cada quadro. A navegação espacial em si
+  **não** foi validada com leitor de tela.
+- O banner de feedback começa com ✔ ou ✖, para não depender só da cor.
 
 O jogo é generoso de propósito: se errar apaga o progresso da fase, a criança desiste.
 A dificuldade vem do reconhecimento, não da punição.

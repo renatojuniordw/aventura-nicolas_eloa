@@ -86,8 +86,9 @@ function enterFirstLesson(game) {
   return game.scenes.current;
 }
 
-/** Drops the player onto the (already open) portal, as running into it would. */
+/** Drops the player onto the (already open, fully grown) portal, as running into it would. */
 function enterPortal(scene) {
+  scene.stream.tick(1);
   scene.player.body.x = scene.level.finish.x;
   scene.player.body.y = scene.level.finish.y;
 }
@@ -174,7 +175,9 @@ describe('game integration', () => {
     expect(scene.status).toBe('running');
     expect(scene.portalOpen).toBe(true);
     expect(scene.lives.lives).toBe(scene.lives.maxLives);
-    expect(scene.levelManager.collected.has(target.id)).toBe(true);
+    // The portal cleared every letter from the way, and forgot their collected ids with them.
+    expect(scene.level.items).toEqual([]);
+    expect(scene.levelManager.collected.size).toBe(0);
     enterPortal(scene);
     tick(game, 1);
     expect(scene.status).toBe('won');

@@ -26,7 +26,8 @@ import { SaveStore } from './persistence/save-store.js';
 import { ProfileStore } from './persistence/profile-store.js';
 import { ProgressStore } from './persistence/progress-store.js';
 import { AudioSettingsStore } from './persistence/audio-settings-store.js';
-import { ExperienceSettingsStore } from './persistence/experience-settings-store.js';
+import { ExperienceSettingsStore, type SupportLevel } from './persistence/experience-settings-store.js';
+import { LiveAnnouncer } from './ui/live-announcer.js';
 import * as curriculum from './content/curriculum.js';
 import type { Unit, Lesson } from './content/curriculum-model.js';
 import { ExploreRun } from './gameplay/explore-run.js';
@@ -63,6 +64,10 @@ export interface GameContext {
   profiles: ProfileStore;
   progress: ProgressStore;
   experience: ExperienceSettingsStore;
+  /** Live accessibility/support preferences (system setting OR the game's own), read where they apply. */
+  preferences: GamePreferences;
+  /** Screen-reader mirror of the canvas objective and feedback. */
+  announcer: LiveAnnouncer;
   device: { isTouch: boolean };
   curriculum: {
     units: Unit[];
@@ -83,6 +88,13 @@ export interface GameContext {
   // reference. See the `as GameContext` cast below.
   scenes: SceneManager;
   loop: GameLoop;
+}
+
+export interface GamePreferences {
+  reducedMotion(): boolean;
+  largeText(): boolean;
+  highContrast(): boolean;
+  supportLevel(): SupportLevel;
 }
 
 /** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
@@ -117,11 +129,21 @@ export function createGame({
   const experience = new ExperienceSettingsStore(storageAdapter);
   experience.apply();
   const reducedMotion = () => Boolean(motionPreference?.matches || experience.read().reducedMotion);
+  const contrastPreference = window.matchMedia?.('(prefers-contrast: more)');
+  const preferences: GamePreferences = {
+    reducedMotion,
+    largeText: () => experience.read().largeText,
+    highContrast: () => Boolean(contrastPreference?.matches || experience.read().highContrast),
+    supportLevel: () => experience.read().supportLevel,
+  };
   const sprites = new SpriteRenderer({ assets, reducedMotion });
   const effects = new Effects({ reducedMotion });
   const hud = new Hud(renderer, {
     viewport: { width: canvas.width, height: canvas.height },
+    textScale: () => (preferences.largeText() ? 1.25 : 1),
+    highContrast: preferences.highContrast,
   });
+  const announcer = new LiveAnnouncer();
   const input = new InputManager();
   const menu = new MenuOverlay({ root: overlayRoot });
   const hudControls = new HudControls({ root: hudControlsRoot ?? overlayRoot });
@@ -174,6 +196,8 @@ export function createGame({
     profiles,
     progress,
     experience,
+    preferences,
+    announcer,
     device: {
       isTouch: isTouchDevice(),
     },
