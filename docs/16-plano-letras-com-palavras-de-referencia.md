@@ -5,7 +5,7 @@ Data: 24/09/2026. Status: implementado em 24/09/2026 (ver seção 9); audição 
 ## 1. Objetivo
 
 Sempre que o jogo pedir por voz para encontrar uma letra, acrescentar uma palavra
-que comece com ela. Exemplo: **“Encontre a letra A de avião.”**
+que comece com ela. Exemplo: **“Encontre a letra A de amigo.”**
 
 Esta entrega é somente um plano, baseado na leitura do código atual. Não houve
 implementação nem validação auditiva. As palavras abaixo são uma proposta editorial
@@ -33,7 +33,7 @@ a implementação deve preservar a ordem das falas existente.
 1. Enriquecer todas as instruções produzidas pelo ramo de letras de
    `speakLessonTarget`, incluindo início da fase, avanço da Corrida e repetições.
 2. Aplicar nos três níveis de apoio. Não criar configuração nova para ativar a palavra.
-3. Usar uma palavra fixa por letra, sem sorteio: repetir A sempre retorna “avião”.
+3. Usar uma palavra fixa por letra, sem sorteio: repetir A sempre retorna “amigo”.
 4. Manter a frase em uma única chamada a `speak`, evitando separar letra e palavra
    em duas falas que possam se cancelar.
 5. Preservar `interrupt`, idioma, volume, mudo e tratamento de síntese indisponível.
@@ -54,19 +54,19 @@ Manter a grafia correta, inclusive acentos. Usar os exemplos abaixo como padrão
 
 | Letra | Palavra | Letra | Palavra |
 | --- | --- | --- | --- |
-| A | avião | N | navio |
+| A | amigo | N | Nicolas |
 | B | bola | O | ovo |
-| C | casa | P | pato |
-| D | dado | Q | queijo |
-| E | elefante | R | rato |
-| F | foca | S | sapo |
-| G | gato | T | tatu |
-| H | helicóptero | U | uva |
-| I | igreja | V | vaca |
-| J | jacaré | W | waffle |
+| C | casa | P | papai |
+| D | dedo | Q | queijo |
+| E | Eloá | R | rua |
+| F | feijão | S | sol |
+| G | gato | T | tio |
+| H | hora | U | uva |
+| I | irmão | V | vaca |
+| J | janela | W | waffle |
 | K | kiwi | X | xícara |
 | L | lua | Y | yoga |
-| M | macaco | Z | zebra |
+| M | mamãe | Z | zebra |
 
 K, W e Y usam grafias de origem estrangeira para cobrir todo o alfabeto presente
 na Corrida. Ouvir especialmente esses exemplos na voz usada pelo aparelho.
@@ -100,14 +100,14 @@ Contrato:
   Nesta versão, eles usam a instrução sem palavra de referência.
 - Não modificar `text-utils.normalize`: sua comparação sem acentos pertence à
   validação de respostas e tem uma finalidade diferente.
-- Retornar a palavra com a grafia do arquivo, preservando “avião” e “xícara”.
+- Retornar a palavra com a grafia do arquivo, preservando “Eloá”, “mamãe” e “xícara”.
 
 ### Etapa 2 — Composição da fala
 
 No ramo de letras de `SpeechNarrator.speakLessonTarget`, consultar a função e montar:
 
 ```text
-Com referência: Encontre a letra a de avião
+Com referência: Encontre a letra a de amigo
 Sem referência: Encontre a letra á
 ```
 
@@ -138,11 +138,11 @@ Não mudar cronômetro, velocidade ou progressão para esperar a narração term
 ### Automatizados
 
 - Testar a cobertura das 26 chaves A–Z, palavras não vazias e inicial correspondente
-  à chave; proteger explicitamente a associação A → avião.
+  à chave; proteger explicitamente a associação A → amigo.
 - Testar consulta com caixa e espaços, entrada vazia, alvo de múltiplas letras,
   símbolo e letras acentuadas sem entrada; nunca usar a primeira letra de uma palavra
   inteira como chave implícita.
-- Em `speech-narrator.test.js`, verificar “Encontre a letra a de avião” e pelo menos
+- Em `speech-narrator.test.js`, verificar “Encontre a letra a de amigo” e pelo menos
   outra letra; garantir uma única emissão por instrução.
 - Manter as saídas “Encontre a sílaba ba” e “Encontre a palavra bola”, além do
   comportamento existente para alvos de um caractere e `type` omitido.
@@ -156,7 +156,7 @@ Não mudar cronômetro, velocidade ou progressão para esperar a narração term
 
 ### Audição e regressão manual
 
-- Aventura na letra A: ouvir “Encontre a letra A de avião”; repetir pelo botão ♫.
+- Aventura na letra A: ouvir “Encontre a letra A de amigo”; repetir pelo botão ♫.
 - Apoio assistido: esperar a repetição automática e confirmar o mesmo exemplo.
 - Corrida: ouvir A e B, avançar várias letras rapidamente e conferir se a fala mais
   longa acumula instruções antigas. Preservar a fila atual; se o problema aparecer,
@@ -195,7 +195,7 @@ dependem de uma tarefa que o envolva explicitamente.
 > Implemente o plano `docs/16-plano-letras-com-palavras-de-referencia.md`.
 > Leia `AGENTS.md` e confira o código atual antes de editar. Acrescente referências
 > fixas A–Z às falas de `SpeechNarrator.speakLessonTarget`, como “Encontre a letra A
-> de avião”, com conteúdo local separado da lógica, fallback e testes descritos.
+> de amigo”, com conteúdo local separado da lógica, fallback e testes descritos.
 > Preserve opções de fila, controles de áudio e chamadas existentes. Respeite o
 > escopo definido, execute test/typecheck/build e atualize a documentação.
 > Entregue um resumo dos arquivos alterados, verificações e pendências de audição

@@ -14,14 +14,14 @@ describe('letter reference words', () => {
     }
   });
 
-  it('keeps A → avião with its accent', () => {
-    expect(getLetterReferenceWord('A')).toBe('avião');
+  it('keeps accents and capitalized names from the file', () => {
+    expect(getLetterReferenceWord('E')).toBe('Eloá');
     expect(getLetterReferenceWord('X')).toBe('xícara');
   });
 
   it('ignores case and surrounding spaces', () => {
-    expect(getLetterReferenceWord('a')).toBe('avião');
-    expect(getLetterReferenceWord(' a ')).toBe('avião');
+    expect(getLetterReferenceWord('a')).toBe('amigo');
+    expect(getLetterReferenceWord(' a ')).toBe('amigo');
   });
 
   it.each(['', '   ', 'BA', 'bola', '?', '1', 'Á', 'Ã', 'Ç', 'toString', '__proto__'])(

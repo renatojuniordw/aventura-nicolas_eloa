@@ -272,7 +272,7 @@ Nenhuma linha de código:
 ## 7. Palavras de referência das letras
 
 `src/content/letter-reference-words.json` é um objeto plano com as chaves `A`–`Z` e uma
-palavra fixa por letra (grafia correta, com acentos, em minúsculas): `"A": "avião"`,
+palavra fixa por letra (grafia correta, com acentos; minúsculas, exceto nomes próprios): `"A": "amigo"`, `"E": "Eloá"`,
 `"X": "xícara"`, … `src/content/letter-reference.ts` expõe `getLetterReferenceWord(target)`,
 que consulta o mapa após `trim`, NFC e maiúsculas. Letras acentuadas, símbolos e alvos com
 mais de uma letra não têm entrada e retornam `undefined` — a narração usa então a frase sem

@@ -107,7 +107,7 @@ export class SpeechNarrator {
   /**
    * Speaks a lesson objective with friendly pedagogical phrasing in pt-BR.
    * Eliminates the cold "X maiúsculo" artifact by contextualizing the letter, and adds a fixed
-   * example word when there is one: "Encontre a letra a de avião".
+   * example word when there is one: "Encontre a letra a de amigo".
    */
   speakLessonTarget(target: string, type: string = 'letter', options: { interrupt?: boolean } = {}): boolean {
     const clean = target.trim();

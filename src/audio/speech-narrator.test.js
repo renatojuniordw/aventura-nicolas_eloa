@@ -81,7 +81,7 @@ describe('SpeechNarrator', () => {
 
     narrator.speakLessonTarget('A', 'letter');
     let utterance = mockSynth.speak.mock.calls[0][0];
-    expect(utterance.text).toBe('Encontre a letra a de avião');
+    expect(utterance.text).toBe('Encontre a letra a de amigo');
 
     narrator.speakLessonTarget('BA', 'syllable');
     utterance = mockSynth.speak.mock.calls[1][0];
@@ -102,7 +102,7 @@ describe('SpeechNarrator', () => {
     expect(mockSynth.speak.mock.calls.map(([u]) => u.text)).toEqual([
       'Encontre a letra b de bola',
       'Encontre a letra z de zebra',
-      'Encontre a letra a de avião',
+      'Encontre a letra a de amigo',
     ]);
   });
 

@@ -31,7 +31,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 
 ## Planos específicos
 
-- [16 — Letras com palavras de referência na narração](16-plano-letras-com-palavras-de-referencia.md): plano para falas como “Encontre a letra A de avião”.
+- [16 — Letras com palavras de referência na narração](16-plano-letras-com-palavras-de-referencia.md): plano para falas como “Encontre a letra A de amigo”.
 
 ## Mapa rápido: onde está cada coisa
 

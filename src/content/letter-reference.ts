@@ -3,7 +3,7 @@ import words from './letter-reference-words.json';
 const REFERENCE_WORDS: Readonly<Record<string, string>> = words;
 
 /**
- * Fixed example word for a single letter ("A" → "avião"), used in spoken instructions.
+ * Fixed example word for a single letter ("A" → "amigo"), used in spoken instructions.
  * Keys are matched exactly after trim + NFC + uppercase: accented letters, symbols and
  * multi-letter targets have no entry and return undefined.
  */
