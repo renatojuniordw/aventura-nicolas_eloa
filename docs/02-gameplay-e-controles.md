@@ -66,6 +66,12 @@ dificuldade motora: espinhos e quedas se comportam igual em todos os níveis.
 
 O botão ♫ do HUD repete a instrução em qualquer nível.
 
+Toda instrução falada “Encontre a letra…” (início da fase, botão ♫, repetição assistida e
+avanço da Corrida) inclui uma palavra fixa que começa com a letra, em todos os níveis de apoio:
+“Encontre a letra a de avião”. A palavra vem de `src/content/letter-reference-words.json`
+(ver [04 — Modelo de conteúdo](04-modelo-de-conteudo.md)). Sílabas, palavras, o “Agora a
+letra…” do Explorar e o feedback de erro não mudam.
+
 O objetivo pedagógico é reconhecer letras, sílabas e palavras — então errar não deve ser
 punitivo a ponto de travar a criança, e cair não deve ser punição nenhuma.
 

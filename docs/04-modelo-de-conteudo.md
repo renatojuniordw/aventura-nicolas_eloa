@@ -269,7 +269,21 @@ Nenhuma linha de código:
 
 ---
 
-## 7. Personagens
+## 7. Palavras de referência das letras
+
+`src/content/letter-reference-words.json` é um objeto plano com as chaves `A`–`Z` e uma
+palavra fixa por letra (grafia correta, com acentos, em minúsculas): `"A": "avião"`,
+`"X": "xícara"`, … `src/content/letter-reference.ts` expõe `getLetterReferenceWord(target)`,
+que consulta o mapa após `trim`, NFC e maiúsculas. Letras acentuadas, símbolos e alvos com
+mais de uma letra não têm entrada e retornam `undefined` — a narração usa então a frase sem
+complemento. O narrador (`SpeechNarrator.speakLessonTarget`) é o único consumidor.
+
+Trocar uma palavra é editar o JSON; os testes exigem as 26 chaves e que cada palavra comece
+com a própria letra.
+
+---
+
+## 8. Personagens
 
 `src/content/characters.ts` define os 4 personagens (id, nome, cores). É dado puro: o
 desenho do jogador lê as cores de lá, então **acrescentar um personagem é acrescentar uma

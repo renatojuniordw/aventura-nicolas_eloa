@@ -1,3 +1,5 @@
+import { getLetterReferenceWord } from '../content/letter-reference';
+
 export interface SpeechNarratorOptions {
   isMuted?: () => boolean;
   synth?: SpeechSynthesis | null;
@@ -104,14 +106,17 @@ export class SpeechNarrator {
 
   /**
    * Speaks a lesson objective with friendly pedagogical phrasing in pt-BR.
-   * Eliminates the cold "X maiúsculo" artifact by contextualizing the letter.
+   * Eliminates the cold "X maiúsculo" artifact by contextualizing the letter, and adds a fixed
+   * example word when there is one: "Encontre a letra a de avião".
    */
   speakLessonTarget(target: string, type: string = 'letter', options: { interrupt?: boolean } = {}): boolean {
     const clean = target.trim();
     if (!clean) return false;
 
     if (type === 'letter' || clean.length === 1) {
-      return this.speak(`Encontre a letra ${clean.toLowerCase()}`, options);
+      const reference = getLetterReferenceWord(clean);
+      const instruction = `Encontre a letra ${clean.toLowerCase()}`;
+      return this.speak(reference ? `${instruction} de ${reference}` : instruction, options);
     }
     if (type === 'syllable') {
       return this.speak(`Encontre a sílaba ${clean.toLowerCase()}`, options);

@@ -643,6 +643,29 @@ describe('GameScene support levels', () => {
 });
 
 describe('GameScene narration and accessibility', () => {
+  it('forwards the letter target to the narrator on start, manual and assisted repeats', () => {
+    const narrator = makeNarrator();
+    const game = makeFakeGame({ narrator, preferences: preferences({ supportLevel: 'assisted' }) });
+    const scene = enterNormalLesson(game, 'alfabeto-a');
+    expect(narrator.speakLessonTarget).toHaveBeenCalledWith('A', 'letter');
+
+    narrator.speakLessonTarget.mockClear();
+    game.hudControls.showPauseButton.mock.calls[0][0].onRepeat();
+    expect(narrator.speakLessonTarget).toHaveBeenCalledWith('A', 'letter');
+
+    narrator.speakLessonTarget.mockClear();
+    for (let i = 0; i < 11 * 60; i += 1) scene.update(1 / 60);
+    expect(narrator.speakLessonTarget).toHaveBeenCalledWith('A', 'letter');
+  });
+
+  it('queues the next marathon letter after the praise', () => {
+    const narrator = makeNarrator();
+    const scene = enterSpeedrun(makeFakeGame({ narrator }));
+    narrator.speakLessonTarget.mockClear();
+    collectTarget(scene);
+    expect(narrator.speakLessonTarget).toHaveBeenCalledWith('B', 'letter', { interrupt: false });
+  });
+
   it('offers "ouvir novamente" in the HUD, speaking the current instruction', () => {
     const narrator = makeNarrator();
     const game = makeFakeGame({ narrator });

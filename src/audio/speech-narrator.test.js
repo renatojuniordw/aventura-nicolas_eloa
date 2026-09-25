@@ -81,7 +81,7 @@ describe('SpeechNarrator', () => {
 
     narrator.speakLessonTarget('A', 'letter');
     let utterance = mockSynth.speak.mock.calls[0][0];
-    expect(utterance.text).toBe('Encontre a letra a');
+    expect(utterance.text).toBe('Encontre a letra a de avião');
 
     narrator.speakLessonTarget('BA', 'syllable');
     utterance = mockSynth.speak.mock.calls[1][0];
@@ -90,6 +90,62 @@ describe('SpeechNarrator', () => {
     narrator.speakLessonTarget('BOLA', 'word');
     utterance = mockSynth.speak.mock.calls[2][0];
     expect(utterance.text).toBe('Encontre a palavra bola');
+  });
+
+  it('adds the fixed reference word to every letter instruction in a single utterance', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+
+    expect(narrator.speakLessonTarget('b', 'letter')).toBe(true);
+    expect(narrator.speakLessonTarget(' Z ')).toBe(true);
+    expect(narrator.speakLessonTarget('A', 'letter')).toBe(true);
+
+    expect(mockSynth.speak.mock.calls.map(([u]) => u.text)).toEqual([
+      'Encontre a letra b de bola',
+      'Encontre a letra z de zebra',
+      'Encontre a letra a de avião',
+    ]);
+  });
+
+  it('keeps the plain letter instruction when there is no reference word', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+
+    narrator.speakLessonTarget('Á', 'letter');
+    narrator.speakLessonTarget('BA', 'letter');
+    narrator.speakLessonTarget('?');
+
+    const texts = mockSynth.speak.mock.calls.map(([u]) => u.text);
+    expect(texts).toEqual(['Encontre a letra á', 'Encontre a letra ba', 'Encontre a letra ?']);
+    for (const text of texts) {
+      expect(text).not.toContain('undefined');
+      expect(text).not.toMatch(/ de\s*$/);
+    }
+  });
+
+  it('does not speak an empty lesson target', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+    expect(narrator.speakLessonTarget('  ', 'letter')).toBe(false);
+    expect(mockSynth.speak).not.toHaveBeenCalled();
+  });
+
+  it('queues a letter instruction without cancelling when interrupt is false', () => {
+    const narrator = new SpeechNarrator({ synth: mockSynth });
+
+    narrator.speakLessonTarget('C', 'letter', { interrupt: false });
+    expect(mockSynth.cancel).not.toHaveBeenCalled();
+
+    narrator.speakLessonTarget('D', 'letter');
+    expect(mockSynth.cancel).toHaveBeenCalledTimes(1);
+    expect(mockSynth.speak).toHaveBeenCalledTimes(2);
+    expect(mockSynth.speak.mock.calls[0][0].text).toBe('Encontre a letra c de casa');
+  });
+
+  it('does not speak a letter instruction when muted or unsupported', () => {
+    const muted = new SpeechNarrator({ synth: mockSynth, isMuted: () => true });
+    expect(muted.speakLessonTarget('A', 'letter')).toBe(false);
+    expect(mockSynth.speak).not.toHaveBeenCalled();
+
+    const unsupported = new SpeechNarrator({ synth: null });
+    expect(unsupported.speakLessonTarget('A', 'letter')).toBe(false);
   });
 
   it('speaks text via speakText convenience helper', () => {

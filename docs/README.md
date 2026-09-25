@@ -29,6 +29,10 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 10  | [Privacidade e LGPD](10-privacidade-e-lgpd.md)                             | Quais dados o jogo guarda, onde ficam, consentimento parental e direitos              |
 | 11  | [Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)                          | Controles de toque, instalação como PWA/offline, build Docker e Nginx em produção     |
 
+## Planos específicos
+
+- [16 — Letras com palavras de referência na narração](16-plano-letras-com-palavras-de-referencia.md): plano para falas como “Encontre a letra A de avião”.
+
 ## Mapa rápido: onde está cada coisa
 
 | Quero mexer em...                               | Vá para                                                                         |
