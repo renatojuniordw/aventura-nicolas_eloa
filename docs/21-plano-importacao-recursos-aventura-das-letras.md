@@ -1,6 +1,6 @@
 # 21 — Plano de aproveitamento e importação de recursos de Aventura das Letras
 
-Data: **28/09/2026**. Estado: **somente planejamento; nenhum recurso importado ou comportamento implementado**.
+Data: **28/09/2026**. Estado: **primeira entrega (etapas 1 e 2) implementada — ver §9**; etapas 3 a 5 seguem como plano.
 
 ## 1. Escopo e base da análise
 
@@ -159,14 +159,29 @@ Na entrega dos arquivos:
 
 Checklist para a primeira entrega implementada:
 
-- [ ] Dois WAV íntegros nos destinos exatos e licença incluída na distribuição.
-- [ ] Testes de acerto/erro garantem uma reprodução por resposta, inclusive no Explorar e Corrida.
-- [ ] Testes de áudio cobrem mudo, volumes, limpeza e falha de reprodução.
-- [ ] Build inclui os WAV no precache; uso offline confirmado em navegador após o cache estar pronto.
-- [ ] `npm test`, `npm run typecheck` e `npm run build` passam.
+- [x] Dois WAV íntegros nos destinos exatos e licença incluída na distribuição.
+- [x] Testes de acerto/erro garantem uma reprodução por resposta, inclusive no Explorar e Corrida.
+- [x] Testes de áudio cobrem mudo, volumes, limpeza e falha de reprodução.
+- [ ] Build inclui os WAV no precache (**feito**, entradas conferidas em `dist/sw.js`); uso offline confirmado em navegador após o cache estar pronto (**pendente**).
+- [x] `npm test`, `npm run typecheck` e `npm run build` passam.
 - [ ] Audição real aprova volume, caráter acolhedor do erro e convivência com voz; validar iPhone/Android alvo.
-- [ ] Documentação de gameplay e áudio atualizada somente após implementação.
+- [x] Documentação de gameplay e áudio atualizada somente após implementação.
 
 **Atalho para a próxima tarefa:** começar apenas pelos dois WAV da seção 3 e a licença da seção 7. O usuário pode colocá-los diretamente nos destinos indicados; a integração de código será uma entrega separada. Nenhum download manual é necessário agora para concluir este plano.
 
-Esta tarefa produziu apenas este Markdown. Não foram copiados recursos para o projeto, executados testes da aplicação ou exportadas notas para o Obsidian. Na revisão documental, conferir links locais, caminhos da referência e whitespace; a validação sonora/visual e os testes acima pertencem à implementação futura.
+A versão inicial deste documento foi só planejamento; a implementação da primeira entrega está registrada na §9.
+
+## 9. Implementação da primeira entrega (28/09/2026)
+
+**Recursos.** `answer_success.wav` e `answer_error.wav` baixados da revisão fixada para `public/assets/audio/sfx/`; SHA-256 idênticos aos da §3.1. `LICENSE` salvo em `public/licenses/aventura-das-letras-MIT.txt` (copiado para `dist/licenses/` no build). `THIRD_PARTY_NOTICES.md` criado na raiz com origem, revisão, hashes e destinos dos WAV e o mapeamento da §4.1 com o hash dos WebP já existentes. O `.txt` da licença **não** entra no precache: ainda não há tela de créditos offline.
+
+**Código.**
+
+- `src/audio/sfx-catalog.ts`: chaves `answer-success`/`answer-error`, URLs em `/assets/audio/sfx/` e ganho relativo por som (0,7 acerto; 0,55 erro — valores iniciais, a ajustar após audição). `main.ts` registra o catálogo ao criar o `AudioManager`.
+- `AudioManager`: `register(key, url, { gain })`; `playSfx` agora rastreia os efeitos ativos, não cria elemento com mudo ou volume efetivo zero, corta a instância anterior da mesma chave, limita sobreposição (3 simultâneos, corta o mais antigo), esquece o efeito em `ended`/`error`/rejeição de `play()` e nunca lança. `stopSfx()` para todos; mudanças de mudo/volume alcançam efeitos em reprodução.
+- `GameScene`: acerto toca em `_handleCorrectAnswer` (Aprender, Explorar, Corrida); erro em `_handleWrongAnswer`, inclusive no apoio assistido. Queda, espinhos e portal não tocam. `pause()` e `exit()` chamam `stopSfx()`; `core/lifecycle.ts` também para os efeitos ao perder foco/esconder o app.
+- `vite.config.js`: `wav` nos `globPatterns`; `dist/sw.js` contém as duas entradas.
+
+**Verificações.** `npm test` (879 testes), `npm run typecheck` e `npm run build` passaram. Testes novos em `audio-manager.test.js`, `game-scene.test.js` e `lifecycle.test.js`.
+
+**Pendente.** Audição real (volume relativo à voz, caráter do erro) em desktop, Android e iPhone; confirmar reprodução offline após instalar o cache; validar o desbloqueio na primeira interação — `unlock()` continua usando um elemento sem fonte — e o retorno do segundo plano, inclusive com celular como controle. Etapas 3 a 5 da §8 não foram iniciadas.

@@ -16,7 +16,6 @@ const projectFiles = [
   ["AGENTS.md", "AGENTS.md"],
   ["README.md", "README do projeto.md"],
   ["DESIGN.md", "DESIGN.md"],
-  ["aventura-surpresa.md", "Aventura surpresa.md"],
 ];
 
 async function copyProjectFiles() {

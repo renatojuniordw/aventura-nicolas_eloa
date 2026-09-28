@@ -20,6 +20,7 @@ import { TouchControls } from './ui/touch-controls.js';
 import { createHudSafeArea } from './ui/hud-safe-area.js';
 import { AudioManager } from './audio/audio-manager.js';
 import { SpeechNarrator } from './audio/speech-narrator.js';
+import { registerSfxCatalog } from './audio/sfx-catalog.js';
 import { initPwaInstallListener } from './ui/pwa-install.js';
 import { initPwaUpdates } from './ui/pwa-update.js';
 import { createStorageAdapter } from './persistence/local-storage-adapter.js';
@@ -189,6 +190,7 @@ export function createGame({
   const progress = new ProgressStore({ saves, bus });
   const audioSettings = new AudioSettingsStore({ adapter: storageAdapter });
   const audio = new AudioManager({ settings: audioSettings });
+  registerSfxCatalog(audio);
   const narrator = new SpeechNarrator({
     isMuted: () => audio.isVoiceMuted,
     volume: () => audio.voiceVolume,

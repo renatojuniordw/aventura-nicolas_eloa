@@ -114,9 +114,14 @@ corações nem cronômetro (oferecida uma vez no primeiro jogo em tela de toque)
 ## 3. Vidas e feedback
 
 - A criança começa com **3 corações**.
-- **Acerto**: confete e mensagem "Muito bem! Você encontrou!"; no último acerto surge o portal, e a fase termina ao entrar nele.
-- **Erro**: perde 1 coração, uma explosão de partículas vermelhas e a mensagem
+- **Acerto**: confete, som curto de acerto e mensagem "Muito bem! Você encontrou!"; no último acerto surge o portal, e a fase termina ao entrar nele.
+- **Erro**: perde 1 coração, som curto e suave de erro, uma explosão de partículas vermelhas e a mensagem
   `Ops! Esse era "X". Procure "Y".` — a mensagem **ensina** em vez de só punir.
+- **Sons de resposta**: um efeito por resposta aceita ou incorreta, em Aprender, Explorar e
+  Corrida — inclusive quando o apoio assistido dispensa a perda de coração. Queda, espinhos e
+  portal não reutilizam esses sons. Seguem o mudo e o volume de **efeitos** (também para um
+  som já tocando), param ao pausar, sair da fase ou esconder o app, e uma falha de reprodução
+  nunca interrompe a resposta. Chaves e arquivos em `src/audio/sfx-catalog.ts`.
 - **Queda em buraco**: **não** custa coração; volta ao checkpoint.
 - **Espinhos**: custam 1 coração ("Ai! Cuidado!") e devolvem ao checkpoint — exceto depois de
   cumprido o objetivo, quando só devolvem.

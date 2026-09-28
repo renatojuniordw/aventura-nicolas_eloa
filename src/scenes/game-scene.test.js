@@ -8,6 +8,7 @@ import { ExploreRun } from '../gameplay/explore-run.js';
 import { WORD_BANK } from '../content/word-bank.js';
 import { AnswerValidator } from '../content/answer-validator.js';
 import { FeedbackKind } from '../render/hud-model.js';
+import { Sfx } from '../audio/sfx-catalog.js';
 
 /**
  * Unit tests for the central orchestrator. `src/integration.test.js` already
@@ -44,7 +45,7 @@ function makeFakeGame(overrides = {}) {
       draw: vi.fn(),
     },
     menu: { hide: vi.fn(), showGameOver: vi.fn(), showPause: vi.fn() },
-    audio: { isMuted: false, toggleMuted: vi.fn() },
+    audio: { isMuted: false, toggleMuted: vi.fn(), playSfx: vi.fn(), stopSfx: vi.fn() },
     input: {
       consumePressed: vi.fn(() => false),
       isActionHeld: vi.fn(() => false),
@@ -812,5 +813,73 @@ describe('GameScene progressive hint (docs/20 §5 F2)', () => {
     expect(game.hudControls.showPauseButton).toHaveBeenLastCalledWith(expect.objectContaining({ onHint: expect.any(Function) }));
     enterSpeedrun(game);
     expect(game.hudControls.showPauseButton).toHaveBeenLastCalledWith(expect.objectContaining({ onHint: undefined }));
+  });
+});
+
+describe('GameScene answer sounds', () => {
+  const sfxCalls = (game, key) => game.audio.playSfx.mock.calls.filter(([played]) => played === key).length;
+
+  it('plays the success effect once per accepted answer in Aprender', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    collectTarget(scene);
+    expect(sfxCalls(game, Sfx.ANSWER_SUCCESS)).toBe(1);
+    expect(sfxCalls(game, Sfx.ANSWER_ERROR)).toBe(0);
+  });
+
+  it('plays the success effect once per letter in Explorar and in the marathon', () => {
+    const explore = makeFakeGame();
+    const exploreScene = enterExplore(explore);
+    collectTarget(exploreScene);
+    collectTarget(exploreScene);
+    expect(sfxCalls(explore, Sfx.ANSWER_SUCCESS)).toBe(2);
+
+    const speedrun = makeFakeGame();
+    const speedrunScene = enterSpeedrun(speedrun);
+    collectTarget(speedrunScene);
+    expect(sfxCalls(speedrun, Sfx.ANSWER_SUCCESS)).toBe(1);
+  });
+
+  it('plays the error effect once per wrong answer, even when assisted support spares the heart', () => {
+    for (const supportLevel of ['assisted', 'standard']) {
+      const game = makeFakeGame({ preferences: preferences({ supportLevel }) });
+      const scene = enterExplore(game);
+      scene.onItemCollected(scene.level.items.find((item) => item.type === 'distractor'));
+      expect(sfxCalls(game, Sfx.ANSWER_ERROR), supportLevel).toBe(1);
+      expect(sfxCalls(game, Sfx.ANSWER_SUCCESS), supportLevel).toBe(0);
+    }
+  });
+
+  it('does not reuse the answer effects for hazards, falls or the portal', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    scene.onHazardHit();
+    scene.respawn();
+    expect(game.audio.playSfx).not.toHaveBeenCalled();
+
+    collectTarget(scene);
+    game.audio.playSfx.mockClear();
+    walkIntoPortal(scene);
+    expect(game.audio.playSfx).not.toHaveBeenCalled();
+  });
+
+  it('plays nothing for collections ignored after the objective', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    collectTarget(scene);
+    game.audio.playSfx.mockClear();
+    const leftover = scene.level.items.find((item) => item.type === 'distractor');
+    if (leftover) scene.onItemCollected(leftover);
+    expect(game.audio.playSfx).not.toHaveBeenCalled();
+  });
+
+  it('silences effects in flight on pause and on leaving the scene', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    scene.pause();
+    expect(game.audio.stopSfx).toHaveBeenCalledTimes(1);
+    game.touchControls = { hide: vi.fn() };
+    scene.exit();
+    expect(game.audio.stopSfx).toHaveBeenCalledTimes(2);
   });
 });

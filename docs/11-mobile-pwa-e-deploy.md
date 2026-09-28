@@ -164,9 +164,10 @@ Tudo precacheia no install, num único passo:
 |---|---|---|
 | App shell: JS, CSS, HTML, as ~152 fases (inlined no bundle pelo `level-registry.ts`) | ~0,9 MB | **Precache** |
 | Arte de produção (`public/assets/`: personagens, cenários, itens; WebP redimensionado) | ~1,5 MB | **Precache** |
+| Efeitos de resposta (`public/assets/audio/sfx/*.wav`) | ~30 KiB | **Precache** |
 
 ```js
-globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2,wav}'],
 ```
 
 Resultado prático: ~2 MB no primeiro install (34 entradas) e o jogo fica **jogável offline

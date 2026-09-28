@@ -9,6 +9,20 @@ export interface AudioSettings {
 
 interface AudioManagerOptions {
   settings?: AudioSettings | null;
+  /** Upper bound of effects sounding at once; the oldest is cut to make room. */
+  maxActiveSfx?: number;
+}
+
+interface RegisteredSound {
+  url: string;
+  /** Relative loudness of this sound inside its category, in [0, 1]. */
+  gain: number;
+}
+
+interface ActiveSfx {
+  key: string;
+  audio: HTMLAudioElement;
+  gain: number;
 }
 
 /**
@@ -19,7 +33,9 @@ interface AudioManagerOptions {
  */
 export class AudioManager {
   private _settings: AudioSettings | null;
-  private _registry = new Map<string, string>();
+  private _registry = new Map<string, RegisteredSound>();
+  private _activeSfx: ActiveSfx[] = [];
+  private _maxActiveSfx: number;
   private _currentMusic: HTMLAudioElement | null = null;
   private _unlocked = false;
   private _muted: boolean;
@@ -29,8 +45,9 @@ export class AudioManager {
   private _voiceVolume: number;
   private _voiceActive = false;
 
-  constructor({ settings = null }: AudioManagerOptions = {}) {
+  constructor({ settings = null, maxActiveSfx = 3 }: AudioManagerOptions = {}) {
     this._settings = settings;
+    this._maxActiveSfx = Math.max(1, maxActiveSfx);
 
     const stored = settings?.read() ?? { muted: false, volume: 0.8 };
     this._muted = Boolean(stored.muted);
@@ -103,20 +120,24 @@ export class AudioManager {
   }
 
   /** Associate a key (e.g. "music-menu") with a playable URL, for later use. */
-  register(key: string, url: string): void {
-    this._registry.set(key, url);
+  register(key: string, url: string, { gain = 1 }: { gain?: number } = {}): void {
+    this._registry.set(key, { url, gain: clamp01(gain) });
   }
 
   playMusic(key: string): void {
-    const url = this._registry.get(key);
-    if (!url) return;
+    const sound = this._registry.get(key);
+    if (!sound) return;
     this.stopMusic();
-    const audio = new Audio(url);
-    audio.loop = true;
-    audio.muted = this._muted;
-    audio.volume = this._effectiveMusicVolume();
-    audio.play?.().catch(() => {});
-    this._currentMusic = audio;
+    try {
+      const audio = new Audio(sound.url);
+      audio.loop = true;
+      audio.muted = this._muted;
+      audio.volume = this._effectiveMusicVolume();
+      audio.play?.().catch(() => {});
+      this._currentMusic = audio;
+    } catch {
+      // Audio is decoration: a broken element must never stop the game.
+    }
   }
 
   stopMusic(): void {
@@ -125,19 +146,80 @@ export class AudioManager {
     this._currentMusic = null;
   }
 
-  playSfx(key: string): void {
-    const url = this._registry.get(key);
-    if (!url) return;
-    const audio = new Audio(url);
+  /**
+   * Plays a one-shot effect. Returns false when nothing was started: unknown
+   * key, muted/zero volume, or a browser that refused to build the element.
+   * Replaying a key cuts its previous instance, and at most `maxActiveSfx`
+   * effects overlap, so fast repeated answers never pile up into noise.
+   * Playback failures (autoplay block, missing file) are swallowed.
+   */
+  playSfx(key: string): boolean {
+    const sound = this._registry.get(key);
+    if (!sound || this._muted || this._effectiveSfxVolume(sound.gain) === 0) return false;
+
+    for (const active of this._activeSfx.filter((entry) => entry.key === key)) this._stopSfxEntry(active);
+    while (this._activeSfx.length >= this._maxActiveSfx) this._stopSfxEntry(this._activeSfx[0]);
+
+    let audio: HTMLAudioElement;
+    try {
+      audio = new Audio(sound.url);
+    } catch {
+      return false;
+    }
+    const entry: ActiveSfx = { key, audio, gain: sound.gain };
     audio.muted = this._muted;
-    audio.volume = this._volume * this._sfxVolume;
-    audio.play?.().catch(() => {});
+    audio.volume = this._effectiveSfxVolume(sound.gain);
+    const release = () => this._forgetSfx(entry);
+    audio.addEventListener?.('ended', release, { once: true });
+    audio.addEventListener?.('error', release, { once: true });
+    this._activeSfx.push(entry);
+    try {
+      const playing = audio.play?.();
+      playing?.catch?.(release);
+    } catch {
+      release();
+      return false;
+    }
+    return true;
+  }
+
+  /** Number of effects currently tracked as sounding. */
+  get activeSfxCount(): number {
+    return this._activeSfx.length;
+  }
+
+  /** Silences every effect in flight (scene exit, pause, app hidden). */
+  stopSfx(): void {
+    for (const entry of [...this._activeSfx]) this._stopSfxEntry(entry);
+  }
+
+  private _stopSfxEntry(entry: ActiveSfx): void {
+    try {
+      entry.audio.pause();
+      entry.audio.currentTime = 0;
+    } catch {
+      // Already torn down by the browser.
+    }
+    this._forgetSfx(entry);
+  }
+
+  private _forgetSfx(entry: ActiveSfx): void {
+    const index = this._activeSfx.indexOf(entry);
+    if (index >= 0) this._activeSfx.splice(index, 1);
   }
 
   private _applyToCurrent(): void {
+    for (const entry of this._activeSfx) {
+      entry.audio.muted = this._muted;
+      entry.audio.volume = this._effectiveSfxVolume(entry.gain);
+    }
     if (!this._currentMusic) return;
     this._currentMusic.muted = this._muted;
     this._currentMusic.volume = this._effectiveMusicVolume();
+  }
+
+  private _effectiveSfxVolume(gain: number): number {
+    return clamp01(this._volume * this._sfxVolume * gain);
   }
 
   private _effectiveMusicVolume(): number {

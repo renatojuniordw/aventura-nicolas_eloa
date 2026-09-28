@@ -87,8 +87,10 @@ export default defineConfig({
         // the JS bundle by content/level-registry.ts) and all the pixel art
         // (~1.5MB of WebP under /assets/) precache on install, so the whole
         // game works offline after the first visit. Vite's own JS/CSS chunks
-        // and the copied public/assets art both land under dist/assets/.
-        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        // and the copied public/assets art both land under dist/assets/. The
+        // answer effects (~30 KiB of WAV under assets/audio/sfx/) precache too,
+        // so feedback sounds the same offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2,wav}'],
         // Headroom above workbox's default 2 MiB per-file limit. Today's largest
         // chunk is well under it (the embeddings are not bundled, see
         // content/embedding-select.ts); kept so a future larger chunk still

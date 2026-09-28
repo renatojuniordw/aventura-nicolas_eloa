@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/sfx-catalog.js';
 import { Scene } from '../core/scene.js';
 import { Actions } from '../input/actions.js';
 import { JumpConfirmGesture } from '../input/jump-confirm-gesture.js';
@@ -283,6 +284,7 @@ export class GameScene extends Scene {
     this.game.hudControls.hidePauseButton();
     this.game.touchControls.hide();
     this.game.effects.clear();
+    this.game.audio.stopSfx();
     this.game.bus?.emit(Events.INPUT_MODE_CHANGED, { playing: false });
   }
 
@@ -637,6 +639,7 @@ export class GameScene extends Scene {
     this.game.effects.spawnConfetti(centerX, centerY, 56);
     this.game.effects.spawnFloatingText?.(centerX, centerY - 25, '+10 Muito bem!', '#ffd479');
     vibrateCollect();
+    this.game.audio.playSfx(Sfx.ANSWER_SUCCESS);
     this.game.narrator?.speakPraise();
 
     if (this.speedrun) {
@@ -733,6 +736,8 @@ export class GameScene extends Scene {
     this.mistakes += 1;
     if (profile) this.game.progress.recordAnswer(profile.id, false);
     if (this.support.wrongAnswerCostsHeart) this.lives.loseHeart();
+    // Played even when assisted support spares the heart: the child still hears the answer was off.
+    this.game.audio.playSfx(Sfx.ANSWER_ERROR);
     vibrateWarning();
     this.game.effects.spawnPuff(centerX, centerY, 14, '#ff5d73');
     this.game.effects.spawnFloatingText?.(centerX, centerY - 20, 'Ops!', '#ff5d73');
@@ -876,6 +881,7 @@ export class GameScene extends Scene {
     if (this.status !== Status.RUNNING) return;
     this.status = Status.PAUSED;
     this.game.input.reset();
+    this.game.audio.stopSfx();
     this._showPauseMenu();
   }
 

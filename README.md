@@ -207,8 +207,9 @@ Nginx na VPS (`docker/nginx-vps.conf`) faz proxy reverso com rate limiting e TLS
 Este projeto foi inspirado em
 [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras), de Samara
 Meneses (licença MIT). Daí em diante seguiu um caminho próprio, com outra proposta e
-outras mecânicas. Os cenários, itens e objetos em `public/assets/` vêm
-desse projeto e estão sob a licença MIT dela — ver
+outras mecânicas. Os cenários, itens e objetos em `public/assets/` e os sons de
+acerto/erro em `public/assets/audio/sfx/` vêm desse projeto e estão sob a licença MIT
+dela (texto integral em `public/licenses/aventura-das-letras-MIT.txt`) — ver
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Código do projeto. A imagem em `imgs_referencia/` é **apenas referência de proporções** e

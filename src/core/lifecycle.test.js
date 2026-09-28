@@ -32,4 +32,13 @@ describe('registerLifecycleListeners', () => {
     window.dispatchEvent(new Event('pointerdown'));
     expect(audio.unlock).toHaveBeenCalledTimes(1);
   });
+
+  it('silences effects in flight when the app is hidden', () => {
+    const audio = { unlock: vi.fn(), stopSfx: vi.fn() };
+    registerLifecycleListeners({ bus: new EventBus(), input: { reset: vi.fn() }, audio });
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    expect(audio.stopSfx).toHaveBeenCalledTimes(1);
+  });
 });

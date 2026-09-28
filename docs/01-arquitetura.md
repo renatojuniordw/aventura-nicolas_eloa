@@ -284,7 +284,8 @@ src/
 │   ├── sensor-time.ts           # temporização precisa de amostras de sensor
 │   └── status-message.ts        # mensagens amigáveis de status na tela do celular
 ├── audio/
-│   ├── audio-manager.ts         # mute/volume/categorias + Web Audio API
+│   ├── audio-manager.ts         # mute/volume/categorias; música e efeitos via HTMLAudioElement
+│   ├── sfx-catalog.ts           # chaves semânticas dos efeitos (acerto/erro) → /assets/audio/sfx/
 │   └── speech-narrator.ts       # sintetizador de voz com palavras de referência
 ├── ui/
 │   ├── dom.ts                   # helpers de DOM (textContent, nunca innerHTML)
