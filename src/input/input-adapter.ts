@@ -46,6 +46,13 @@ export class InputAdapter {
    */
   resync(): void {}
 
+  /**
+   * Forget any physical input this adapter is tracking as held (e.g. fingers
+   * on touch buttons). Called by InputManager.reset() so a finger that was
+   * down before a pause/blur cannot later release a fresh press.
+   */
+  releaseHeld(): void {}
+
   /** Release all resources. */
   dispose(): void {
     this.detach();

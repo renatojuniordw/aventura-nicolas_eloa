@@ -68,6 +68,7 @@ export class InputManager {
 
   /** Clears all recorded state (on adapter swap, pause, or blur). */
   reset(): void {
+    this._adapter?.releaseHeld?.();
     this._held.clear();
     this._pressed.clear();
   }

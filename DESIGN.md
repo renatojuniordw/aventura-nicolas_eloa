@@ -28,13 +28,23 @@ exploração livre foi substituído e só existe como histórico em `docs/13`.
 Reutilizar a paleta existente de floresta, creme e dourado.
 ## Typography
 Texto funcional em fonte simples. Fonte pixel reservada a títulos curtos.
+Tamanhos de texto do DOM em `rem`, para acompanhar "Texto ampliado". Base de
+botão com especificidade zero (`:where(.overlay) button`) para que as
+variantes definam a hierarquia sem `!important`.
 ## Layout
 Menus usam a tela inteira em retrato e paisagem, com rolagem vertical quando
-necessária. A partida usa o Canvas existente em paisagem. Respeitar safe areas.
+necessária e um único dono da rolagem por tela. A partida usa o Canvas em
+paisagem com escala uniforme 16:9 (faixas laterais em telas mais largas, nunca
+mundo esticado). HUD e controles respeitam safe areas; o HUD do Canvas desvia
+dos botões DOM medidos e usa segunda linha quando falta espaço. Na home em
+paisagem baixa: personagem compacto e ações em grade de duas colunas na mesma
+ordem do foco.
 ## Elevation & Depth
 Bordas sólidas e sombras curtas preservam a identidade existente.
 ## Shapes
-Botões de toque com pelo menos 48 px; controles do jogo com 56–68 px.
+Botões de toque com pelo menos 48 px; controles do jogo com 56 px (direções)
+e 68 px (pulo), 12 px de separação, iguais em todos os breakpoints. Feedback de
+toque por cor/borda, sem encolher o alvo.
 ## Components
 Convite de tela cheia após o aviso inicial, uma vez por abertura, com aceite,
 recusa e instrução para sair. Falha da API nunca impede jogar.

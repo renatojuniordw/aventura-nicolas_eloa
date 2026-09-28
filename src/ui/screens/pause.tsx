@@ -1,5 +1,6 @@
 import { buildScreen } from './mount-screen.js';
 import { MenuButton } from './menu-button.js';
+import { useFullscreen } from '../hooks.js';
 
 export type PauseStep = 'menu' | 'confirm-restart' | 'confirm-menu';
 
@@ -25,6 +26,9 @@ function PauseMenuStep({
   onDisablePhoneControl,
   goTo,
 }: PauseOptions & { goTo: (step: PauseStep) => void }) {
+  // On very small screens the HUD drops its fullscreen button (mobile.css), so
+  // the pause menu always carries the toggle — which also says how to leave.
+  const { supported: fullscreenSupported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
   return (
     <div className="overlay">
       <h2>Pausa</h2>
@@ -42,6 +46,11 @@ function PauseMenuStep({
         <MenuButton onClick={onToggleMute}>
           {isMuted ? '🔇 Som: Mudo' : '🔈 Som: Ligado'}
         </MenuButton>
+        {fullscreenSupported ? (
+          <MenuButton onClick={() => void toggleFullscreen()}>
+            {fullscreen ? '🗗 Sair da tela cheia' : '⛶ Tela cheia'}
+          </MenuButton>
+        ) : null}
         {isPhoneControlActive ? (
           <MenuButton onClick={onDisablePhoneControl}>
             📱 Desativar controle por celular

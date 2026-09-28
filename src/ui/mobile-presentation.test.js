@@ -33,4 +33,17 @@ describe('mobile presentation', () => {
 
     cleanup();
   });
+
+  it('marks the body as playing only while gameplay accepts movement', () => {
+    document.body.innerHTML = '<main id="app"></main>';
+    window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+    const bus = new EventBus();
+    const cleanup = initMobilePresentation({ bus, isTouch: () => true, pause: vi.fn(), resetInput: vi.fn(), goToMenu: vi.fn() });
+    bus.emit(Events.INPUT_MODE_CHANGED, { playing: true });
+    expect(document.body.dataset.inputMode).toBe('playing');
+    bus.emit(Events.INPUT_MODE_CHANGED, { playing: false });
+    expect(document.body.dataset.inputMode).toBe('ui');
+    cleanup();
+    expect(document.body.dataset.inputMode).toBeUndefined();
+  });
 });

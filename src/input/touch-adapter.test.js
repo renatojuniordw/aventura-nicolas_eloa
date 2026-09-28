@@ -82,4 +82,100 @@ describe('TouchAdapter', () => {
     button.dispatchEvent(pointerEvent('pointerdown'));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
+
+  describe('multitouch', () => {
+    function setup() {
+      const left = document.createElement('button');
+      const right = document.createElement('button');
+      const jump = document.createElement('button');
+      const onAction = vi.fn();
+      const adapter = new TouchAdapter(onAction, {
+        buttons: [
+          { element: left, action: Actions.MOVE_LEFT },
+          { element: right, action: Actions.MOVE_RIGHT },
+          { element: jump, action: Actions.JUMP },
+        ],
+      });
+      adapter.attach();
+      const calls = (action) => onAction.mock.calls.filter(([a]) => a === action).map(([, meta]) => meta.pressed);
+      return { left, right, jump, onAction, adapter, calls };
+    }
+
+    it('keeps moving while another finger taps jump repeatedly', () => {
+      const { right, jump, calls } = setup();
+      right.dispatchEvent(pointerEvent('pointerdown', 1));
+      for (let i = 0; i < 30; i++) {
+        jump.dispatchEvent(pointerEvent('pointerdown', 2 + i));
+        jump.dispatchEvent(pointerEvent('pointerup', 2 + i));
+      }
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true]);
+      expect(calls(Actions.JUMP)).toHaveLength(60);
+      right.dispatchEvent(pointerEvent('pointerup', 1));
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true, false]);
+    });
+
+    it('releases a button only when its last finger lifts', () => {
+      const { left, calls } = setup();
+      left.dispatchEvent(pointerEvent('pointerdown', 1));
+      left.dispatchEvent(pointerEvent('pointerdown', 2));
+      expect(calls(Actions.MOVE_LEFT)).toEqual([true]);
+      left.dispatchEvent(pointerEvent('pointerup', 1));
+      expect(calls(Actions.MOVE_LEFT)).toEqual([true]);
+      left.dispatchEvent(pointerEvent('pointerup', 2));
+      expect(calls(Actions.MOVE_LEFT)).toEqual([true, false]);
+    });
+
+    it('ignores the release of a finger it never saw press', () => {
+      const { jump, onAction } = setup();
+      jump.dispatchEvent(pointerEvent('pointerup', 9));
+      expect(onAction).not.toHaveBeenCalled();
+    });
+
+    it('releases on lost pointer capture', () => {
+      const { right, calls } = setup();
+      right.dispatchEvent(pointerEvent('pointerdown', 1));
+      right.dispatchEvent(pointerEvent('lostpointercapture', 1));
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true, false]);
+    });
+
+    it('keeps a captured finger held when it drifts off the button', () => {
+      const { right, calls } = setup();
+      right.hasPointerCapture = () => true;
+      right.dispatchEvent(pointerEvent('pointerdown', 1));
+      right.dispatchEvent(pointerEvent('pointerleave', 1));
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true]);
+    });
+
+    it('captures the pointer on the listening button, not the inner target', () => {
+      const { jump } = setup();
+      const inner = document.createElement('span');
+      jump.append(inner);
+      jump.setPointerCapture = vi.fn();
+      inner.setPointerCapture = vi.fn();
+      inner.dispatchEvent(pointerEvent('pointerdown', 4));
+      expect(jump.setPointerCapture).toHaveBeenCalledWith(4);
+      expect(inner.setPointerCapture).not.toHaveBeenCalled();
+    });
+
+    it('releaseHeld forgets old fingers so a stale lift cannot cancel a new press', () => {
+      const { right, adapter, calls } = setup();
+      right.dispatchEvent(pointerEvent('pointerdown', 1));
+      adapter.releaseHeld();
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true, false]);
+      right.dispatchEvent(pointerEvent('pointerdown', 2));
+      right.dispatchEvent(pointerEvent('pointerup', 1));
+      expect(calls(Actions.MOVE_RIGHT)).toEqual([true, false, true]);
+    });
+
+    it('releases held actions on detach and survives attach/detach cycles', () => {
+      const { left, adapter, calls } = setup();
+      left.dispatchEvent(pointerEvent('pointerdown', 1));
+      adapter.detach();
+      expect(calls(Actions.MOVE_LEFT)).toEqual([true, false]);
+      adapter.attach();
+      left.dispatchEvent(pointerEvent('pointerdown', 2));
+      left.dispatchEvent(pointerEvent('pointerup', 2));
+      expect(calls(Actions.MOVE_LEFT)).toEqual([true, false, true, false]);
+    });
+  });
 });

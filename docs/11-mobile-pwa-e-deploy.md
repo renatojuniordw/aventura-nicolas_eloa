@@ -21,8 +21,14 @@ implementa o mesmo contrato `InputAdapter` do teclado.
 
 - Usa **Pointer Events**, não Touch Events — os mesmos botões respondem a dedo, mouse ou
   caneta.
-- `pointerleave`/`pointercancel` soltam o botão, então arrastar o dedo para fora nunca
-  deixa uma ação "presa".
+- Cada dedo é rastreado por `pointerId`: movimento continua enquanto outro dedo toca pulo,
+  e `pointerup`/`pointercancel`/`lostpointercapture` (ou reset por pausa/foco) soltam o
+  botão, então nenhuma ação fica "presa" (detalhes em `docs/03` §8).
+- Tamanhos únicos em todos os breakpoints: 56 px para direções, 68 px para pulo, 12 px de
+  separação e 16 px (ou a safe area) das bordas. O feedback de toque muda cor/borda; o
+  alvo nunca encolhe nem se desloca sob o dedo.
+- A detecção `(pointer: coarse)` é relida a cada partida (`device.isTouch` é um getter),
+  então um híbrido que troca de ponteiro é reconhecido na próxima cena.
 - Teclado e toque ficam **ativos ao mesmo tempo** via `CompositeAdapter`
   (`src/input/composite-adapter.ts`) — útil num notebook conversível com tela de toque.
 - A detecção de toque só decide se os botões **aparecem**; a lógica de jogo nunca sabe de
@@ -41,6 +47,45 @@ adicionar o jogo à tela inicial. No PWA já aberto em modo standalone, o convit
 
 O layout escala com `clamp()`/unidades de viewport para caber em telas de qualquer
 tamanho sem cortar a área de jogo (`src/styles/main.css`).
+
+### 1.1. Gestos, zoom e política de toque
+
+`body[data-input-mode]` vale `playing` somente enquanto a partida aceita movimento
+(`GameScene` emite `Events.INPUT_MODE_CHANGED` a cada troca de status e ao sair; a pausa
+e a derrota voltam para `ui`). `src/ui/mobile-presentation.ts` aplica o atributo antes de
+qualquer toque. Nesse estado, `#game-canvas`, `.touch-controls-root`, o D-pad e os
+`.touch-btn` recebem `touch-action: none` e bloqueio de seleção/callout: o Canvas entra
+porque a raiz dos controles tem `pointer-events: none` e os espaços entre botões caem nele.
+Os botões do HUD usam `touch-action: manipulation`.
+
+Não se aplica `touch-action: none` a `html`, `body`, `#app` ou `.game-viewport` (que
+também hospedam menus), nem se usa `user-scalable=no`, `maximum-scale=1` ou bloqueio
+global de `touchmove`/`gesturestart`: menus, pausa e configurações mantêm rolagem e zoom
+de leitura. O fallback com Touch Events `{ passive: false }` descrito em `docs/17` §3.3
+**não** foi implementado; só deve entrar se o zoom continuar reproduzível no iPhone.
+
+### 1.2. Proporção do mundo e áreas seguras
+
+Em paisagem com toque (ou altura ≤ 520 px), `.game-viewport` é um shell de tela inteira e
+o Canvas mantém escala uniforme 16:9, centralizado; telas mais largas ganham faixas
+laterais discretas em vez de um mundo esticado. Menus, botões do HUD e controles de
+toque usam o shell inteiro e suas safe areas.
+
+O HUD em Canvas recebe a área útil real de `src/ui/hud-safe-area.ts`: a caixa medida
+da `.hud-controls-bar`, a caixa do Canvas e `env(safe-area-inset-*)`, convertidas para
+unidades do Canvas (`x = (xCSS − canvasLeft) × canvas.width / canvasRect.width`) e
+recalculadas em resize/rotação/mudança dos botões, nunca por frame. Com isso
+(`src/render/hud.ts`):
+
+- os corações ficam à esquerda dos botões DOM; se objetivo, nome da fase e corações não
+  cabem numa linha, os corações (e depois o nome da fase com o selo de progresso) descem
+  para uma segunda linha, em vez de encolher o objetivo;
+- o quadro de letras fica sob o objetivo quando cabe inteiro entre as colunas; senão
+  desce abaixo delas;
+- os textos são ampliados quando o mundo é exibido menor que 960 px (objetivo ≈ 18 px
+  CSS numa tela de 667 px), combinando com "Texto ampliado" até um teto;
+- em telas muito pequenas (altura ≤ 340 px ou largura ≤ 560 px) o botão de tela cheia do
+  HUD some e a opção fica no menu de pausa, que também diz como sair.
 
 ---
 

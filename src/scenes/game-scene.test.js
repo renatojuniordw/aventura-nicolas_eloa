@@ -357,6 +357,22 @@ describe('GameScene (unit)', () => {
     expect(game.input.resync).toHaveBeenCalledTimes(1);
   });
 
+  it('announces whether touches are gameplay: playing while running, not while paused or after exit', () => {
+    const game = makeFakeGame();
+    const modes = [];
+    game.bus.on(Events.INPUT_MODE_CHANGED, ({ playing }) => modes.push(playing));
+    const scene = enterNormalLesson(game);
+    expect(modes.at(-1)).toBe(true);
+    scene.pause();
+    expect(modes.at(-1)).toBe(false);
+    scene.resume();
+    expect(modes.at(-1)).toBe(true);
+    game.touchControls = { hide: vi.fn() };
+    game.effects.clear = vi.fn();
+    scene.exit();
+    expect(modes.at(-1)).toBe(false);
+  });
+
   it('does nothing on resume when the scene was never paused', () => {
     const game = makeFakeGame();
     const scene = enterNormalLesson(game);

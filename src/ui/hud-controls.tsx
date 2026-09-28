@@ -25,7 +25,8 @@ function HudControlsBar({ onPause, onRepeat, word, journeyLabel }: PauseButtonOp
     <>
     {word && <figure className="hud-word-picture"><WordPicture word={word} /><figcaption>{journeyLabel}</figcaption></figure>}
     <div className="hud-controls-bar">
-      {onRepeat && <button className="hud-ctrl-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}>♫</button> }
+      {onRepeat && <button className="hud-ctrl-btn hud-repeat-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}><span aria-hidden="true">🔊</span></button> }
+      {/* Hidden by CSS on very small screens; the pause menu offers it there. */}
       {supported && (
         <button
           className="hud-ctrl-btn hud-fullscreen-btn"

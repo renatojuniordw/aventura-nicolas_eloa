@@ -337,15 +337,21 @@ teclas:
 
 ```ts
 // src/input/touch-adapter.ts (resumido)
-private _handleDown(event: PointerEvent, action: string): void {
+private _pointers = new Map<number, string>();   // pointerId → ação segurada
+
+private _handleDown(event: PointerEvent, element: HTMLElement, action: string): void {
   event.preventDefault();                 // sem scroll/seleção de texto no toque
-  target?.setPointerCapture?.(event.pointerId);
-  this.onAction(action, { pressed: true, repeated: false });
+  element.setPointerCapture?.(event.pointerId);   // o botão do listener, não o alvo interno
+  const alreadyHeld = this._isHeld(action);
+  this._pointers.set(event.pointerId, action);
+  if (!alreadyHeld) this.onAction(action, { pressed: true, repeated: false });
 }
 
-private _handleUp(event: PointerEvent, action: string): void {
-  event.preventDefault();
-  this.onAction(action, { pressed: false, repeated: false });
+private _release(id: number): void {      // pointerup, pointercancel, lostpointercapture
+  const action = this._pointers.get(id);
+  if (action === undefined) return;       // dedo desconhecido (ex.: anterior a um reset)
+  this._pointers.delete(id);
+  if (!this._isHeld(action)) this.onAction(action, { pressed: false, repeated: false });
 }
 ```
 
@@ -354,8 +360,18 @@ Pontos que valem a pena notar:
 - Usa **Pointer Events** (`pointerdown`/`pointerup`/`pointercancel`/`pointerleave`), não
   Touch Events — assim os mesmos botões também respondem a mouse e caneta, e o adaptador
   fica testável sem simular um toque de verdade.
-- `pointerleave` solta o botão se o dedo arrastar para fora antes de soltar — sem isso, a
-  ação ficaria "presa" como se o botão continuasse pressionado.
+- **Multitoque por dedo:** cada `pointerId` ativo é rastreado. A ação é pressionada pelo
+  primeiro dedo e solta só quando o último dedo daquela ação sai — segurar ▶ e tocar pulo
+  repetidamente com outro dedo nunca interrompe o movimento. O segundo dedo nunca é
+  filtrado.
+- **Arrastar para fora:** com pointer capture, o dedo que escorrega além da borda visual
+  continua segurando o botão (um polegar infantil que desliza não para o personagem); a
+  ação é solta em `pointerup`, `pointercancel` ou `lostpointercapture`. Sem capture
+  (alguns mouses/canetas), `pointerleave` solta o botão.
+- **Reset:** `InputManager.reset()` (pausa, perda de foco, rotação) chama
+  `adapter.releaseHeld()`. O `TouchAdapter` esquece todos os dedos, então a liberação de
+  um dedo antigo nunca cancela um toque novo, e `detach()` também solta o que estava
+  pressionado. Não há debounce: a regra do pulo continua em `player-controller.ts`.
 - Os botões (`src/ui/touch-controls.ts`) são elementos DOM comuns; `main.ts` só passa uma
   lista `{ element, action }` para o adaptador — ele não sabe (nem precisa saber) como os
   botões foram desenhados.

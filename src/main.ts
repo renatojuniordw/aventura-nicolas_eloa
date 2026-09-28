@@ -17,6 +17,7 @@ import { Effects } from './render/effects.js';
 import { MenuOverlay } from './ui/menu.js';
 import { HudControls } from './ui/hud-controls.js';
 import { TouchControls } from './ui/touch-controls.js';
+import { createHudSafeArea } from './ui/hud-safe-area.js';
 import { AudioManager } from './audio/audio-manager.js';
 import { SpeechNarrator } from './audio/speech-narrator.js';
 import { initPwaInstallListener } from './ui/pwa-install.js';
@@ -97,7 +98,11 @@ export interface GamePreferences {
   supportLevel(): SupportLevel;
 }
 
-/** True on touch devices only; never throws where matchMedia is unavailable (tests, SSR). */
+/**
+ * True on touch devices only; never throws where matchMedia is unavailable
+ * (tests, SSR). Read live (see `device.isTouch`), so a hybrid that switches
+ * its primary pointer is picked up on the next scene instead of at boot only.
+ */
 function isTouchDevice(): boolean {
   return (
     typeof globalThis.matchMedia === 'function' &&
@@ -138,10 +143,17 @@ export function createGame({
   };
   const sprites = new SpriteRenderer({ assets, reducedMotion });
   const effects = new Effects({ reducedMotion });
+  // Real free area for the Canvas HUD (DOM buttons + safe areas), only when
+  // the buttons have their own layer to measure; tests fall back to defaults.
+  const hudSafeArea =
+    hudControlsRoot && typeof window !== 'undefined'
+      ? createHudSafeArea({ canvas, controlsRoot: hudControlsRoot })
+      : null;
   const hud = new Hud(renderer, {
     viewport: { width: canvas.width, height: canvas.height },
     textScale: () => (preferences.largeText() ? 1.25 : 1),
     highContrast: preferences.highContrast,
+    safeArea: () => hudSafeArea?.read() ?? null,
   });
   const announcer = new LiveAnnouncer();
   const input = new InputManager();
@@ -199,7 +211,9 @@ export function createGame({
     preferences,
     announcer,
     device: {
-      isTouch: isTouchDevice(),
+      get isTouch() {
+        return isTouchDevice();
+      },
     },
     curriculum: {
       units: curriculum.UNITS,
@@ -288,7 +302,7 @@ if (bootCanvas && bootOverlay) {
     touchControlsRoot: bootTouchControls as HTMLElement | null,
   });
   initMobilePresentation({
-    bus: game.bus, isTouch: game.device.isTouch,
+    bus: game.bus, isTouch: () => game.device.isTouch,
     pause: () => game.bus.emit(Events.APP_BLURRED, undefined),
     resetInput: () => game.input.reset(),
     goToMenu: () => game.scenes.switchTo('menu'),

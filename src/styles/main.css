@@ -84,7 +84,20 @@ body {
   background: #000;
 }
 
-/* Mobile landscape: expand to 100% full width and height, eliminating side letterbox black bars */
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/*
+ * Mobile landscape: the viewport becomes a full-screen shell (menus, HUD
+ * buttons and touch controls use the whole screen and its safe areas), while
+ * the world canvas keeps a uniform 16:9 scale, centred. Wider screens get
+ * quiet side bands instead of a horizontally stretched world.
+ */
 @media (pointer: coarse) and (orientation: landscape), (max-height: 520px) and (orientation: landscape) {
   .game-viewport {
     width: 100vw;
@@ -93,15 +106,15 @@ body {
     height: 100dvh;
     aspect-ratio: auto;
     box-shadow: none;
+    background: #0d141b;
   }
-}
-
-#game-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  #game-canvas {
+    width: min(100vw, calc(100vh * 16 / 9));
+    width: min(100dvw, calc(100dvh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+    height: min(100dvh, calc(100dvw * 9 / 16));
+    flex: none;
+  }
 }
 
 /* DOM overlays sit directly on top of the 16:9 game area */
@@ -145,8 +158,10 @@ body {
 
 .hud-ctrl-btn,
 .pause-btn {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   padding: 0;
   display: flex;
   align-items: center;
@@ -320,7 +335,8 @@ body {
   border-radius: 0;
   box-shadow: none;
   text-align: center;
-  background-image: url('/assets/backgrounds/primavera-lago-pixel-v1.webp');
+  /* Tint + art as one background: it stays put while the screen scrolls. */
+  background-image: linear-gradient(rgba(7, 28, 20, 0.28), rgba(7, 28, 20, 0.28)), url('/assets/backgrounds/primavera-lago-pixel-v1.webp');
   background-size: cover;
   background-position: center bottom;
   image-rendering: pixelated;
@@ -331,16 +347,10 @@ body {
   align-items: center;
   padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   box-sizing: border-box;
-  overflow: hidden;
-}
-
-.home-screen::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(7, 28, 20, 0.28);
-  pointer-events: none;
-  z-index: 1;
+  /* The home screen is the one scroll owner of the menu (docs/17 §5). */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .home-board {
@@ -450,7 +460,7 @@ body {
   color: var(--color-gold);
   border: 1px solid var(--color-gold-border);
   font-family: var(--font-ui);
-  font-size: clamp(0.58rem, 1.1vh, 0.68rem);
+  font-size: 0.8125rem;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 3px;
@@ -864,9 +874,16 @@ body {
   margin-top: clamp(6px, 1.2vh, 12px);
 }
 
-.overlay button {
-  font-family: var(--font-pixel);
-  font-size: clamp(0.72rem, 1.6vh, 0.85rem);
+/*
+ * Base for every overlay button. `:where()` keeps it at element specificity,
+ * so variant classes (.btn-primary-gold, .btn-explore, .btn-util,
+ * .hero-change-btn…) always win without !important. Functional text uses the
+ * UI font; the pixel font is for short titles.
+ */
+:where(.overlay) button {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
   padding: clamp(7px, 1.4vh, 10px) clamp(12px, 2vw, 18px);
   border-radius: 4px;
   border: 2px solid var(--color-ink);
@@ -877,20 +894,20 @@ body {
   transition: transform 0.08s ease, background 0.15s ease;
 }
 
-.overlay button:hover {
+:where(.overlay) button:where(:hover) {
   transform: translateY(-2px);
   background: var(--color-green-hover);
   box-shadow: 0 5px 0 var(--color-green-dark);
 }
 
-.overlay button.primary {
+:where(.overlay) button.primary {
   background: var(--color-gold);
   color: var(--color-ink);
   font-weight: 700;
   border-color: var(--color-gold-border);
 }
 
-.overlay button.primary:hover {
+:where(.overlay) button.primary:hover {
   background: var(--color-gold-border);
 }
 
@@ -1423,8 +1440,8 @@ body {
     gap: 8px;
     margin-top: 6px;
   }
-  .overlay button {
-    font-size: 0.82rem;
+  :where(.overlay) button {
+    font-size: 0.9375rem;
     padding: 7px 14px;
   }
   .overlay-scroll {
@@ -1468,7 +1485,7 @@ body {
   color: var(--color-cream);
   border: 3px solid var(--color-gold-border);
   font-family: var(--font-pixel);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .update-banner[hidden] {
@@ -1508,8 +1525,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 }
 .hud-word-picture {
   position: absolute;
-  top: 16%;
-  left: 2%;
+  /* Below the level name/progress badge rows (render/hud.ts), clear of the notch. */
+  top: calc(24% + env(safe-area-inset-top));
+  left: max(2%, env(safe-area-inset-left));
   margin: 0;
   width: 15%;
   max-width: 144px;
@@ -1527,7 +1545,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   background: #203632;
   border-radius: 6px;
   padding: 4px;
-  font: bold clamp(10px, 1.3vw, 14px) 'Trebuchet MS', sans-serif;
+  font: bold clamp(0.75rem, 1.3vw, 0.875rem) 'Trebuchet MS', sans-serif;
 }
 .discoveries-screen { width: min(100%, 1000px); }
 .discoveries-grid {

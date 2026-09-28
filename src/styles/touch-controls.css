@@ -14,12 +14,17 @@
   pointer-events: auto;
 }
 
+/*
+ * Single sizing rule for every breakpoint (DESIGN.md): 56px directions, 68px
+ * jump, 12px apart, 16px (or the safe area) from the edges. Targets are never
+ * shrunk to save space. Measured in CSS px, not device pixels.
+ */
 .touch-btn {
   touch-action: none;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  /* 56px comfortably clears the 44x44 accessibility minimum touch target. */
   width: 56px;
   height: 56px;
   padding: 0;
@@ -35,13 +40,13 @@
   color: var(--color-cream);
   box-shadow: 0 3px 0 var(--color-ink);
   cursor: pointer;
-  transition: transform 0.05s ease, background 0.1s ease;
+  transition: background 0.1s ease, border-color 0.1s ease;
 }
 
+/* Colour/border feedback only: the hitbox never moves or shrinks under the finger. */
 .touch-btn:active {
-  transform: translateY(2px) scale(0.95);
   background: rgba(20, 36, 32, 0.95);
-  box-shadow: 0 1px 0 var(--color-ink);
+  border-color: var(--color-gold-border);
 }
 
 .touch-controls-dpad {
@@ -66,26 +71,24 @@
 
 .touch-btn-jump:active {
   background: rgba(255, 212, 121, 1);
+  border-color: var(--color-cream);
 }
 
-@media (max-height: 480px) {
-  .touch-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 1.2rem;
-  }
-  .touch-controls-dpad {
-    left: max(10px, env(safe-area-inset-left));
-    bottom: max(10px, env(safe-area-inset-bottom));
-    gap: 8px;
-  }
-  .touch-btn-jump {
-    right: max(10px, env(safe-area-inset-right));
-    bottom: max(10px, env(safe-area-inset-bottom));
-    width: 56px;
-    height: 56px;
-    font-size: 1.4rem;
-  }
+/*
+ * Gesture policy for live play only (docs/17). `data-input-mode` is set by
+ * ui/mobile-presentation.ts before any touch lands. The raw root has
+ * `pointer-events: none`, so gaps between buttons hit the canvas: both are
+ * covered. Never applied to html/body/.game-viewport, which also host menus
+ * that must keep scroll and reading zoom.
+ */
+body[data-input-mode="playing"] #game-canvas,
+body[data-input-mode="playing"] .touch-controls-root,
+body[data-input-mode="playing"] .touch-controls-dpad,
+body[data-input-mode="playing"] .touch-btn {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* ==========================================================================

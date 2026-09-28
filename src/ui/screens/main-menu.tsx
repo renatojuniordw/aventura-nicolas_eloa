@@ -70,7 +70,7 @@ function MainMenuScreen({
   const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   return (
-    <div className="overlay home-screen">
+    <div className={supported ? 'overlay home-screen has-fullscreen' : 'overlay home-screen'}>
       {supported && (
         <MenuButton
           className="home-fullscreen-btn"
@@ -91,10 +91,9 @@ function MainMenuScreen({
             <div className="hero-showcase-badge">JOGADOR PRONTO</div>
             <div className="hero-visual-stage">
               {selectedChar?.portrait ? (
+                // The single "change character" action: portrait plus its visible label.
                 <MenuButton
-
                   className="hero-portrait-frame hero-portrait-btn"
-                  title="Clique para escolher ou trocar de personagem"
                   aria-label={`Trocar personagem. Atual: ${selectedChar.name}`}
                   onClick={() => onOpenCharacterPicker?.(currentCharacterId)}
                 >
@@ -116,9 +115,9 @@ function MainMenuScreen({
             <div className="hero-showcase-footer">
               <div className="hero-name-plate">⭐ {selectedChar?.name ?? 'Nicolas Gomes'}</div>
               <div className="hero-flavor-text">Pronto para pular, descobrir e brincar!</div>
-              {onOpenCharacterPicker && (
+              {/* Fallback only when there is no portrait to tap. */}
+              {onOpenCharacterPicker && !selectedChar?.portrait && (
                 <MenuButton
-
                   className="hero-change-btn"
                   onClick={() => onOpenCharacterPicker(currentCharacterId)}
                 >
@@ -134,24 +133,17 @@ function MainMenuScreen({
               <div className="discovery-title">SUA PRÓXIMA DESCOBERTA</div>
               <div className="discovery-target">{currentLessonTitle}</div>
             </div>
+            {/* DOM order = visual order = focus order (the compact grid pairs them two by two). */}
             <div className="menu-buttons-group home-btn-group">
-              <MenuButton
-                className="btn-retro btn-primary-gold"
-
-                onClick={onPlay}
-              >
+              <MenuButton className="btn-retro btn-primary-gold" onClick={onPlay}>
                 {active && completedCount > 0 ? 'Continuar aventura' : 'Começar aventura'}
               </MenuButton>
-              <MenuButton
-                className="btn-retro btn-secondary-green"
-
-                onClick={onSpeedrun}
-              >
+              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
+                <strong>Explorar</strong><small className="btn-explore-detail">Jornadas de até {JOURNEY_LENGTH} palavras</small>
+              </MenuButton>}
+              <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>
                 {speedrunText}
               </MenuButton>
-              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
-                <strong>Explorar</strong><small>Jornadas de até {JOURNEY_LENGTH} palavras</small>
-              </MenuButton>}
               {onOpenDiscoveries && <MenuButton className="btn-util" onClick={onOpenDiscoveries}>Caderno de descobertas</MenuButton>}
               <div className="menu-meta-row home-meta-row">
                 <MenuButton className="btn-util" onClick={onOpenSettings}>

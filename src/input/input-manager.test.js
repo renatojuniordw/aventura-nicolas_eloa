@@ -138,4 +138,14 @@ describe('InputManager', () => {
     const input = new InputManager();
     expect(() => input.resync()).not.toThrow();
   });
+
+  it('reset asks the adapter to forget physically held input (touch fingers)', () => {
+    const input = new InputManager();
+    const adapter = new FakeAdapter(input.handleAction);
+    adapter.releaseHeld = vi.fn();
+    input.setAdapter(adapter);
+    adapter.releaseHeld.mockClear();
+    input.reset();
+    expect(adapter.releaseHeld).toHaveBeenCalledTimes(1);
+  });
 });

@@ -11,6 +11,8 @@ export const Events = Object.freeze({
   SCENE_CHANGED: 'scene.changed',
   APP_BLURRED: 'app.blurred',
   APP_FOCUSED: 'app.focused',
+  /** Whether live gameplay accepts movement input right now (drives the touch gesture policy). */
+  INPUT_MODE_CHANGED: 'input.mode.changed',
   LESSON_STARTED: 'lesson.started',
   ITEM_COLLECTED: 'item.collected',
   ANSWER_CORRECT: 'answer.correct',
@@ -49,6 +51,7 @@ export interface EventPayloadMap {
   [Events.SCENE_CHANGED]: { name: string };
   [Events.APP_BLURRED]: undefined;
   [Events.APP_FOCUSED]: undefined;
+  [Events.INPUT_MODE_CHANGED]: { playing: boolean };
   [Events.LESSON_STARTED]: { lesson: unknown };
   [Events.ITEM_COLLECTED]: { item: CollectedItemPayload };
   [Events.ANSWER_CORRECT]: unknown;

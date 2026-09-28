@@ -32,4 +32,8 @@ export class CompositeAdapter extends InputAdapter {
   override resync(): void {
     for (const adapter of this._adapters) adapter.resync();
   }
+
+  override releaseHeld(): void {
+    for (const adapter of this._adapters) adapter.releaseHeld();
+  }
 }

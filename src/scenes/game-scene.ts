@@ -69,7 +69,17 @@ export class GameScene extends Scene {
   mode: 'normal' | 'speedrun' | 'explore' = 'normal';
 
   mistakes = 0;
-  status: StatusValue = Status.RUNNING;
+  private _status: StatusValue = Status.RUNNING;
+
+  get status(): StatusValue {
+    return this._status;
+  }
+
+  /** Every status change tells the page whether touches are gameplay (see ui/mobile-presentation.ts). */
+  set status(value: StatusValue) {
+    this._status = value;
+    this.game?.bus?.emit(Events.INPUT_MODE_CHANGED, { playing: value === Status.RUNNING });
+  }
   private _winTimer = 0;
   private _winElapsed = 0;
   private _winViaPortal = false;
@@ -263,6 +273,7 @@ export class GameScene extends Scene {
     this.game.hudControls.hidePauseButton();
     this.game.touchControls.hide();
     this.game.effects.clear();
+    this.game.bus?.emit(Events.INPUT_MODE_CHANGED, { playing: false });
   }
 
   override update(dt: number): void {
