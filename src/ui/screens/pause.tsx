@@ -34,7 +34,7 @@ function PauseMenuStep({
       <h2>Pausa</h2>
       <p>Respire fundo e continue quando quiser.</p>
       <div className="overlay-actions">
-        <MenuButton className="primary" onClick={onResume}>
+        <MenuButton className="primary" data-autofocus="" onClick={onResume}>
           Continuar
         </MenuButton>
         <MenuButton onClick={() => goTo('confirm-restart')}>
@@ -43,11 +43,11 @@ function PauseMenuStep({
         <MenuButton onClick={() => goTo('confirm-menu')}>
           Menu
         </MenuButton>
-        <MenuButton onClick={onToggleMute}>
+        <MenuButton data-nav-id="mute" onClick={onToggleMute}>
           {isMuted ? '🔇 Som: Mudo' : '🔈 Som: Ligado'}
         </MenuButton>
         {fullscreenSupported ? (
-          <MenuButton onClick={() => void toggleFullscreen()}>
+          <MenuButton data-nav-id="fullscreen" onClick={() => void toggleFullscreen()}>
             {fullscreen ? '🗗 Sair da tela cheia' : '⛶ Tela cheia'}
           </MenuButton>
         ) : null}
@@ -86,7 +86,8 @@ function PauseConfirmStep({
         <MenuButton className="primary" onClick={confirmAction}>
           Sim, confirmar
         </MenuButton>
-        <MenuButton onClick={() => goTo('menu')}>
+        {/* Destructive confirmation: start on the safe choice (docs/18 §5). */}
+        <MenuButton data-autofocus="" onClick={() => goTo('menu')}>
           Cancelar
         </MenuButton>
       </div>

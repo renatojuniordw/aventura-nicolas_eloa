@@ -56,6 +56,44 @@ function HudControlsBar({ onPause, onRepeat, word, journeyLabel }: PauseButtonOp
   );
 }
 
+export interface PracticeCoachOptions {
+  stepNumber: number;
+  totalSteps: number;
+  title: string;
+  body: string;
+  done: boolean;
+  onSkip: () => void;
+  onRepeat: () => void;
+  onFinish: () => void;
+}
+
+/**
+ * Coach for the controls practice (docs/18 §8): one short step at a time at
+ * the top of the screen, so it never covers the buttons being taught. Can be
+ * skipped at any step; the text is announced politely, never every frame.
+ */
+function PracticeCoach({ stepNumber, totalSteps, title, body, done, onSkip, onRepeat, onFinish }: PracticeCoachOptions) {
+  return (
+    <div className="practice-coach">
+      <div role="status" aria-live="polite">
+        {!done && <p className="practice-coach-step">Passo {stepNumber} de {totalSteps}</p>}
+        <p className="practice-coach-title">{title}</p>
+        <p className="practice-coach-body">{body}</p>
+      </div>
+      <div className="practice-coach-actions">
+        {done ? (
+          <>
+            <button className="hud-ctrl-btn practice-coach-btn" type="button" onClick={onRepeat}>↺ Repetir</button>
+            <button className="hud-ctrl-btn practice-coach-btn practice-coach-primary" type="button" onClick={onFinish}>Continuar</button>
+          </>
+        ) : (
+          <button className="hud-ctrl-btn practice-coach-btn" type="button" onClick={onSkip}>Pular introdução</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface HudControlsOptions {
   root: HTMLElement;
 }
@@ -85,6 +123,15 @@ export class HudControls {
   showPauseButton(options: PauseButtonOptions): void {
     this._current?.cleanup();
     const { node, cleanup } = mountScreen(<HudControlsBar {...options} />);
+    clear(this._root);
+    this._root.append(node);
+    this._current = { node, cleanup };
+  }
+
+  /** Replaces the HUD bar with the practice coach (same root and lifetime rules). */
+  showPracticeCoach(options: PracticeCoachOptions): void {
+    this._current?.cleanup();
+    const { node, cleanup } = mountScreen(<PracticeCoach {...options} />);
     clear(this._root);
     this._root.append(node);
     this._current = { node, cleanup };

@@ -101,7 +101,10 @@ automaticamente em dispositivos com `matchMedia('(pointer: coarse)')` verdadeiro
 notebook com tela de toque, teclado e toque ficam ativos **ao mesmo tempo** (ver
 [03 — Abstração de input](03-abstracao-de-input.md#8-um-segundo-adaptador-já-em-produção-o-toque)).
 Em telas de toque o jogo é **somente paisagem**: um aviso pede para girar o aparelho se
-estiver em retrato (ver [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)).
+estiver em retrato (ver [11 — Mobile, PWA e deploy](11-mobile-pwa-e-deploy.md)). Tamanho,
+lado do pulo e distância da borda podem ser ajustados por aparelho em Configurações →
+Controles de toque, onde também fica "Experimentar controles", uma prática opcional sem
+corações nem cronômetro (oferecida uma vez no primeiro jogo em tela de toque).
 
 > Estes controles são *intenção*, não *hardware*. Um adaptador de ESP32 pode emitir as
 > mesmas ações sem alterar uma linha do jogo — ver [03 — Abstração de input](03-abstracao-de-input.md).

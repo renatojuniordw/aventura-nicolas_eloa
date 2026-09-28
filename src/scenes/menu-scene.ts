@@ -7,6 +7,12 @@ import { DEFAULT_CHARACTER_ID, getCharacter } from '../content/characters.js';
 import { pumpMenuKeys } from '../ui/overlay-input.js';
 import { DEFAULT_PLAYER_NAME, resolveActiveProfile } from '../persistence/active-profile.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
+import { formatSupportReport, readSupportEnvironment } from '../ui/support-info.js';
+
+interface MenuParams {
+  /** Screen to open instead of the home (e.g. coming back from the controls practice). */
+  open?: 'settings';
+}
 
 /** How long the QR pairing screen waits before nudging toward "Voltar" (docs/12 §10). */
 const PAIRING_TIMEOUT_HINT_MS = 45_000;
@@ -39,14 +45,15 @@ export function describeLesson(lesson: LessonLike | null | undefined): string {
  * shortcuts are the abstracted CONFIRM/BACK actions.
  */
 export class MenuScene extends Scene {
-  override enter(): void {
+  override enter(params: MenuParams = {}): void {
     // Arriving at the menu from anywhere (finishing a lesson, pausing out,
     // the phone dropping) must always leave keyboard/touch working — phone
     // mode replaces that composite entirely (see main.ts), and nothing else
     // ever restored it. Re-pairing for the next lesson is one QR scan away;
     // a menu with a dead keyboard is not an acceptable trade for skipping it.
     if (this.game.phoneControl.isActive) this.game.phoneControl.stop();
-    this.render();
+    if (params.open === 'settings') this.openSettings();
+    else this.render();
   }
 
   override exit(): void {
@@ -101,6 +108,7 @@ export class MenuScene extends Scene {
       },
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenSettings: () => this.openSettings(),
+      motion: this.game.motion,
     });
   }
 
@@ -118,19 +126,53 @@ export class MenuScene extends Scene {
     });
   }
 
+  /**
+   * First touch play on this device: offer the controls practice once before
+   * starting (docs/18 §8). Either answer is remembered; the practice then
+   * continues into what the child had chosen.
+   */
+  private _withPracticeOffer(start: () => void): void {
+    const store = this.game.controlsPractice;
+    if (!this.game.device?.isTouch || !store || store.read().offered) {
+      start();
+      return;
+    }
+    this.game.menu.showPracticeOffer({
+      onPractice: () => {
+        store.markOffered();
+        this.openPractice(start);
+      },
+      onSkip: () => {
+        store.markOffered();
+        start();
+      },
+    });
+  }
+
+  /** "Experimentar controles": the safe practice arena, then `onExit`. */
+  openPractice(onExit: () => void = () => this.game.scenes.switchTo('menu', { open: 'settings' })): void {
+    this.game.scenes.switchTo('practice', { onExit });
+  }
+
   /** Start the next unfinished Explorar word, creating a profile if needed. */
   startExplore(): void {
-    this.game.profiles.getActiveProfile() ??
-      this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
-    this.game.startExploration();
+    this._withPracticeOffer(() => {
+      this.game.profiles.getActiveProfile() ??
+        this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
+      this.game.startExploration();
+    });
   }
 
   startSpeedrun(): void {
-    this.game.startSpeedrun();
+    this._withPracticeOffer(() => this.game.startSpeedrun());
   }
 
   /** Start the first unfinished lesson, creating a profile if needed. */
   playNext(): void {
+    this._withPracticeOffer(() => this._startNextLesson());
+  }
+
+  private _startNextLesson(): void {
     const profile =
       this.game.profiles.getActiveProfile() ??
       this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
@@ -188,6 +230,7 @@ export class MenuScene extends Scene {
         voiceVolume: this.game.audio.voiceVolume,
       },
       experience: this.game.experience.read(),
+      systemReducedMotion: Boolean(this.game.motion?.reduced()) && !this.game.experience.read().reducedMotion,
       onAudioChange: (category, value) => {
         this.game.audio.setCategoryVolume(category, value);
         this.openSettings();
@@ -197,13 +240,66 @@ export class MenuScene extends Scene {
         this.openSettings();
       },
       onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings() }),
+      touch: this.game.device?.isTouch && this.game.touchLayout
+        ? {
+            layout: this.game.touchLayout.read(),
+            onChange: (patch) => {
+              this.game.touchLayout.update(patch);
+              this.openSettings();
+            },
+            onReset: () => {
+              this.game.touchLayout.reset();
+              this.openSettings();
+            },
+            onPractice: () => this.openPractice(),
+          }
+        : undefined,
+      onOpenSupport: () => this.openSupportInfo(),
       onOpenPhonePairing: () => this.openPhonePairing(),
-      onResetProgress: () => {
-        const profile = profiles.getActiveProfile();
-        if (profile) progress.resetProgress(profile.id);
-        this.render();
-      },
+      onResetProgress: () =>
+        this.game.menu.showConfirm({
+          title: 'Zerar progresso?',
+          message: 'As fases, o caderno de descobertas e os recordes deste jogador serão apagados deste aparelho. Isso não pode ser desfeito.',
+          confirmLabel: 'Sim, zerar',
+          onConfirm: () => {
+            const profile = profiles.getActiveProfile();
+            if (profile) progress.resetProgress(profile.id);
+            this.render();
+          },
+          onCancel: () => this.openSettings(),
+        }),
       onBack: () => this.render(),
+    });
+  }
+
+  /** "Informações para suporte" (docs/18 §10): read on open/refresh only, copied only on request. */
+  openSupportInfo(): void {
+    const { frameStats } = this.game;
+    const report = formatSupportReport(
+      readSupportEnvironment({
+        reducedMotion: this.game.preferences.reducedMotion(),
+        touchLayout: this.game.touchLayout.read(),
+        frames: frameStats.summary(),
+      }),
+    );
+    this.game.menu.showSupportInfo({
+      report,
+      measuring: frameStats.running,
+      onToggleMeasuring: () => {
+        if (frameStats.running) frameStats.stop();
+        else frameStats.start();
+        this.openSupportInfo();
+      },
+      onRefresh: () => this.openSupportInfo(),
+      onBack: () => this.openSettings(),
+      copy: async (text) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          return false;
+        }
+      },
     });
   }
 
@@ -239,13 +335,14 @@ export class MenuScene extends Scene {
           this.game.phoneControl.stop();
           this.render();
         },
+        // The phone is the controller here: no on-screen controls practice offer.
         onPlay: () => {
           clearTimeout(timeoutId);
-          this.playNext();
+          this._startNextLesson();
         },
         onSpeedrun: () => {
           clearTimeout(timeoutId);
-          this.startSpeedrun();
+          this.game.startSpeedrun();
         },
       });
     };

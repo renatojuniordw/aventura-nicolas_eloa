@@ -34,7 +34,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 15  | [Plano melhorias pós-streaming](15-plano-melhorias-pos-streaming.md)       | Invariantes de estabilidade, janela de segmentos e refinamento pedagógico do stream  |
 | 16  | [Letras com palavras de referência](16-plano-letras-com-palavras-de-referencia.md) | Associação falada A–Z (“A de amigo”) em todos os níveis de apoio              |
 | 17  | [Plano de melhorias do layout mobile](17-plano-melhorias-layout-mobile.md) | Revisão do HUD, menus, proporção, controles e zoom no iPhone; implementação registrada na §12 |
-| 18  | [Plano complementar de experiência mobile](18-plano-experiencia-mobile-complementar.md) | Conforto dos controles, prática guiada, navegação, carregamento e animações |
+| 18  | [Plano complementar de experiência mobile](18-plano-experiencia-mobile-complementar.md) | Conforto dos controles, prática guiada, navegação, carregamento e animações; implementação registrada na §13 |
 | 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes |
 
 ## Mapa rápido: onde está cada coisa

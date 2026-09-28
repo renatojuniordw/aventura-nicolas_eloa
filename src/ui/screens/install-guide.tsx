@@ -19,7 +19,7 @@ function InstallGuide({ onBack }: InstallGuideOptions) {
     </ol> : <p>{installable ? 'O navegador está pronto para instalar o jogo.' : 'Abra o menu do navegador e escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.'}</p>}
     <p className="settings-help">Instalado, o jogo abre sem a barra do navegador e continua disponível offline depois do primeiro carregamento completo.</p>
     <div className="overlay-actions">
-      {installable && !standalone && <MenuButton className="btn-retro btn-primary-gold" onClick={() => void promptPwaInstall()}>Instalar agora</MenuButton>}
+      {installable && !standalone && <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" onClick={() => void promptPwaInstall()}>Instalar agora</MenuButton>}
       <MenuButton className="btn-util" onClick={onBack}>Voltar</MenuButton>
     </div>
   </div></div>;

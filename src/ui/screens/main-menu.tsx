@@ -7,21 +7,29 @@ import { formatTime } from '../../content/text-utils.js';
 import { createCelebrationCanvas } from './celebration-canvas.js';
 import type { Profile } from '../../persistence/migration.js';
 import { useFullscreen } from '../hooks.js';
+import type { MotionPolicy } from '../motion-policy.js';
 
 /**
  * Wraps the framework-agnostic celebration canvas (its own rAF loop, unit
  * tested directly in `celebration-canvas.test.js`/`.dom.test.js`) in a React
- * lifecycle: mount appends the canvas, unmount stops the animation loop —
- * `createCelebrationCanvas` itself stays untouched.
+ * lifecycle: mount appends the canvas, a motion-policy change refreshes it,
+ * unmount stops the loop and its listeners. When the stage is hidden by CSS
+ * the helper itself stays idle (IntersectionObserver), see docs/18 §3.
  */
-function CelebrationCanvas({ imageSrc }: { imageSrc: string }) {
+function CelebrationCanvas({ imageSrc, motion }: { imageSrc: string; motion?: MotionPolicy }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const { canvas, stop } = createCelebrationCanvas(imageSrc, 120, 120);
-    if (canvas && ref.current) ref.current.appendChild(canvas);
-    return () => stop();
-  }, [imageSrc]);
+    const host = ref.current;
+    const { canvas, stop, refresh } = createCelebrationCanvas(imageSrc, 120, 120, { reducedMotion: motion?.reduced });
+    if (canvas && host) host.appendChild(canvas);
+    const unsubscribe = motion?.subscribe(() => refresh());
+    return () => {
+      unsubscribe?.();
+      stop();
+      canvas?.remove();
+    };
+  }, [imageSrc, motion]);
 
   return <div ref={ref} className="hero-animation-stage-canvas-host" />;
 }
@@ -42,6 +50,8 @@ interface MainMenuOptions {
   onSelectCharacter?: (characterId: string) => void;
   onOpenCharacterPicker?: (characterId: string) => void;
   onOpenSettings: () => void;
+  /** Effective reduced-motion rule; without it the celebration follows only the system. */
+  motion?: MotionPolicy;
 }
 
 /** Home Screen (Aventura do Nicolas&Eloá): clean, focused layout with dedicated character showcase. */
@@ -59,6 +69,7 @@ function MainMenuScreen({
   onSpeedrun,
   onOpenCharacterPicker,
   onOpenSettings,
+  motion,
 }: MainMenuOptions) {
   const active = profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? null;
   const currentCharacterId = selectedCharacterId || active?.characterId || CHARACTERS[0].id;
@@ -74,6 +85,7 @@ function MainMenuScreen({
       {supported && (
         <MenuButton
           className="home-fullscreen-btn"
+          data-nav-id="fullscreen"
 
           aria-label={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
           title={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
@@ -94,6 +106,7 @@ function MainMenuScreen({
                 // The single "change character" action: portrait plus its visible label.
                 <MenuButton
                   className="hero-portrait-frame hero-portrait-btn"
+                  data-nav-id="character"
                   aria-label={`Trocar personagem. Atual: ${selectedChar.name}`}
                   onClick={() => onOpenCharacterPicker?.(currentCharacterId)}
                 >
@@ -107,7 +120,7 @@ function MainMenuScreen({
               ) : null}
               {selectedChar?.sprites?.celebrate ? (
                 <div className="hero-animation-stage">
-                  <CelebrationCanvas imageSrc={selectedChar.sprites.celebrate} />
+                  <CelebrationCanvas imageSrc={selectedChar.sprites.celebrate} motion={motion} />
                   <div className="hero-podium-pedestal" />
                 </div>
               ) : null}
@@ -119,6 +132,7 @@ function MainMenuScreen({
               {onOpenCharacterPicker && !selectedChar?.portrait && (
                 <MenuButton
                   className="hero-change-btn"
+                  data-nav-id="character"
                   onClick={() => onOpenCharacterPicker(currentCharacterId)}
                 >
                   🔄 Trocar Personagem
@@ -135,7 +149,7 @@ function MainMenuScreen({
             </div>
             {/* DOM order = visual order = focus order (the compact grid pairs them two by two). */}
             <div className="menu-buttons-group home-btn-group">
-              <MenuButton className="btn-retro btn-primary-gold" onClick={onPlay}>
+              <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" data-nav-id="play" onClick={onPlay}>
                 {active && completedCount > 0 ? 'Continuar aventura' : 'Começar aventura'}
               </MenuButton>
               {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>

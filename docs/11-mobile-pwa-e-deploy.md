@@ -29,6 +29,24 @@ implementa o mesmo contrato `InputAdapter` do teclado.
   alvo nunca encolhe nem se desloca sob o dedo.
 - A detecção `(pointer: coarse)` é relida a cada partida (`device.isTouch` é um getter),
   então um híbrido que troca de ponteiro é reconhecido na próxima cena.
+- O botão segurado recebe `.is-held` a partir do próprio `TouchAdapter` (`onHeldChange`),
+  não só de `:active`; pausa, cancelamento e perda de captura limpam ação e visual juntos.
+- **Presets por aparelho** (Configurações → Controles de toque, docs/18 §7): tamanho
+  padrão/maior, pulo à direita/esquerda e distância da borda perto/média/longe.
+  `TouchLayoutStore` (`src/persistence/touch-layout-store.ts`, chave
+  `…touch-layout.v1`, fora dos perfis) valida cada campo e volta ao padrão no que for
+  inválido. `TouchControls.applyLayout()` só troca atributos `data-*` na raiz — os mesmos
+  elementos continuam ligados ao `TouchAdapter` — e espera o último dedo sair antes de
+  aplicar. A prévia nas Configurações usa as mesmas classes em tamanho real e não move o
+  personagem. "Restaurar padrão" apaga a chave.
+- **Experimentar controles** (docs/18 §8): cena `practice`
+  (`src/scenes/practice-scene.ts`) numa arena plana sem corações, letras nem cronômetro,
+  usando o `PlayerController` real. As etapas (andar, pular, andar + pular; pulo
+  sustentado aparece só como dica final) avançam por ações reais em
+  `src/gameplay/controls-practice.ts`, nunca por tempo; o coach fica no topo e os botões
+  ensinados ganham `.is-hinted`. Pode ser pulada a qualquer etapa. É oferecida uma vez
+  no primeiro "Começar/Explorar/Corrida" em tela de toque e fica em Configurações;
+  oferta e conclusão ficam em `ControlsPracticeStore`, separadas de lições e estrelas.
 - Teclado e toque ficam **ativos ao mesmo tempo** via `CompositeAdapter`
   (`src/input/composite-adapter.ts`) — útil num notebook conversível com tela de toque.
 - A detecção de toque só decide se os botões **aparecem**; a lógica de jogo nunca sabe de

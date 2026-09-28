@@ -117,7 +117,7 @@ function PhonePairingScreen({
       <div className="overlay-actions">
         {status === 'paired' ? (
           <>
-            <MenuButton className="btn-retro btn-primary-gold" onClick={onPlay}>
+            <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" onClick={onPlay}>
               Jogar fases
             </MenuButton>
             <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>

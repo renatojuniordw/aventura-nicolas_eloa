@@ -7,6 +7,12 @@ interface ButtonBinding {
 
 interface TouchAdapterOptions {
   buttons?: ButtonBinding[];
+  /**
+   * Told whenever an action starts/stops being held by at least one finger —
+   * the exact same moments the action itself is pressed/released — so the
+   * on-screen feedback can never disagree with the input (docs/18 §9).
+   */
+  onHeldChange?: (action: string, held: boolean) => void;
 }
 
 interface HandlerEntry {
@@ -44,10 +50,12 @@ export class TouchAdapter extends InputAdapter {
   private _handlers: HandlerEntry[];
   /** pointerId → action it is currently holding. */
   private _pointers = new Map<number, string>();
+  private _onHeldChange: (action: string, held: boolean) => void;
 
-  constructor(onAction: OnAction, { buttons }: TouchAdapterOptions = {}) {
+  constructor(onAction: OnAction, { buttons, onHeldChange }: TouchAdapterOptions = {}) {
     super(onAction);
     this._buttons = buttons ?? [];
+    this._onHeldChange = onHeldChange ?? (() => {});
     // One bound handler per button, closed over its action, so detach() can
     // remove the exact same function reference it added.
     this._handlers = this._buttons.map(({ element, action }) => ({
@@ -95,7 +103,12 @@ export class TouchAdapter extends InputAdapter {
   override releaseHeld(): void {
     const held = new Set(this._pointers.values());
     this._pointers.clear();
-    for (const action of held) this.onAction(action, { pressed: false, repeated: false });
+    for (const action of held) this._emit(action, false);
+  }
+
+  private _emit(action: string, pressed: boolean): void {
+    this.onAction(action, { pressed, repeated: false });
+    this._onHeldChange(action, pressed);
   }
 
   private _handleDown(event: PointerEvent, element: HTMLElement, action: string): void {
@@ -114,7 +127,7 @@ export class TouchAdapter extends InputAdapter {
     if (previous !== undefined) this._release(id);
     const alreadyHeld = this._isHeld(action);
     this._pointers.set(id, action);
-    if (!alreadyHeld) this.onAction(action, { pressed: true, repeated: false });
+    if (!alreadyHeld) this._emit(action, true);
   }
 
   private _handleUp(event: PointerEvent): void {
@@ -126,7 +139,7 @@ export class TouchAdapter extends InputAdapter {
     const action = this._pointers.get(id);
     if (action === undefined) return;
     this._pointers.delete(id);
-    if (!this._isHeld(action)) this.onAction(action, { pressed: false, repeated: false });
+    if (!this._isHeld(action)) this._emit(action, false);
   }
 
   private _isHeld(action: string): boolean {

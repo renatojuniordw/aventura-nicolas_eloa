@@ -12,6 +12,9 @@ interface DiscoveriesOptions {
   onBack: () => void;
 }
 
+/** Pictures requested up front; later ones use native lazy loading, keeping their reserved size. */
+const EAGER_PICTURES = 4;
+
 export function buildDiscoveriesScreen(options: DiscoveriesOptions) {
   const { playerName, words, onListen, onReplay, onExplore, onBack } = options;
   return buildScreen(<div className="overlay discoveries-screen">
@@ -21,9 +24,10 @@ export function buildDiscoveriesScreen(options: DiscoveriesOptions) {
     {words.length === 0 ? <div className="discoveries-empty">
       <p>Seu caderno está esperando a primeira palavra!</p>
       <MenuButton className="primary" onClick={onExplore}>Explorar e descobrir</MenuButton>
-    </div> : <ul className="discoveries-grid">{words.map(({ word, completed }) =>
+    </div> : <ul className="discoveries-grid">{words.map(({ word, completed }, index) =>
       <li className="discovery-card" key={word.id}>
-        <WordPicture word={word} />
+        {/* The first cards are usually on screen; the rest load as the notebook scrolls. */}
+        <WordPicture word={word} eager={index < EAGER_PICTURES} />
         <h2>{word.label}</h2>
         <p>{completed ? 'Palavra montada' : 'Palavra visitada'}</p>
         <p>{word.fact}</p>

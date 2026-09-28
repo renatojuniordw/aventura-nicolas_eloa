@@ -28,7 +28,8 @@ export function initMobilePresentation({ bus, isTouch, pause, resetInput, goToMe
     blocked = needsLandscape;
   };
   const off = bus.on(Events.SCENE_CHANGED, ({ name }) => {
-    playing = name === 'game';
+    // The controls practice is live play too: same landscape guard.
+    playing = name === 'game' || name === 'practice';
     document.body.dataset.scene = name;
     if (!playing) {
       try { window.screen.orientation?.unlock?.(); } catch { /* unsupported */ }

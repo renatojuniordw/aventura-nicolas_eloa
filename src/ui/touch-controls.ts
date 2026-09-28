@@ -1,5 +1,6 @@
 import { clear, el } from './dom.js';
 import { Actions } from '../input/actions.js';
+import type { TouchLayout } from '../persistence/touch-layout-store.js';
 
 interface TouchControlsOptions {
   root: HTMLElement;
@@ -33,6 +34,8 @@ export class TouchControls {
   private _right: HTMLElement;
   private _jump: HTMLElement;
   private _dpad: HTMLElement;
+  /** A layout that arrived mid-gesture, applied once no finger is down. */
+  private _pendingLayout: TouchLayout | null = null;
 
   constructor({ root }: TouchControlsOptions) {
     this._root = root;
@@ -77,5 +80,52 @@ export class TouchControls {
   /** Unmount the buttons (they keep listening; TouchAdapter still owns that). */
   hide(): void {
     clear(this._root);
+    this.clearHeld();
+    this.setHints([]);
+  }
+
+  /**
+   * Shows whether an action is held right now. Driven by TouchAdapter's own
+   * finger tracking (wired in main.ts), not by `:active`, so holding a
+   * direction and tapping jump shows both, and lifting one finger never
+   * clears the other. Purely visual: the hitbox never moves or shrinks.
+   * No `aria-pressed` — these are momentary buttons, not toggles.
+   */
+  setHeld(action: string, held: boolean): void {
+    for (const button of this.buttons) {
+      if (button.action === action) button.element.classList.toggle('is-held', held);
+    }
+    if (!held) this._flushLayout();
+  }
+
+  /** Drops every held look at once (pause, rotation, leaving the level). */
+  clearHeld(): void {
+    for (const button of this.buttons) button.element.classList.remove('is-held');
+    this._flushLayout();
+  }
+
+  /** Points at the buttons a practice step teaches (a visual cue only). */
+  setHints(actions: readonly string[]): void {
+    for (const button of this.buttons) button.element.classList.toggle('is-hinted', actions.includes(button.action));
+  }
+
+  /**
+   * Applies a size/side/edge preset (docs/18 §7) through data attributes on
+   * the root — the same button elements stay wired to the TouchAdapter. Never
+   * moves a button under a finger: during a gesture the change waits for the
+   * last finger to lift.
+   */
+  applyLayout(layout: TouchLayout): void {
+    this._pendingLayout = layout;
+    this._flushLayout();
+  }
+
+  private _flushLayout(): void {
+    const layout = this._pendingLayout;
+    if (!layout || this.buttons.some(({ element }) => element.classList.contains('is-held'))) return;
+    this._pendingLayout = null;
+    this._root.dataset.touchSize = layout.size;
+    this._root.dataset.jumpSide = layout.jumpSide;
+    this._root.dataset.touchInset = layout.edgeInset;
   }
 }

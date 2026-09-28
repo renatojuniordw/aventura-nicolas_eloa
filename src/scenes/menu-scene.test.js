@@ -362,4 +362,73 @@ describe('describeLesson', () => {
   it('falls back to the first unit when there is no lesson yet', () => {
     expect(describeLesson(null)).toBe('Alfabeto');
   });
+
+  it('asks before resetting progress and only resets on explicit confirmation', () => {
+    const resetProgress = vi.fn();
+    const game = makeFakeGame({
+      audio: { musicVolume: 1, sfxVolume: 1, voiceVolume: 1, setCategoryVolume: vi.fn() },
+      experience: { read: () => ({ reducedMotion: false }), update: vi.fn() },
+    });
+    game.progress.resetProgress = resetProgress;
+    game.profiles.getActiveProfile = vi.fn(() => ({ id: 'p1' }));
+    game.menu.showSettings = vi.fn();
+    game.menu.showConfirm = vi.fn();
+    const scene = new MenuScene(game);
+
+    scene.openSettings();
+    game.menu.showSettings.mock.calls[0][0].onResetProgress();
+    expect(resetProgress).not.toHaveBeenCalled();
+    const confirm = game.menu.showConfirm.mock.calls[0][0];
+
+    confirm.onCancel();
+    expect(resetProgress).not.toHaveBeenCalled();
+    expect(game.menu.showSettings).toHaveBeenCalledTimes(2);
+
+    confirm.onConfirm();
+    expect(resetProgress).toHaveBeenCalledWith('p1');
+  });
+
+  it('offers the controls practice once on the first touch play, then continues to the lesson', () => {
+    let state = { offered: false, completed: false };
+    const controlsPractice = {
+      read: () => state,
+      markOffered: vi.fn(() => { state = { ...state, offered: true }; }),
+    };
+    const game = makeFakeGame({ device: { isTouch: true }, controlsPractice });
+    game.menu.showPracticeOffer = vi.fn();
+    const scene = new MenuScene(game);
+
+    scene.playNext();
+    expect(game.startLesson).not.toHaveBeenCalled();
+    const offer = game.menu.showPracticeOffer.mock.calls[0][0];
+
+    offer.onPractice();
+    expect(controlsPractice.markOffered).toHaveBeenCalled();
+    expect(game.scenes.switchTo).toHaveBeenCalledWith('practice', { onExit: expect.any(Function) });
+    game.scenes.switchTo.mock.calls[0][1].onExit();
+    expect(game.startLesson).toHaveBeenCalledWith('alfabeto-a');
+
+    scene.playNext();
+    expect(game.menu.showPracticeOffer).toHaveBeenCalledTimes(1);
+    expect(game.startLesson).toHaveBeenCalledTimes(2);
+  });
+
+  it('never offers the practice without touch', () => {
+    const game = makeFakeGame({ device: { isTouch: false }, controlsPractice: { read: () => ({ offered: false }) } });
+    game.menu.showPracticeOffer = vi.fn();
+    new MenuScene(game).startSpeedrun();
+    expect(game.menu.showPracticeOffer).not.toHaveBeenCalled();
+    expect(game.startSpeedrun).toHaveBeenCalled();
+  });
+
+  it('can open straight on Settings when coming back from the practice', () => {
+    const game = makeFakeGame({
+      audio: { musicVolume: 1, sfxVolume: 1, voiceVolume: 1 },
+      experience: { read: () => ({ reducedMotion: false }) },
+    });
+    game.menu.showSettings = vi.fn();
+    new MenuScene(game).enter({ open: 'settings' });
+    expect(game.menu.showSettings).toHaveBeenCalled();
+    expect(game.menu.showMainMenu).not.toHaveBeenCalled();
+  });
 });

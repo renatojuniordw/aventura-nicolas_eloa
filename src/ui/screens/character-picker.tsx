@@ -32,6 +32,7 @@ function CharacterCard({
       className={`companion-card character-picker-card ${selected ? 'selected' : ''}`}
 
       aria-pressed={selected}
+      data-nav-id={`character-${character.id}`}
       onClick={handleClick}
     >
       {selected ? <div className="character-picker-tag">1P Ativo</div> : null}
@@ -71,7 +72,7 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
         <div className="overlay-actions character-picker-actions">
           <MenuButton
 
-            className="btn-retro btn-primary-gold"
+            className="btn-retro btn-primary-gold" data-autofocus=""
             onClick={() => {
               vibrateSuccess();
               onConfirm();

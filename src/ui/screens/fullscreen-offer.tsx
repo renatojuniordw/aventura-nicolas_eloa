@@ -24,7 +24,7 @@ function FullscreenOffer({ onDone }: { onDone: () => void }) {
     <p className="fullscreen-exit-help">Para sair, toque no botão de tela cheia no canto superior direito. No computador, você também pode usar Esc.</p>
     {failed && <p role="status">O navegador não permitiu a tela cheia. Você pode continuar normalmente e tentar pelo botão ⛶ depois.</p>}
     <div className="overlay-actions">
-      <MenuButton className="btn-retro btn-primary-gold" disabled={pending} onClick={accept}>
+      <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" disabled={pending} onClick={accept}>
         {pending ? 'Abrindo…' : 'Usar tela cheia'}
       </MenuButton>
       <MenuButton className="btn-retro" onClick={onDone}>Agora não</MenuButton>

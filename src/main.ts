@@ -29,6 +29,10 @@ import { ProgressStore } from './persistence/progress-store.js';
 import { AudioSettingsStore } from './persistence/audio-settings-store.js';
 import { ExperienceSettingsStore, type SupportLevel } from './persistence/experience-settings-store.js';
 import { LiveAnnouncer } from './ui/live-announcer.js';
+import { createMotionPolicy, type MotionPolicy } from './ui/motion-policy.js';
+import { TouchLayoutStore } from './persistence/touch-layout-store.js';
+import { ControlsPracticeStore } from './persistence/controls-practice-store.js';
+import { createFrameSampler, type FrameSampler } from './ui/frame-stats.js';
 import * as curriculum from './content/curriculum.js';
 import type { Unit, Lesson } from './content/curriculum-model.js';
 import { ExploreRun } from './gameplay/explore-run.js';
@@ -43,6 +47,7 @@ import { BootScene } from './scenes/boot-scene.js';
 import { MenuScene } from './scenes/menu-scene.js';
 import { GameScene } from './scenes/game-scene.js';
 import { VictoryScene } from './scenes/victory-scene.js';
+import { PracticeScene } from './scenes/practice-scene.js';
 
 /**
  * Composition root — the single place where concrete implementations are wired
@@ -67,6 +72,14 @@ export interface GameContext {
   experience: ExperienceSettingsStore;
   /** Live accessibility/support preferences (system setting OR the game's own), read where they apply. */
   preferences: GamePreferences;
+  /** Effective reduced-motion rule with change notifications, for DOM/animation consumers. */
+  motion: MotionPolicy;
+  /** Per-device on-screen control presets (size, jump side, edge distance). */
+  touchLayout: TouchLayoutStore;
+  /** Opt-in frame-time sampling for the support screen; idle until started. */
+  frameStats: FrameSampler;
+  /** Whether the controls practice was offered/completed on this device (not learning progress). */
+  controlsPractice: ControlsPracticeStore;
   /** Screen-reader mirror of the canvas objective and feedback. */
   announcer: LiveAnnouncer;
   device: { isTouch: boolean };
@@ -133,7 +146,12 @@ export function createGame({
   const storageAdapter = createStorageAdapter(storage);
   const experience = new ExperienceSettingsStore(storageAdapter);
   experience.apply();
-  const reducedMotion = () => Boolean(motionPreference?.matches || experience.read().reducedMotion);
+  const motion = createMotionPolicy({
+    system: motionPreference ?? null,
+    game: () => experience.read().reducedMotion,
+    onGameChange: (listener) => experience.subscribe(listener),
+  });
+  const reducedMotion = motion.reduced;
   const contrastPreference = window.matchMedia?.('(prefers-contrast: more)');
   const preferences: GamePreferences = {
     reducedMotion,
@@ -160,6 +178,11 @@ export function createGame({
   const menu = new MenuOverlay({ root: overlayRoot });
   const hudControls = new HudControls({ root: hudControlsRoot ?? overlayRoot });
   const touchControls = new TouchControls({ root: touchControlsRoot ?? overlayRoot });
+  const touchLayout = new TouchLayoutStore(storageAdapter);
+  touchControls.applyLayout(touchLayout.read());
+  touchLayout.subscribe((layout) => touchControls.applyLayout(layout));
+  const frameStats = createFrameSampler();
+  const controlsPractice = new ControlsPracticeStore(storageAdapter);
 
   const saves = new SaveStore({ adapter: storageAdapter });
   const profiles = new ProfileStore({ saves });
@@ -182,7 +205,10 @@ export function createGame({
     input.setAdapter(
       new CompositeAdapter(input.handleAction, [
         new KeyboardAdapter(input.handleAction),
-        new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
+        new TouchAdapter(input.handleAction, {
+          buttons: touchControls.buttons,
+          onHeldChange: (action, held) => touchControls.setHeld(action, held),
+        }),
       ]),
     );
   };
@@ -209,6 +235,10 @@ export function createGame({
     progress,
     experience,
     preferences,
+    motion,
+    touchLayout,
+    frameStats,
+    controlsPractice,
     announcer,
     device: {
       get isTouch() {
@@ -260,6 +290,7 @@ export function createGame({
   scenes.register('menu', MenuScene);
   scenes.register('game', GameScene);
   scenes.register('victory', VictoryScene);
+  scenes.register('practice', PracticeScene);
 
   const loop = new GameLoop({
     update: (dt) => {

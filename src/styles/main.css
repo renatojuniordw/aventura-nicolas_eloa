@@ -296,19 +296,23 @@ body {
 
 .splash-bar-inner {
   height: 100%;
-  width: 100%;
+  width: 40%;
   background: linear-gradient(90deg, #326855 0%, #ffd479 50%, #fbf4df 100%);
   border-radius: 4px;
-  animation: splashProgress 1.4s ease-in-out forwards;
-  transform-origin: left;
+  /* Activity, not a percentage: nothing here tracks real download progress (docs/18 §6). */
+  animation: splashActivity 1.2s ease-in-out infinite;
 }
 
-@keyframes splashProgress {
-  0% { transform: scaleX(0.05); }
-  40% { transform: scaleX(0.45); }
-  75% { transform: scaleX(0.85); }
-  100% { transform: scaleX(1); }
+@keyframes splashActivity {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
 }
+
+/* Reduced motion (system or game): a still, full bar instead of a sweep. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-bar-inner { width: 100%; animation: none; transform: none; }
+}
+html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; transform: none; }
 
 .splash-loading-text {
   font-family: var(--font-ui);
@@ -1514,6 +1518,22 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   min-height: 44px;
 }
 
+/* Support screen (docs/18 §10): the one place where text must be selectable. */
+.support-report {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+  font: 0.8125rem/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+  background: rgba(14, 28, 25, 0.9);
+  border: 1px solid var(--color-gold-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+}
+
 /* Local word illustrations share a quiet paper background in every context. */
 .word-picture {
   display: block;
@@ -1523,6 +1543,24 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   margin: 8px auto;
   border-radius: 20px;
 }
+/* While loading, the reserved box reads as a blank card instead of a hole. */
+.word-picture[data-state="loading"] { background: #fbf4df; }
+/* Unavailable file: same box, the word itself instead of a broken-image icon. */
+.word-picture-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  padding: 8px;
+  background: #fbf4df;
+  color: #203632;
+  border: 2px dashed #326855;
+  font: bold 1rem 'Trebuchet MS', sans-serif;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.journey-words .word-picture-fallback, .hud-word-picture .word-picture-fallback { font-size: 0.75rem; padding: 4px; }
 .hud-word-picture {
   position: absolute;
   /* Below the level name/progress badge rows (render/hud.ts), clear of the notch. */

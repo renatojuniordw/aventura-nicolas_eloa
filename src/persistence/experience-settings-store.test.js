@@ -30,5 +30,15 @@ describe('ExperienceSettingsStore', () => {
     store.update({ largeText: true });
     expect(store.read().largeText).toBe(true);
   });
-});
 
+  it('notifies subscribers after each write until they unsubscribe', () => {
+    const store = new ExperienceSettingsStore(new MemoryStorageAdapter());
+    const seen = [];
+    const off = store.subscribe((value) => seen.push(value.reducedMotion));
+    store.update({ reducedMotion: true });
+    store.update({ reducedMotion: false });
+    off();
+    store.update({ reducedMotion: true });
+    expect(seen).toEqual([true, false]);
+  });
+});

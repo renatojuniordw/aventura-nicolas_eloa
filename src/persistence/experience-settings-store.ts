@@ -26,6 +26,7 @@ const COLOR_VISION_MODES = new Set<ColorVisionMode>(['default', 'deuteranopia', 
 export class ExperienceSettingsStore {
   /** Parsed settings, kept until the next write: the game reads them every frame. */
   private _cache: ExperienceSettings | null = null;
+  private _listeners = new Set<(value: ExperienceSettings) => void>();
 
   constructor(private readonly adapter: StorageAdapter) {}
 
@@ -55,6 +56,14 @@ export class ExperienceSettingsStore {
     this.adapter.write(EXPERIENCE_SETTINGS_KEY, JSON.stringify(value));
     this._cache = null;
     this.apply(value);
+    const current = this.read();
+    for (const listener of [...this._listeners]) listener(current);
+  }
+
+  /** Notified after every write, so live consumers need no reload; returns an unsubscribe. */
+  subscribe(listener: (value: ExperienceSettings) => void): () => void {
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
   }
 
   update(patch: Partial<ExperienceSettings>): ExperienceSettings {

@@ -178,4 +178,52 @@ describe('TouchAdapter', () => {
       expect(calls(Actions.MOVE_LEFT)).toEqual([true, false, true, false]);
     });
   });
+
+  describe('held feedback (docs/18 §9)', () => {
+    function setup() {
+      const left = document.createElement('button');
+      const jump = document.createElement('button');
+      const held = new Map();
+      const onHeldChange = vi.fn((action, value) => held.set(action, value));
+      const adapter = new TouchAdapter(vi.fn(), {
+        buttons: [{ element: left, action: Actions.MOVE_LEFT }, { element: jump, action: Actions.JUMP }],
+        onHeldChange,
+      });
+      adapter.attach();
+      return { left, jump, held, onHeldChange, adapter };
+    }
+
+    it('shows direction and jump independently; lifting one finger keeps the other', () => {
+      const { left, jump, held } = setup();
+      left.dispatchEvent(pointerEvent('pointerdown', 1));
+      jump.dispatchEvent(pointerEvent('pointerdown', 2));
+      expect(held.get(Actions.MOVE_LEFT)).toBe(true);
+      expect(held.get(Actions.JUMP)).toBe(true);
+      jump.dispatchEvent(pointerEvent('pointerup', 2));
+      expect(held.get(Actions.JUMP)).toBe(false);
+      expect(held.get(Actions.MOVE_LEFT)).toBe(true);
+    });
+
+    it('reports a button once even with two fingers on it', () => {
+      const { left, onHeldChange } = setup();
+      left.dispatchEvent(pointerEvent('pointerdown', 1));
+      left.dispatchEvent(pointerEvent('pointerdown', 2));
+      left.dispatchEvent(pointerEvent('pointerup', 1));
+      expect(onHeldChange).toHaveBeenCalledTimes(1);
+      left.dispatchEvent(pointerEvent('pointerup', 2));
+      expect(onHeldChange).toHaveBeenLastCalledWith(Actions.MOVE_LEFT, false);
+    });
+
+    it('clears every held look together with the actions on reset (pause) and detach', () => {
+      const { left, jump, held, adapter } = setup();
+      left.dispatchEvent(pointerEvent('pointerdown', 1));
+      jump.dispatchEvent(pointerEvent('pointerdown', 2));
+      adapter.releaseHeld();
+      expect([...held.values()]).toEqual([false, false]);
+
+      left.dispatchEvent(pointerEvent('pointerdown', 3));
+      adapter.detach();
+      expect(held.get(Actions.MOVE_LEFT)).toBe(false);
+    });
+  });
 });

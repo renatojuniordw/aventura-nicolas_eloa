@@ -318,7 +318,10 @@ export class CompositeAdapter extends InputAdapter {
 input.setAdapter(
   new CompositeAdapter(input.handleAction, [
     new KeyboardAdapter(input.handleAction),
-    new TouchAdapter(input.handleAction, { buttons: touchControls.buttons }),
+    new TouchAdapter(input.handleAction, {
+      buttons: touchControls.buttons,
+      onHeldChange: (action, held) => touchControls.setHeld(action, held),
+    }),
     // new Esp32Adapter(input.handleAction, { transport }),  <- amanhã
   ]),
 );
@@ -372,6 +375,12 @@ Pontos que valem a pena notar:
   `adapter.releaseHeld()`. O `TouchAdapter` esquece todos os dedos, então a liberação de
   um dedo antigo nunca cancela um toque novo, e `detach()` também solta o que estava
   pressionado. Não há debounce: a regra do pulo continua em `player-controller.ts`.
+- **Feedback visual sincronizado (docs/18 §9):** `onHeldChange(action, held)` é chamado
+  exatamente quando a ação é pressionada/solta — inclusive em `releaseHeld()` e `detach()`
+  — e `main.ts` o liga a `TouchControls.setHeld()`, que alterna `.is-held` no botão.
+  Assim, direção e pulo aparecem pressionados de forma independente, soltar um dedo não
+  apaga o outro e nada fica visualmente preso após pausa. O estado indica o dedo no botão,
+  não que o pulo aconteceu; sem `aria-pressed`, pois são botões momentâneos.
 - Os botões (`src/ui/touch-controls.ts`) são elementos DOM comuns; `main.ts` só passa uma
   lista `{ element, action }` para o adaptador — ele não sabe (nem precisa saber) como os
   botões foram desenhados.

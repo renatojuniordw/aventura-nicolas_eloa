@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { createCelebrationCanvas } from './celebration-canvas.js';
+import { createCelebrationCanvas as createHandle } from './celebration-canvas.js';
+
+/** Every handle is stopped after its test, so no listener leaks into the next one. */
+const handles = [];
+function createCelebrationCanvas(...args) {
+  const handle = createHandle(...args);
+  handles.push(handle);
+  return handle;
+}
 
 /**
  * DOM path of the celebration canvas: it must build a sized canvas when a 2D
@@ -35,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  handles.splice(0).forEach((handle) => handle.stop());
   globalThis.requestAnimationFrame = originalRAF;
   globalThis.cancelAnimationFrame = originalCAF;
   globalThis.Image = originalImage;
@@ -119,5 +128,106 @@ describe('createCelebrationCanvas (DOM)', () => {
       [120, 120, 120, 120],
       [0, 0, 120, 120],
     ]);
+  });
+
+  describe('only works while it is worth drawing (docs/18 §3)', () => {
+    let drawImage;
+    const loadedImage = class {
+      constructor() {
+        this.complete = true;
+        this.naturalWidth = 240;
+        this.naturalHeight = 240;
+      }
+    };
+    const originalIO = globalThis.IntersectionObserver;
+    let ioCallback;
+    let ioDisconnect;
+
+    beforeEach(() => {
+      drawImage = vi.fn();
+      HTMLCanvasElement.prototype.getContext = () => ({ clearRect: vi.fn(), drawImage });
+      globalThis.Image = loadedImage;
+      ioCallback = null;
+      ioDisconnect = vi.fn();
+    });
+
+    afterEach(() => {
+      globalThis.IntersectionObserver = originalIO;
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    });
+
+    function installObserver() {
+      globalThis.IntersectionObserver = class {
+        constructor(callback) { ioCallback = callback; }
+        observe() {}
+        disconnect() { ioDisconnect(); }
+      };
+    }
+
+    it('draws a single static frame and schedules nothing under reduced motion', () => {
+      createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => true });
+      expect(rAFSpy).not.toHaveBeenCalled();
+      expect(drawImage).toHaveBeenCalledTimes(1);
+      expect(drawImage.mock.calls[0].slice(1, 5)).toEqual([0, 0, 120, 120]);
+    });
+
+    it('draws the static frame when a late sheet finishes loading', () => {
+      let image;
+      globalThis.Image = class {
+        constructor() { this.complete = false; this.naturalWidth = 0; this.naturalHeight = 0; image = this; }
+      };
+      createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => true });
+      expect(drawImage).not.toHaveBeenCalled();
+      Object.assign(image, { complete: true, naturalWidth: 240, naturalHeight: 240 });
+      image.onload();
+      expect(drawImage).toHaveBeenCalledTimes(1);
+      expect(rAFSpy).not.toHaveBeenCalled();
+    });
+
+    it('follows a policy change through refresh without ever running two loops', () => {
+      let reduced = true;
+      const handle = createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => reduced });
+      reduced = false;
+      handle.refresh();
+      handle.refresh();
+      expect(rAFSpy).toHaveBeenCalledTimes(1);
+      reduced = true;
+      handle.refresh();
+      expect(cAFSpy).toHaveBeenCalledWith(42);
+    });
+
+    it('pauses while the page is hidden and resumes with one loop', () => {
+      createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => false });
+      expect(rAFSpy).toHaveBeenCalledTimes(1);
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(cAFSpy).toHaveBeenCalledWith(42);
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(rAFSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('stays idle while CSS hides the stage and starts once it is on screen', () => {
+      installObserver();
+      const { stop } = createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => false });
+      expect(rAFSpy).not.toHaveBeenCalled();
+      ioCallback([{ isIntersecting: false }]);
+      expect(rAFSpy).not.toHaveBeenCalled();
+      ioCallback([{ isIntersecting: true }]);
+      expect(rAFSpy).toHaveBeenCalledTimes(1);
+      ioCallback([{ isIntersecting: false }]);
+      expect(cAFSpy).toHaveBeenCalledWith(42);
+      stop();
+      expect(ioDisconnect).toHaveBeenCalledOnce();
+    });
+
+    it('stop removes its listeners: later visibility changes start nothing', () => {
+      const { stop } = createCelebrationCanvas('/a.webp', 120, 120, { reducedMotion: () => false });
+      stop();
+      rAFSpy.mockClear();
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(rAFSpy).not.toHaveBeenCalled();
+    });
   });
 });

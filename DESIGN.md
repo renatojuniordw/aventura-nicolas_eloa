@@ -44,7 +44,11 @@ Bordas sólidas e sombras curtas preservam a identidade existente.
 ## Shapes
 Botões de toque com pelo menos 48 px; controles do jogo com 56 px (direções)
 e 68 px (pulo), 12 px de separação, iguais em todos os breakpoints. Feedback de
-toque por cor/borda, sem encolher o alvo.
+toque por cor/borda, sem encolher o alvo. O estado "segurando" (`.is-held`) vem
+do mesmo rastreamento de dedos do input, com anel e sombra interna, nunca
+`transform`. Presets em Configurações → Controles de toque: tamanho maior
+(68/80 px), pulo à esquerda e distância da borda (16/32/48 px); nenhum reduz os
+mínimos acima.
 ## Components
 Convite de tela cheia após o aviso inicial, uma vez por abertura, com aceite,
 recusa e instrução para sair. Falha da API nunca impede jogar.

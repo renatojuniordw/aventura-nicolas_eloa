@@ -56,7 +56,7 @@ function SettingsScreen({ onOpenPhonePairing, onResetProgress, onBack }: Setting
           </MenuButton>
           <MenuButton
 
-            className="btn-retro btn-primary-gold"
+            className="btn-retro btn-primary-gold" data-autofocus=""
             onClick={() => {
               vibrateTap();
               onBack();

@@ -1,12 +1,29 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 
+// Build identity for the support screen (docs/18 §10): version, commit, date.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+function gitCommit() {
+  try {
+    return execSync('git rev-parse --short HEAD', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'desconhecido';
+  }
+}
+
 // Vite handles ES modules, JSON imports and asset hashing with zero config.
 // Kept explicit so the build's public path and server port are documented.
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+    __APP_COMMIT__: JSON.stringify(gitCommit()),
+    __APP_BUILT_AT__: JSON.stringify(new Date().toISOString()),
+  },
   server: {
     port: 65000,
     open: true,
