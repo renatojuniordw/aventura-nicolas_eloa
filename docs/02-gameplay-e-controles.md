@@ -214,7 +214,7 @@ tecla fica presa) e o jogo pausa sozinho.
 
 ## 8. Conteúdo disponível
 
-**16 unidades** e **152 lições** nesta versão:
+**21 unidades** e **172 lições** nesta versão:
 
 | Unidade | Lições | Exemplos |
 |---|---|---|
@@ -224,6 +224,48 @@ tecla fica presa) e o jogo pausa sozinho.
 | Encontros consonantais | 14 | BR, CR, DR, FL, GL, PL, TR, VR |
 | Palavras de uma sílaba | 24 | SOL, MAR, PÉ, PÃO, FLOR, LUZ |
 | Palavras de duas sílabas | 30 | BOLA, CASA, MAMÃE, GATO, VOVÓ |
+| Palavras por tema (animais, alimentos, casa, brinquedos, família) | 20 | GALO, SUCO, SOFÁ, PIÃO, IRMÃ |
+
+As unidades novas foram acrescentadas **depois** das existentes: nenhum id de lição
+mudou e o progresso salvo continua valendo; quem já concluiu tudo encontra as 20
+palavras temáticas como próximas descobertas.
+
+### Escolher aventura (mapa de mundos)
+
+A placa **Sua próxima descoberta** da home também é o botão **Escolher aventura**
+(a home não ganhou botão extra). Ela abre cinco mundos, definidos em
+`src/content/worlds.ts` sobre as unidades do currículo:
+
+| Mundo | Unidades |
+|---|---|
+| Jardim das Letras | Alfabeto |
+| Pomar das Sílabas | Famílias silábicas |
+| Vale dos Desafios | Dígrafos e encontros consonantais |
+| Lago das Palavras | Palavras de uma e de duas sílabas |
+| Bosque das Descobertas | Palavras por tema |
+
+Cada cartão mostra o progresso e, no mundo da próxima lição, o selo em texto
+**Você está aqui** (foco inicial). Dentro do mundo, as lições aparecem por unidade:
+✔ já aprendida (pode repetir sem perder estrelas), ★ próxima descoberta, 🔒 ainda não
+liberada. A regra de liberação é a mesma de **Continuar aventura**. O botão
+**Liberar todas para praticar com um adulto** abre todas as lições até sair do menu,
+sem marcar nada como concluído. Qualquer lição fica a três escolhas da home: placa →
+mundo → lição, por toque ou teclado.
+
+### Dica progressiva
+
+No HUD, **💡 Pedir dica** é separado de **🔊 Ouvir novamente**. Cada toque dá um
+pouco mais de ajuda para o alvo atual:
+
+1. repete a instrução;
+2. mostra e fala a divisão silábica revisada da palavra (ex.: `BOLA: BO · LA`), só
+   quando a palavra tem várias sílabas e está em `src/content/syllables.ts`;
+3. mostra a seta sobre o alvo e o indicador na borda da tela — exceto no apoio
+   **Desafio**, em que a dica para na etapa 2.
+
+A dica nunca coleta nada, não conta como erro e recomeça quando o alvo muda (próxima
+letra no Explorar). Não aparece na Corrida do alfabeto, para manter os recordes
+comparáveis. A divisão silábica é escrita à mão, nunca calculada por heurística.
 
 O conteúdo é **dado**, não código: acrescentar uma palavra é editar
 `src/content/curriculum.json` e rodar `npm run generate:levels`. Nada de programar.

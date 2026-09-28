@@ -324,15 +324,18 @@ export class Hud {
 
   private _drawFeedback(model: HudModel, layout: HudLayout): void {
     if (!model.isFeedbackVisible) return;
-    const isCorrect = model.feedback.kind === FeedbackKind.CORRECT;
+    const kind = model.feedback.kind;
     const contrast = this._highContrast();
-    const color = isCorrect
+    const color = kind === FeedbackKind.CORRECT
       ? contrast ? '#0b4d12' : 'rgba(46, 125, 50, 0.92)'
-      : contrast ? '#6e0f0f' : 'rgba(163, 46, 46, 0.92)';
+      : kind === FeedbackKind.HINT
+        ? contrast ? '#12205a' : 'rgba(33, 66, 140, 0.92)'
+        : contrast ? '#6e0f0f' : 'rgba(163, 46, 46, 0.92)';
     const maxWidth = layout.right - layout.left;
     const message = model.feedback.message;
-    // Not colour alone: the banner starts with a sign that says right or wrong.
-    const text = `${isCorrect ? '✔' : '✖'} ${message}`;
+    // Not colour alone: the banner starts with a sign that says right, wrong or hint.
+    const sign = kind === FeedbackKind.CORRECT ? '✔' : kind === FeedbackKind.HINT ? '💡' : '✖';
+    const text = `${sign} ${message}`;
     const size = this._fit(text, 18 * this._scale, maxWidth - 40);
     const width = Math.min(maxWidth, Math.max(240, this._measure(text, size) + 40));
     const height = Math.round(40 * this._scale);

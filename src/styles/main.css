@@ -1614,3 +1614,66 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 }
 .journey-words .word-picture { width: 72px; height: 72px; }
 .journey-words li { text-align: center; }
+
+/* --- Escolher aventura (docs/20 §4 L1) ------------------------------------ */
+.discovery-plaque.discovery-plaque-btn {
+  width: 100%;
+  background: rgba(14, 28, 25, 0.65);
+  border: 2px solid rgba(255, 212, 121, 0.28);
+  border-radius: 6px;
+  box-shadow: none;
+  padding: clamp(4px, 1vh, 8px) clamp(8px, 1.5vw, 14px);
+  min-height: 48px;
+}
+.discovery-plaque.discovery-plaque-btn:hover {
+  background: rgba(14, 28, 25, 0.8);
+  border-color: var(--color-gold);
+  box-shadow: none;
+}
+.discovery-plaque-action {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.world-map-screen { width: min(100%, 900px); }
+.world-list, .lesson-chips {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  width: 100%;
+}
+.world-list { display: grid; gap: 12px; }
+.world-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  text-align: left;
+  flex-wrap: wrap;
+}
+.world-card.is-current { border-color: var(--color-gold); box-shadow: 0 3px 0 var(--color-gold-border); }
+.world-card-icon { font-size: 2rem; line-height: 1; }
+.world-card-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 12rem; min-width: 0; }
+.world-card-body strong { font-size: 1.125rem; }
+.world-card-body small { font-weight: 400; font-size: 0.875rem; }
+.world-card-progress { font-size: 0.8125rem; font-weight: 400; }
+.world-card-here {
+  background: var(--color-gold);
+  color: var(--color-ink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8125rem;
+}
+.world-unit { width: 100%; margin-top: 16px; text-align: left; }
+.world-unit h2 { font-size: 1rem; margin: 0; color: var(--color-gold); }
+.world-unit h2 small { color: var(--color-cream); font-weight: 400; margin-left: 6px; }
+.lesson-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-chip { min-width: 56px; min-height: 48px; display: inline-flex; align-items: center; gap: 6px; }
+.lesson-chip.is-next { background: var(--color-gold); color: var(--color-ink); border-color: var(--color-gold-border); }
+.lesson-chip.is-locked { background: #3a4a47; color: #d6d0bd; box-shadow: none; }
+.lesson-chip:disabled { cursor: not-allowed; transform: none; }
+.lesson-chip-mark { font-size: 0.875rem; }
+.world-free-practice { margin-top: 20px; }

@@ -757,3 +757,60 @@ describe('journey retry', () => {
     expect(game.startExploration).toHaveBeenCalledWith('gato', ['sol', 'bola']);
   });
 });
+
+describe('GameScene progressive hint (docs/20 §5 F2)', () => {
+  const wordLessonId = curriculum.LESSONS.find((lesson) => lesson.target === 'BOLA').id;
+
+  it('repeats, then shows the reviewed syllables, then marks the target — never as a mistake', () => {
+    const narrator = makeNarrator();
+    const game = makeFakeGame({ narrator, preferences: preferences() });
+    const scene = enterNormalLesson(game, wordLessonId);
+    narrator.speakLessonTarget.mockClear();
+
+    scene.requestHint();
+    expect(narrator.speakLessonTarget).toHaveBeenCalledWith('BOLA', 'word');
+
+    scene.requestHint();
+    expect(scene.hudModel.feedback).toMatchObject({ kind: FeedbackKind.HINT, message: 'BOLA: BO · LA' });
+    expect(narrator.speak).toHaveBeenCalledWith('bo, la');
+
+    scene.update(0.016);
+    expect(scene.hudModel.targetPointer).toBeNull();
+    scene.requestHint();
+    expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.HINT);
+    scene.update(0.016);
+    const target = scene.stream.liveTarget;
+    const onScreen = target.x <= scene.camera.x + scene.camera.viewport.width;
+    expect(scene.hudModel.targetPointer).toEqual(onScreen ? null : { direction: 'right', label: 'BOLA' });
+
+    expect(scene.mistakes).toBe(0);
+    expect(game.progress.recordAnswer).not.toHaveBeenCalled();
+    expect(game.progress.recordLessonAnswer).not.toHaveBeenCalled();
+    expect(scene.levelManager.collected.size).toBe(0);
+  });
+
+  it('challenge: stops at the syllables, with no marker', () => {
+    const scene = enterNormalLesson(makeFakeGame({ narrator: makeNarrator(), preferences: preferences({ supportLevel: 'challenge' }) }), wordLessonId);
+    for (let i = 0; i < 4; i += 1) scene.requestHint();
+    expect(scene.hudModel.feedback.message).toBe('BOLA: BO · LA');
+    scene.update(0.016);
+    expect(scene.hudModel.targetPointer).toBeNull();
+  });
+
+  it('starts over when the next letter of an Explorar word becomes the target', () => {
+    const scene = enterExplore(makeFakeGame({ narrator: makeNarrator(), preferences: preferences() }));
+    scene.requestHint();
+    scene.requestHint();
+    expect(scene.hint.used).toBe(2);
+    collectTarget(scene);
+    expect(scene.hint.used).toBe(0);
+  });
+
+  it('offers the hint button outside the alphabet race only', () => {
+    const game = makeFakeGame();
+    enterNormalLesson(game);
+    expect(game.hudControls.showPauseButton).toHaveBeenLastCalledWith(expect.objectContaining({ onHint: expect.any(Function) }));
+    enterSpeedrun(game);
+    expect(game.hudControls.showPauseButton).toHaveBeenLastCalledWith(expect.objectContaining({ onHint: undefined }));
+  });
+});

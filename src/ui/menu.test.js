@@ -172,3 +172,51 @@ describe('MenuOverlay modal semantics', () => {
     expect(document.activeElement?.textContent).toBe('Recomeçar fase');
   });
 });
+
+describe('Escolher aventura (docs/20 §4 L1)', () => {
+  const lessons = (states) => states.map((state, i) => ({ id: `l${i}`, target: `T${i}`, state, playable: state !== 'locked' }));
+  const world = (overrides = {}) => ({
+    id: 'pomar', title: 'Pomar das Sílabas', icon: '🍎', description: 'Famílias', done: 1, total: 3, current: true,
+    units: [{ id: 'silabas-b', title: 'Família do B', done: 1, lessons: lessons(['done', 'next', 'locked']) }],
+    ...overrides,
+  });
+
+  it('opens the map from the next-discovery plaque, without adding a home button', () => {
+    const onOpenWorldMap = vi.fn();
+    menu.showMainMenu(mainMenuOptions({ onOpenWorldMap, currentLessonTitle: 'Família do B' }));
+    const plaque = root.querySelector('.discovery-plaque-btn');
+    expect(plaque.getAttribute('aria-label')).toBe('Escolher aventura. Sua próxima descoberta: Família do B');
+    plaque.click();
+    expect(onOpenWorldMap).toHaveBeenCalled();
+    // The play button keeps the start focus.
+    expect(document.activeElement.textContent).toMatch(/aventura/);
+    expect(document.activeElement.classList.contains('btn-primary-gold')).toBe(true);
+  });
+
+  it('lists worlds, says "Você está aqui" in text and focuses the current world', () => {
+    const onOpenWorld = vi.fn();
+    menu.showWorldList({
+      worlds: [world({ id: 'jardim', title: 'Jardim das Letras', current: false }), world()],
+      onOpenWorld,
+      onBack: vi.fn(),
+    });
+    expect(root.textContent).toContain('Você está aqui');
+    expect(document.activeElement.textContent).toContain('Pomar das Sílabas');
+    menu.triggerPrimary();
+    expect(onOpenWorld).toHaveBeenCalledWith('pomar');
+  });
+
+  it('plays done and next lessons, keeps the rest locked unless free practice is on', () => {
+    const onPlayLesson = vi.fn();
+    const onToggleFreePractice = vi.fn();
+    menu.showWorldDetail({ world: world(), freePractice: false, onPlayLesson, onToggleFreePractice, onBack: vi.fn() });
+    const chips = [...root.querySelectorAll('.lesson-chip')];
+    expect(chips.map((chip) => chip.disabled)).toEqual([false, false, true]);
+    expect(chips[2].getAttribute('aria-label')).toBe('T2, ainda não liberada');
+    expect(document.activeElement).toBe(chips[1]);
+    chips[0].click();
+    expect(onPlayLesson).toHaveBeenCalledWith('l0');
+    button(root, 'Liberar todas').click();
+    expect(onToggleFreePractice).toHaveBeenCalled();
+  });
+});

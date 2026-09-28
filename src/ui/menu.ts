@@ -15,6 +15,7 @@ import { buildInstallGuide } from './screens/install-guide.js';
 import { buildConfirmScreen } from './screens/confirm.js';
 import { buildSupportInfoScreen } from './screens/support-info.js';
 import { buildPracticeOfferScreen } from './screens/practice-offer.js';
+import { buildWorldDetailScreen, buildWorldListScreen } from './screens/world-map.js';
 import {
   captureScroll,
   findByNavId,
@@ -215,6 +216,16 @@ export class MenuOverlay {
 
   showMainMenu(options: Parameters<typeof buildMainMenuScreen>[0]): void {
     this._show(buildMainMenuScreen, options, { key: 'main-menu', modal: false });
+  }
+
+  /** "Escolher aventura": the worlds (docs/20 §4 L1). */
+  showWorldList(options: Parameters<typeof buildWorldListScreen>[0]): void {
+    this._show(buildWorldListScreen, options, { key: 'world-list', modal: false });
+  }
+
+  /** One world's units and lessons. */
+  showWorldDetail(options: Parameters<typeof buildWorldDetailScreen>[0]): void {
+    this._show(buildWorldDetailScreen, options, { key: 'world-detail', modal: false });
   }
 
   showCharacterPicker(options: Parameters<typeof buildCharacterPickerScreen>[0]): void {

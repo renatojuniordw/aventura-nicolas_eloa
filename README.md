@@ -104,8 +104,10 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 
 ## Conteúdo
 
-**16 unidades** e **152 lições**, cobrindo alfabeto, famílias silábicas, dígrafos,
-encontros consonantais e palavras de uma e duas sílabas. O progresso é salvo por jogador
+**21 unidades** e **172 lições**, cobrindo alfabeto, famílias silábicas, dígrafos,
+encontros consonantais, palavras de uma e duas sílabas e palavras por tema (animais,
+alimentos, casa, brinquedos e família). As unidades se agrupam em cinco mundos, que a
+criança escolhe em **Escolher aventura**. O progresso é salvo por jogador
 no próprio navegador, com estrelas por precisão.
 
 Todo o conteúdo é **dado**: acrescentar palavras é editar

@@ -160,6 +160,51 @@
         "TETO", "DEDO", "VELA", "FADA", "MALA", "PIPA", "COCO", "VOVÔ",
         "VOVÓ", "BEBÊ", "MAMÃE", "PAPAI", "LUA", "CHUVA"
       ]
+    },
+    {
+      "id": "palavras-animais",
+      "title": "Animais",
+      "order": 17,
+      "type": "word",
+      "icon": "GALO",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["GALO", "FOCA", "TATU", "PERU"]
+    },
+    {
+      "id": "palavras-alimentos",
+      "title": "Alimentos",
+      "order": 18,
+      "type": "word",
+      "icon": "SUCO",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["SUCO", "PERA", "CAJU", "CAFÉ"]
+    },
+    {
+      "id": "palavras-casa",
+      "title": "Coisas da Casa",
+      "order": 19,
+      "type": "word",
+      "icon": "CAMA",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["CAMA", "SOFÁ", "COPO", "PIA"]
+    },
+    {
+      "id": "palavras-brinquedos",
+      "title": "Brinquedos",
+      "order": 20,
+      "type": "word",
+      "icon": "PIÃO",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["PIÃO", "BALÃO", "CORDA", "BOLHA"]
+    },
+    {
+      "id": "palavras-familia",
+      "title": "Família",
+      "order": 21,
+      "type": "word",
+      "icon": "TIA",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["TIA", "TIO", "NENÊ", "IRMÃ"]
     }
   ]
 }

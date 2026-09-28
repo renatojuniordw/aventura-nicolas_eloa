@@ -1,4 +1,5 @@
 import { discoveredWords } from '../content/discoveries.js';
+import { buildWorldMap } from '../content/worlds.js';
 import { wordPhaseId } from '../content/word-phases.js';
 import { Actions } from '../input/actions.js';
 import { Scene } from '../core/scene.js';
@@ -57,6 +58,7 @@ export class MenuScene extends Scene {
   }
 
   override exit(): void {
+    this._freePractice = false;
     this.game.narrator?.stop();
     this.game.menu.hide();
   }
@@ -96,6 +98,7 @@ export class MenuScene extends Scene {
       onPlay: () => this.playNext(),
       onExplore: () => this.startExplore(),
       onOpenDiscoveries: () => this.openDiscoveries(),
+      onOpenWorldMap: () => this.openWorldMap(),
       onSpeedrun: () => this.startSpeedrun(),
       onSelectProfile: (profileId: string) => {
         profiles.setActiveProfile(profileId);
@@ -109,6 +112,57 @@ export class MenuScene extends Scene {
       onOpenCharacterPicker: (characterId: string) => this.openCharacterPicker(characterId),
       onOpenSettings: () => this.openSettings(),
       motion: this.game.motion,
+    });
+  }
+
+  /** Adult-guided free practice on the world map; lasts until the menu is left. */
+  private _freePractice = false;
+
+  /** The world map for the active profile (docs/20 §4 L1). */
+  private _worldMap() {
+    const { progress, curriculum, profiles } = this.game;
+    const profile = profiles.getActiveProfile();
+    return buildWorldMap({
+      units: curriculum.units,
+      isComplete: (lessonId) => Boolean(profile && progress.isLessonComplete(profile.id, lessonId)),
+      nextLessonId: profile ? progress.getNextLesson(profile.id, curriculum.lessonOrder) : curriculum.lessonOrder[0] ?? null,
+      freePractice: this._freePractice,
+    });
+  }
+
+  /** "Escolher aventura": worlds, then a world's lessons — a lesson is three choices from the home. */
+  openWorldMap(): void {
+    this.game.menu.showWorldList({
+      worlds: this._worldMap(),
+      onOpenWorld: (worldId) => this.openWorld(worldId),
+      onBack: () => this.render(),
+    });
+  }
+
+  openWorld(worldId: string): void {
+    const world = this._worldMap().find((entry) => entry.id === worldId);
+    if (!world) {
+      this.openWorldMap();
+      return;
+    }
+    this.game.menu.showWorldDetail({
+      world,
+      freePractice: this._freePractice,
+      onPlayLesson: (lessonId) => this.playLesson(lessonId),
+      onToggleFreePractice: () => {
+        this._freePractice = !this._freePractice;
+        this.openWorld(worldId);
+      },
+      onBack: () => this.openWorldMap(),
+    });
+  }
+
+  /** Plays a chosen lesson (a replay never erases its stored best result). */
+  playLesson(lessonId: string): void {
+    this._withPracticeOffer(() => {
+      this.game.profiles.getActiveProfile() ??
+        this.game.profiles.createProfile(DEFAULT_PLAYER_NAME, DEFAULT_CHARACTER_ID);
+      this.game.startLesson(lessonId);
     });
   }
 

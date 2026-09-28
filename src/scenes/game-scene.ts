@@ -18,6 +18,8 @@ import type { StreamItem, StreamLevel, WorldStream } from '../gameplay/world-str
 import { JOURNEY_LENGTH, journeyWords } from '../content/discoveries.js';
 import { ExploreRun } from '../gameplay/explore-run.js';
 import { supportPolicy, type SupportPolicy } from '../gameplay/support-policy.js';
+import { ProgressiveHint, hintSteps } from '../gameplay/progressive-hint.js';
+import { formatSyllables, syllablesOf } from '../content/syllables.js';
 import { WORD_BANK } from '../content/word-bank.js';
 import { wordPhaseId, wordPhasePosition } from '../content/word-phases.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
@@ -107,6 +109,10 @@ export class GameScene extends Scene {
   character: ReturnType<typeof getCharacter> | null = null;
   /** What the "Nível de apoio" setting changes in this run; read once at entry. */
   support: SupportPolicy = supportPolicy('standard');
+  /** The HUD's "Dica" button: repeat, then syllables, then a marker (docs/20 §5 F2). */
+  hint = new ProgressiveHint([]);
+  /** Set by the last hint step: the target marker shows even without assisted support. */
+  private _hintHighlight = false;
 
   /** Progress through the A-to-Z run; null outside speedrun mode. */
   speedrun: SpeedrunRun | null = null;
@@ -184,6 +190,8 @@ export class GameScene extends Scene {
       this.validator = new AnswerValidator(lesson);
     }
 
+    this._resetHint();
+
     this.level = this.stream.level;
     this.levelManager = new LevelManager({ level: this.level, bus: this.game.bus });
     this.lives = new LivesManager({ lives: GAMEPLAY.startingLives, bus: this.game.bus });
@@ -231,6 +239,8 @@ export class GameScene extends Scene {
     this.game.hudControls.showPauseButton({
       onPause: () => this.togglePause(),
       onRepeat: () => this.repeatInstruction(),
+      // A race keeps its record comparable: no hints there.
+      onHint: isSpeedrun ? undefined : () => this.requestHint(),
       word: this.exploreRun?.word,
       journeyLabel: this.exploreRun ? `Palavra ${Math.min(JOURNEY_LENGTH, journeyWords(this.exploreRun.journey).length + 1)} de ${JOURNEY_LENGTH}` : undefined,
     });
@@ -376,7 +386,7 @@ export class GameScene extends Scene {
 
   /** Assisted support: name the letter at the screen edge while it is off-screen. */
   private _updateTargetPointer(): void {
-    const target = this.support.highlightTarget && !this.portalOpen ? this._pendingTarget : undefined;
+    const target = this._showsTarget && !this.portalOpen ? this._pendingTarget : undefined;
     if (!target) {
       this.hudModel.setTargetPointer(null);
       return;
@@ -467,7 +477,7 @@ export class GameScene extends Scene {
 
   /** Assisted support: an arrow (a shape, not only a colour) points down at the letter to find. */
   private _drawTargetHighlight(renderer: CanvasRenderer): void {
-    if (!this.support.highlightTarget || this.portalOpen || this.status !== Status.RUNNING) return;
+    if (!this._showsTarget || this.portalOpen || this.status !== Status.RUNNING) return;
     const target = this._pendingTarget;
     if (!target) return;
     const bob = this._reducedMotion ? 0 : Math.sin(Date.now() / 200) * 4;
@@ -530,6 +540,44 @@ export class GameScene extends Scene {
       return;
     }
     narrator.speakLessonTarget(this.lesson.target, this.lesson.type);
+  }
+
+  /** Assisted support, or a hint that reached its last step, marks the target. */
+  private get _showsTarget(): boolean {
+    return this.support.highlightTarget || this._hintHighlight;
+  }
+
+  /** The word whose reviewed syllables the hint may show, if any. */
+  private get _hintWord(): string | null {
+    if (this.exploreRun) return this.exploreRun.word.label;
+    return this.mode === 'normal' && this.lesson?.type === 'word' ? this.lesson.target : null;
+  }
+
+  /** A new target: the hint starts over from its first step. */
+  private _resetHint(): void {
+    this._hintHighlight = false;
+    this.hint.reset(hintSteps({ syllables: syllablesOf(this._hintWord), supportLevel: this.support.level }));
+  }
+
+  /** The "Dica" button: one more level of help. Never collects anything and never counts as a mistake. */
+  requestHint(): void {
+    if (this.status !== Status.RUNNING || this.portalOpen) return;
+    const step = this.hint.next();
+    if (step === 'repeat') {
+      this.repeatInstruction();
+      return;
+    }
+    this._sinceProgress = 0;
+    if (step === 'segment') {
+      const parts = syllablesOf(this._hintWord) ?? [];
+      this._showFeedback(FeedbackKind.HINT, `${this._hintWord}: ${formatSyllables(parts)}`, GAMEPLAY.wrongFeedbackDuration);
+      this.game.narrator?.speak(parts.map((part) => part.toLowerCase()).join(', '));
+      return;
+    }
+    this._hintHighlight = true;
+    this._updateTargetPointer();
+    this._showFeedback(FeedbackKind.HINT, `Siga a seta até ${this.lesson.target}`, GAMEPLAY.wrongFeedbackDuration);
+    this.game.narrator?.speak('Siga a setinha!');
   }
 
   private _tickAssistedRepeat(dt: number): void {
@@ -613,6 +661,7 @@ export class GameScene extends Scene {
       this.validator = new AnswerValidator(this.lesson);
       this.stream.setTarget(nextLetter, this.player.body.x);
       this._popWithdrawn();
+      this._resetHint();
 
       this._setObjective(this.lesson.objective ?? '');
       this.hudModel.setSpeedrunProgress(run.progressText);
@@ -642,6 +691,7 @@ export class GameScene extends Scene {
       this.validator = new AnswerValidator(this.lesson);
       this.stream.setTarget(run.currentLetter, this.player.body.x);
       this._popWithdrawn();
+      this._resetHint();
       this._showFeedback(FeedbackKind.CORRECT, `Boa! Agora a letra ${run.currentLetter}!`, 0.8);
       if (this.support.narrateNextLetter) this._speakNextLetter(run.currentLetter);
       return;

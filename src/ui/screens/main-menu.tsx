@@ -45,6 +45,8 @@ interface MainMenuOptions {
   onPlay: () => void;
   onExplore?: () => void;
   onOpenDiscoveries?: () => void;
+  /** "Escolher aventura" (docs/20 §4 L1): the next-discovery plaque opens the world map. */
+  onOpenWorldMap?: () => void;
   onSpeedrun: () => void;
   onSelectProfile?: (profileId: string) => void;
   onSelectCharacter?: (characterId: string) => void;
@@ -66,6 +68,7 @@ function MainMenuScreen({
   onPlay,
   onExplore,
   onOpenDiscoveries,
+  onOpenWorldMap,
   onSpeedrun,
   onOpenCharacterPicker,
   onOpenSettings,
@@ -143,10 +146,24 @@ function MainMenuScreen({
 
           {/* Right Wing: Action Menu Panel */}
           <div className="home-menu-panel">
-            <div className="discovery-plaque">
-              <div className="discovery-title">SUA PRÓXIMA DESCOBERTA</div>
-              <div className="discovery-target">{currentLessonTitle}</div>
-            </div>
+            {/* The plaque doubles as the map entry, so the home gains no extra button. */}
+            {onOpenWorldMap ? (
+              <MenuButton
+                className="discovery-plaque discovery-plaque-btn"
+                data-nav-id="world-map"
+                aria-label={`Escolher aventura. Sua próxima descoberta: ${currentLessonTitle}`}
+                onClick={onOpenWorldMap}
+              >
+                <span className="discovery-title">SUA PRÓXIMA DESCOBERTA</span>
+                <span className="discovery-target">{currentLessonTitle}</span>
+                <span className="discovery-plaque-action">🗺️ Escolher aventura</span>
+              </MenuButton>
+            ) : (
+              <div className="discovery-plaque">
+                <div className="discovery-title">SUA PRÓXIMA DESCOBERTA</div>
+                <div className="discovery-target">{currentLessonTitle}</div>
+              </div>
+            )}
             {/* DOM order = visual order = focus order (the compact grid pairs them two by two). */}
             <div className="menu-buttons-group home-btn-group">
               <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" data-nav-id="play" onClick={onPlay}>

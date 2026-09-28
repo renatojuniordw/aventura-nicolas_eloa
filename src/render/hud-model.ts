@@ -9,6 +9,8 @@ export const FeedbackKind = Object.freeze({
   NONE: 'none',
   CORRECT: 'correct',
   WRONG: 'wrong',
+  /** A hint the player asked for: neither right nor wrong. */
+  HINT: 'hint',
 });
 
 type FeedbackKindValue = (typeof FeedbackKind)[keyof typeof FeedbackKind];

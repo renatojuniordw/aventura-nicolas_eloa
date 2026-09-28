@@ -432,3 +432,38 @@ describe('describeLesson', () => {
     expect(game.menu.showMainMenu).not.toHaveBeenCalled();
   });
 });
+
+describe('MenuScene world map (docs/20 §4 L1)', () => {
+  it('reaches a lesson in three choices: map, world, lesson', async () => {
+    const curriculum = await import('../content/curriculum.js');
+    const profile = { id: 'p1', name: 'Nicolas', characterId: 'char-nicolas', progress: {} };
+    const game = makeFakeGame({
+      profiles: { ...makeFakeGame().profiles, getActiveProfile: vi.fn(() => profile) },
+      progress: {
+        getNextLesson: vi.fn(() => 'silabas-b-ba'),
+        isLessonComplete: vi.fn((_, id) => id.startsWith('alfabeto-')),
+        completedCount: vi.fn(() => 26),
+        getSpeedrunBestTime: vi.fn(() => null),
+      },
+      curriculum: { units: curriculum.UNITS, lessons: curriculum.LESSONS, lessonOrder: curriculum.LESSON_ORDER, getLesson: curriculum.getLesson },
+      menu: { ...makeFakeGame().menu, showWorldList: vi.fn(), showWorldDetail: vi.fn() },
+    });
+    const scene = new MenuScene(game);
+
+    scene.openWorldMap();
+    const { worlds, onOpenWorld } = game.menu.showWorldList.mock.calls[0][0];
+    expect(worlds.find((world) => world.current).id).toBe('pomar-das-silabas');
+
+    onOpenWorld('pomar-das-silabas');
+    const { world, onPlayLesson, onToggleFreePractice } = game.menu.showWorldDetail.mock.calls[0][0];
+    expect(world.units[0].lessons[0]).toMatchObject({ id: 'silabas-b-ba', state: 'next' });
+
+    onToggleFreePractice();
+    const freed = game.menu.showWorldDetail.mock.calls[1][0];
+    expect(freed.freePractice).toBe(true);
+    expect(freed.world.units.at(-1).lessons.every((lesson) => lesson.playable)).toBe(true);
+
+    onPlayLesson('silabas-b-ba');
+    expect(game.startLesson).toHaveBeenCalledWith('silabas-b-ba');
+  });
+});

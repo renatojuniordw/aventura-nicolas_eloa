@@ -9,11 +9,13 @@ import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChan
 interface PauseButtonOptions {
   onPause: () => void;
   onRepeat?: () => void;
+  /** Progressive hint; distinct from repeating the audio (docs/20 §4 L2). */
+  onHint?: () => void;
   word?: WordEntry;
   journeyLabel?: string;
 }
 
-function HudControlsBar({ onPause, onRepeat, word, journeyLabel }: PauseButtonOptions) {
+function HudControlsBar({ onPause, onRepeat, onHint, word, journeyLabel }: PauseButtonOptions) {
   const [fullscreen, setFullscreen] = useState(() => isFullscreen());
   const supported = isFullscreenSupported();
 
@@ -26,6 +28,7 @@ function HudControlsBar({ onPause, onRepeat, word, journeyLabel }: PauseButtonOp
     {word && <figure className="hud-word-picture"><WordPicture word={word} /><figcaption>{journeyLabel}</figcaption></figure>}
     <div className="hud-controls-bar">
       {onRepeat && <button className="hud-ctrl-btn hud-repeat-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}><span aria-hidden="true">🔊</span></button> }
+      {onHint && <button className="hud-ctrl-btn hud-hint-btn" type="button" aria-label="Pedir dica" title="Pedir dica" onClick={onHint}><span aria-hidden="true">💡</span></button>}
       {/* Hidden by CSS on very small screens; the pause menu offers it there. */}
       {supported && (
         <button

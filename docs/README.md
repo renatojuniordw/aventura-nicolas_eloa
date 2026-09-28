@@ -36,6 +36,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 17  | [Plano de melhorias do layout mobile](17-plano-melhorias-layout-mobile.md) | Revisão do HUD, menus, proporção, controles e zoom no iPhone; implementação registrada na §12 |
 | 18  | [Plano complementar de experiência mobile](18-plano-experiencia-mobile-complementar.md) | Conforto dos controles, prática guiada, navegação, carregamento e animações; implementação registrada na §13 |
 | 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes |
+| 20  | [Melhorias inspiradas em Aventura das Letras](20-plano-melhorias-referencia-aventura-das-letras.md) | Comparação com a referência e propostas sem ESP32; mapa de mundos, palavras por tema e dica progressiva implementados na §12 |
 
 ## Mapa rápido: onde está cada coisa
 
