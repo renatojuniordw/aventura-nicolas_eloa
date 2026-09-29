@@ -1,6 +1,6 @@
 # 19 — Estabilidade do controle por celular na bolsinha
 
-Data: 28/09/2026. Status: diagnóstico local concluído; melhorias propostas, ainda não implementadas.
+Data: 28/09/2026. Status: diagnóstico local concluído. **Atualização 29/09/2026:** P0.1–P1.2 implementados e cobertos por testes automatizados (§8); a matriz de aparelhos da §5 e as três sessões reais de 30 min da §6 ainda não foram executadas, portanto o plano **não está aceito**.
 
 ## 1. Relato e conclusão
 
@@ -197,3 +197,25 @@ Considerar pronto após testes automatizados e pelo menos três sessões reais d
 - Inspeção do Socket.IO instalado confirmou buffer offline descarregado antes do evento `connect` usado pelo app para join.
 - Os testes existentes passarem não valida o cenário da bolsinha: faltam casos de ciclo de vida e integração descritos acima.
 - Não houve alteração de código funcional, deploy, execução de servidor de desenvolvimento ou abertura de navegador. Não foi necessário build/typecheck para esta entrega documental. Alterações preexistentes no workspace foram preservadas.
+
+## 8. Implementação (29/09/2026)
+
+Contrato consolidado em [12 — Controle por celular, §11](12-controle-por-celular.md#11-estabilidade-retomada-e-modo-bolsinha-plano-19-29092026). Resumo por item:
+
+| Item | Entregue | Arquivos principais |
+| --- | --- | --- |
+| P0.1 Diagnóstico | Registro circular (300 eventos, execução atual + anterior) persistido a cada 5 s e em transições (`visibility-hidden`, `pagehide`, quedas, erros de join, fim de sessão, Wake Lock liberado, mudança de saúde); tipo de navegação, versão e ID de execução; sem código, token, URL ou nome. Relatório no celular (copiar/apagar) e no suporte do jogo. No jogo só grava depois do primeiro uso do controle por celular. Logs do servidor com código mascarado e motivo real da desconexão. | `src/net/diagnostics-log.ts`, `signaling/src/room-manager.js`, `signaling/src/server.js`, docs/10 §2.1 |
+| P0.2 Estado operacional | `joined` com snapshot, versão de protocolo, geração e presenças; join idempotente com timeout e retry com backoff/jitter sem novo `connect`; erro limpo só em sucesso; `waiting-room`. Sinal de vida a cada 1 s; jogo avalia a cada 500 ms (3 s sem sinal → `no-response`), sensor `stale` após 1 s, página oculta, queda do próprio jogo. Pausa uma vez, motivo na pausa, "Continuar"/"Recomeçar fase" bloqueados, "Desativar" disponível. | `src/net/signaling-socket.ts`, `src/net/phone-viewer-transport.ts`, `src/net/phone-control-coordinator.ts`, `src/scenes/game-scene.ts`, `src/ui/screens/pause.tsx`, `src/controle/status-message.ts` |
+| P0.3 Wake Lock e sensor | `WakeLockKeeper` com estados, `release`, readquisição limitada, requisição única e lock tardio liberado, `dispose`. `MotionSession` com listener único, validação de amostras, calibração mínima (10 amostras, repouso plausível), reinício do detector após lacuna. "Pronto" exige sala, jogo presente e sensor. | `src/controle/wake-lock-keeper.ts`, `src/controle/motion-session.ts`, `src/controle/main.ts` |
+| P0.4 Retomada | Token por papel; substituição atômica com `session-replaced`; eventos tardios ignorados; snapshot aos dois lados; saída/volta da TV avisada ao celular; `leave` explícito com ack; TTL 2 min (TV), 5 min (celular), 15 min sem pareamento; expiração notifica e limpa tokens. | `signaling/src/room-manager.js`, `src/net/signaling-socket.ts` |
+| P0.5 Comandos | Envio só com sala confirmada; purga de `action`/`health` do `sendBuffer` na queda; servidor ignora socket não re-juntado; `generation` + `seq` descartam antigos e duplicados; pulos só armados (partida + saúde). `volatile` rejeitado após verificação na versão instalada (descarta pacote enquanto o anterior é escrito). `PhoneAdapter` só inscreve/desinscreve. | `src/net/action-filter.ts`, `src/input/phone-adapter.ts` |
+| P1.1 Modo bolsinha | Tela preta mínima; sair com 2 s segurando + confirmação (foco em "Continuar protegido", volta sozinho em 6 s); ativação por teclado vai à confirmação; overscroll/seleção/menu de contexto contidos só ali; tela cheia opcional. | `src/controle/view.ts`, `src/styles/controle.css` |
+| P1.2 Continuidade | Menu desengaja sem desconectar; partida seguinte reusa o celular; partida sem saúde abre pausada; tela de pareamento mostra a sessão existente com "Desconectar celular" e, após fim, "Gerar novo QR code"; atualização do PWA adiada com sessão ativa; comentários de `pwa-update.ts` corrigidos. | `src/scenes/menu-scene.ts`, `src/ui/screens/phone-pairing.tsx`, `src/ui/pwa-update.ts` |
+
+**Testes automatizados** (todos os cenários da §5 “sem navegador”): `npm test` 1022 testes/100 arquivos, `npm --prefix signaling test` 39 testes, `npm run typecheck` e `npm run build` passam. Inclui integração com servidor e clientes socket.io reais (`src/net/signaling-integration.test.js`): pareamento, `room-full`, recarga com token com o socket antigo vivo, 10 pulos durante queda não entregues após reconectar (inclusive pacote que ficou no buffer), volta da TV e encerramento. O `npm --prefix signaling test` exige `npm --prefix signaling ci` antes (a pasta estava sem dependências).
+
+Ensaio ponta a ponta em Chrome headless (jogo e controle em abas separadas, servidor de sinalização real, `devicemotion` sintético; script descartável, não versionado): 19/19 verificações — pareamento com protocolo 2, "Pronto" só após sensor, partida sem pausa, modo bolsinha, pulo entregue com `seq`/`generation`, sensor parado pausando com motivo e "Continuar" travado, liberação ao voltar, menu sem desconectar, pareamento reaberto sem novo QR, recarga do celular retomando a sessão com diagnóstico preservado e "Desconectar celular" encerrando no celular. Não substitui aparelho real: não há sensor físico, bloqueio de tela nem rede móvel.
+
+**Decisões desta implementação:** o critério de parada da §4 P0.2 usa 3 s sem sinal; a janela de retenção da TV subiu de 15 s para 2 min, como proposto; as sessões não são persistidas no servidor (reinício → espera de 60 s e depois novo QR). Todos os tempos seguem provisórios até a matriz real.
+
+**Pendente:** matriz de aparelhos da §5 (bolsinha 30 min, bloqueio automático e manual, troca de app, rede de cada aparelho, Wi-Fi/dados, recarga dos dois lados, toques na bolsinha, transições, atualização, economia de bateria), medição de pausas falsas, ajuste dos tempos e as três sessões reais de aceite da §6.

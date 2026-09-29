@@ -1,15 +1,15 @@
 # 06 — Estratégia de testes
 
-**735 testes** em **81 arquivos** no motor/cliente, rodando em cerca de 3 segundos, mais **22 testes** em **2 arquivos** no servidor de sinalização WebSocket (`signaling/`).
+**1022 testes** em **100 arquivos** no motor/cliente (contagem de 29/09/2026), mais **39 testes** em **2 arquivos** no servidor de sinalização WebSocket (`signaling/`). As tabelas por arquivo abaixo podem estar defasadas nas seções não revisadas; a contagem oficial é a saída de `npm test`.
 
 A estratégia é simples e deliberada: **testar lógica pura sem DOM** e ter **um** teste de
 integração que prova que as peças se conectam. O DOM aparece só onde o DOM *é* o
 comportamento sob teste (ver seção 4).
 
 ```bash
-npm test                     # roda todos os 735 testes do cliente
+npm test                     # roda todos os testes do cliente (inclui a integração socket.io real)
 npm run test:watch           # modo observador durante o desenvolvimento
-npm --prefix signaling test  # roda os 22 testes do servidor de sinalização
+npm --prefix signaling test  # roda os testes do servidor de sinalização (requer npm --prefix signaling ci)
 ```
 
 ---
@@ -53,7 +53,7 @@ contam chamadas, não pegariam.
 | `input/input-manager.test.js`           |     11 | "Segurado" vs "apertado uma vez", auto-repeat ignorado, troca de adaptador |
 | `input/touch-adapter.test.js`           |      5 | Pointer down/up, cancel/leave soltam a ação, cada botão na sua ação        |
 | `input/composite-adapter.test.js`       |      4 | Anexa/destaca todos os filhos, qualquer fonte filha comanda o mesmo `InputManager` |
-| `input/phone-adapter.test.js`           |      5 | Ações do celular via transporte, despacho semântico e desconexão           |
+| `input/phone-adapter.test.js`           |      7 | Ações do celular via transporte, trava de armado, inscrição sem posse da sessão, contrato de pulso |
 | `input/auto-run-adapter.test.js`        |      4 | Corrida contínua sem intervenção motora durante modo celular               |
 | `input/haptics.test.js`                 |      8 | Vibração tátil segura com fallback sem falhar em navegadores sem suporte   |
 | `ui/touch-controls.test.js`             |      3 | Botões esquerda/direita/pulo mapeados às ações certas, `show()`/`hide()` preservam elementos |
@@ -129,11 +129,17 @@ contam chamadas, não pegariam.
 | `controle/threshold-storage.test.js`      |      5 | Armazenamento seguro de calibração do sensor no dispositivo                     |
 | `controle/controle-params.test.js`        |      4 | Parsing de parâmetros de URL para pareamento por QR code                        |
 | `controle/sensor-time.test.js`            |      2 | Marcação de tempo monotonicamente crescente para séries temporais               |
-| `controle/status-message.test.js`         |     11 | Mensagens claras de estado (conectado, calibrando, pulando) na tela do celular   |
-| `net/phone-control-coordinator.test.js`   |      7 | Pareamento, troca automática de adaptador e pausa do jogo se celular desconectar|
+| `controle/status-message.test.js`         |     20 | "Pronto" só com sala confirmada, jogo presente e sensor recente; proteção de tela sem falsa promessa |
+| `controle/wake-lock-keeper.test.js`       |     10 | Wake Lock ausente, recusado, liberado, concorrente, tardio após `stop()` e 20 ciclos |
+| `controle/motion-session.test.js`         |      8 | Um único `devicemotion`, calibração vazia/curta/implausível, sensor parado e lacunas |
+| `net/phone-control-coordinator.test.js`   |     29 | Saúde operacional, pausa por queda/silêncio, pulos só armados, menu preserva pareamento, sessão encerrada |
 | `net/session-code.test.js`                |      3 | Geração de códigos amigáveis e seguros para salas de pareamento                 |
-| `net/signaling-socket.test.js`            |      4 | Transporte de sinalização via Socket.io com reconexão resiliente                |
-| `signaling/src/room-manager.test.js`      |     18 | Pareamento controller↔viewer, expiração, salas isoladas e rate limiting         |
+| `net/signaling-socket.test.js`            |     26 | Confirmação de join, retry com backoff, erros terminais, token, comandos sem fila, `leave` com ack |
+| `net/action-filter.test.js`               |      5 | Descarte de geração antiga e sequência repetida                                  |
+| `net/phone-viewer-transport.test.js`      |      6 | Presença, sinal de vida no relógio do jogo e filtro de comandos no transporte da TV |
+| `net/diagnostics-log.test.js`             |      8 | Diagnóstico que sobrevive à recarga, limite de eventos, sem código/token, persistência adiada |
+| `net/signaling-integration.test.js`       |      6 | Servidor e clientes socket.io reais: pareamento, `room-full`, recarga com token, pulos offline não reenviados, volta da TV, encerramento |
+| `signaling/src/room-manager.test.js`      |     35 | Retomada autenticada, substituição atômica, eventos tardios, snapshots, expirações, `leave`, logs sem código completo |
 | `signaling/src/session-id.test.js`        |      4 | Validação e sanitização rigorosa de códigos de sessão de pareamento             |
 
 ### 2.8 Cenas, telas e UI

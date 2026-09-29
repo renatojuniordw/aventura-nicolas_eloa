@@ -926,6 +926,21 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   min-height: 2.6em;
 }
 
+/* Pause while a phone drives the match (docs/19 §4 P0.2): its live state, and why Continuar is locked. */
+.pause-phone-status {
+  max-width: 34em;
+  margin-inline: auto;
+}
+
+.pause-phone-status-blocked {
+  font-weight: 700;
+}
+
+.overlay-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Never below ~160px (still readable by a phone camera), never above 220px. */
 .phone-pairing-qr,
 .phone-pairing-qr-placeholder {

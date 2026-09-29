@@ -408,6 +408,15 @@ sozinho (`AutoRunAdapter`, `src/input/auto-run-adapter.ts`) — outro `InputAdap
 hardware nenhum atrás, que só emite `MOVE_RIGHT` continuamente. Nenhum dos dois precisou
 tocar em `gameplay/`, `physics/`, `render/` ou `scenes/` — a mesma garantia da seção 7.4.
 
+Desde o plano 19 (docs/12 §11), o `PhoneAdapter` só **escuta**: `transport.onMessage()`
+devolve a função de cancelar a inscrição, `attach()` inscreve uma vez e `detach()` cancela,
+sem desconectar nada. A sessão tem um único dono, o `PhoneControlCoordinator`, que troca os
+adaptadores ao entrar numa partida (`engage`) e ao voltar ao menu (`disengage`) sem perder o
+pareamento. O adaptador recebe ainda `isArmed()`: comandos que chegam fora de partida ou com
+o controle sem saúde são descartados ali, antes de virar ação. O celular manda só pulsos
+`pressed: true`; cada pulso é uma nova borda de `JUMP`, e o estado "segurado" que sobra é
+limpo por `InputManager.reset()` em toda pausa e troca de adaptador.
+
 ---
 
 ## 9. Como testar sem hardware

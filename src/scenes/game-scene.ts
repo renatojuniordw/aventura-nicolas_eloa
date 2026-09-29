@@ -254,6 +254,10 @@ export class GameScene extends Scene {
     } else if (this.lesson?.target) {
       this.game.narrator?.speakLessonTarget(this.lesson.target, this.lesson.type);
     }
+    // A paired phone drives this match (docs/19 §4 P1.2). Starting requires a
+    // healthy link: otherwise the match opens paused and explains why.
+    const phone = this.game.phoneControl;
+    if (phone?.engage?.() && !phone.canPlay) this.pause();
   }
 
   /** The alphabet lesson for `letter`, or an equivalent stand-in when the curriculum lacks it. */
@@ -604,6 +608,10 @@ export class GameScene extends Scene {
       }),
       bus.on(Events.LIVES_DEPLETED, () => this.onGameOver()),
       bus.on(Events.APP_BLURRED, () => this.pause()),
+      // The pause screen shows the phone's live state and unlocks "Continuar" when it recovers.
+      bus.on(Events.PHONE_LINK_CHANGED, () => {
+        if (this.status === Status.PAUSED) this._showPauseMenu();
+      }),
     );
   }
 
@@ -886,7 +894,13 @@ export class GameScene extends Scene {
   }
 
   private _showPauseMenu(): void {
+    const phone = this.game.phoneControl;
+    const phoneEngaged = Boolean(phone?.isEngaged);
     this.game.menu.showPause({
+      // Continuing or restarting a phone match needs a working phone (docs/19 §4 P0.2).
+      phoneStatus: phoneEngaged
+        ? { operational: phone.status.operational, message: phone.status.message }
+        : undefined,
       isSpeedrun: this.mode === 'speedrun',
       isMuted: this.game.audio.isMuted,
       onResume: () => this.resume(),
@@ -896,12 +910,12 @@ export class GameScene extends Scene {
         this.game.audio.toggleMuted();
         this._showPauseMenu();
       },
-      isPhoneControlActive: this.game.phoneControl.isActive,
+      isPhoneControlActive: phoneEngaged || Boolean(phone?.isActive),
       onDisablePhoneControl: () => {
         // Dropping input source mid-game isn't destructive to progress like
         // restart/menu are, so no confirm step — just switch back to
         // keyboard/touch and let the parent keep playing right away.
-        this.game.phoneControl.stop();
+        phone.stop();
         this.resume();
       },
     });
@@ -909,6 +923,8 @@ export class GameScene extends Scene {
 
   resume(): void {
     if (this.status !== Status.PAUSED) return;
+    // Never run on without a working phone: "Continuar" stays locked until it is back.
+    if (this.game.phoneControl && !this.game.phoneControl.canPlay) return;
     this.status = Status.RUNNING;
     this.game.menu.hide();
     // Clear held keys so the player does not keep running after resuming.

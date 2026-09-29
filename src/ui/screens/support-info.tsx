@@ -79,7 +79,7 @@ function SupportInfoScreen({ report, measuring, onToggleMeasuring, onRefresh, on
     <p className="settings-help">Versão, tela e controles deste aparelho, sem nomes nem progresso. Nada é enviado sozinho.</p>
     <div className="screen-body support-report-body" ref={body}>
       {fallback ? (
-        <textarea ref={fullRef} className="support-report support-report-full" readOnly value={report} aria-label="Resumo técnico completo" />
+        <textarea ref={fullRef} className="support-report support-report-full" readOnly value={report} aria-label="Resumo técnico completo" data-scroll-exception="" />
       ) : (
         <pre className="support-report" tabIndex={0} aria-label="Resumo técnico">{pager.items.map((line) => line.text).join('\n')}</pre>
       )}

@@ -1,22 +1,34 @@
 #!/usr/bin/env node
 /**
- * Visual/geometry audit of the menu screens (docs/22 §10), in a real browser.
+ * Visual/geometry audit (docs/22 §10, docs/23 §5), in a real browser.
  *
- * Starts headless Chrome, opens the running dev server (`npm run dev`), and
- * for every viewport of the matrix mounts each screen through the same
- * builders the game uses (tools/ux-audit-page.js, loaded through Vite). For
- * each screen it saves a screenshot and checks, in CSS px:
+ * Starts headless Chrome, opens the running dev server (`npm run dev`) and,
+ * for every viewport of the matrix, audits three targets:
+ *   - menus:    each menu screen mounted through the game's own builders with
+ *               sample data (tools/ux-audit-page.js);
+ *   - controle: every state of the phone-controller page, drawn by its own view
+ *               (tools/ux-audit-controle-page.js, docs/22 M20);
+ *   - flow:     the real game with a fresh profile, driven through its visible
+ *               buttons — first run, world map, every Configurações screen and
+ *               its return, Caderno, pairing, a match, pause and back to the
+ *               menu (tools/ux-audit-flow-page.js).
+ * For each state it saves a screenshot and checks, in CSS px:
  *   - no scrolling container: scrollHeight/scrollWidth within clientHeight/Width + 1;
- *   - every button inside the viewport and hit by `elementFromPoint` at its centre;
+ *   - every control inside the viewport and hit by `elementFromPoint` at its
+ *     centre — a control outside it is scrolled into view to tell a reachable
+ *     vertical fallback (note) from content lost off-screen (failure);
  *   - every button label inside its box; no two buttons intersecting.
  * jsdom cannot measure any of this; this script is what validates layout.
+ * Canvas-drawn HUD content is not measured (only the DOM controls over it).
  *
  * Usage: node tools/ux-audit.mjs [--url http://localhost:5173] [--out dir]
- *        [--only home,settings] [--viewports 360x640,667x375] [--large-text]
- *        [--text-scale 2]   (browser text at 200%: only horizontal scroll and
- *                            cut-off content fail; the vertical fallback is expected)
+ *        [--target menus,controle,flow] [--only home,settings]
+ *        [--viewports 360x640,667x375] [--large-text]
+ *        [--text-scale 2]   (browser text at 200%: vertical scrolling and
+ *                            reachable off-screen controls become notes;
+ *                            horizontal scroll and unreachable controls fail)
  * Exit code 1 when a check fails. Nothing here touches real saves: Chrome
- * runs with a throwaway profile.
+ * runs with a throwaway profile, cleared before every flow.
  */
 import { spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -33,6 +45,12 @@ const arg = (name, fallback) => {
 const BASE_URL = arg('url', 'http://localhost:5173');
 const OUT = arg('out', join(tmpdir(), 'ux-audit'));
 const ONLY = arg('only', '')?.split(',').filter(Boolean) ?? [];
+const TARGETS = (arg('target', 'menus,controle,flow') || 'menus').split(',').filter(Boolean);
+const TARGET_PAGES = {
+  menus: { path: '/', script: 'ux-audit-page.js' },
+  controle: { path: '/controle.html', script: 'ux-audit-controle-page.js' },
+  flow: { path: '/', script: 'ux-audit-flow-page.js', freshProfile: true },
+};
 const LARGE_TEXT = args.includes('--large-text');
 const TEXT_SCALE = Number(arg('text-scale', '1'));
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -111,21 +129,26 @@ async function evaluate(cdp, expression) {
 const MEASURE = `(() => {
   const issues = [];
   const vw = window.innerWidth, vh = window.innerHeight;
+  // Not operable right now: under a modal or the orientation warning (inert), or folded in a closed <details>.
+  const dormant = (el) => Boolean(el.closest('[inert]')) || (() => { const d = el.closest('details'); return Boolean(d && !d.open && !el.closest('summary')); })();
   const describe = (el) => (el.getAttribute('aria-label') || el.textContent || el.className || el.tagName).trim().replace(/\\s+/g, ' ').slice(0, 50);
-  const scope = [document.scrollingElement, ...document.querySelectorAll('#overlay-root *, #hud-controls-root *')];
+  const warning = document.body.classList.contains('needs-landscape') ? ', .orientation-warning *' : '';
+  const scope = [document.scrollingElement, ...document.querySelectorAll('#overlay-root *, #hud-controls-root *, #controle-root *' + warning)];
   for (const el of scope) {
-    if (!el || el.closest('[hidden], .sr-only')) continue;
+    if (!el || el.closest('[hidden], .sr-only') || (el !== document.scrollingElement && dormant(el))) continue;
     if (el !== document.scrollingElement && (el.clientWidth <= 1 || el.clientHeight <= 1)) continue;
     const style = getComputedStyle(el);
     if (style.display === 'none' || style.visibility === 'hidden') continue;
     const scrollsY = el.scrollHeight > el.clientHeight + 1 && el.clientHeight > 0;
     const scrollsX = el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0;
     const clips = (v) => v !== 'visible';
-    if (scrollsY && (clips(style.overflowY) || el === document.scrollingElement)) issues.push({ kind: 'scroll-y', what: describe(el).slice(0, 30), by: el.scrollHeight - el.clientHeight });
+    // Registered exceptions (e.g. a full report shown when copying failed) scroll inside themselves on purpose.
+    const exception = el !== document.scrollingElement && el.hasAttribute('data-scroll-exception');
+    if (scrollsY && (clips(style.overflowY) || el === document.scrollingElement)) issues.push({ kind: exception ? 'scroll-exception' : 'scroll-y', what: describe(el).slice(0, 30), by: el.scrollHeight - el.clientHeight });
     if (scrollsX && (clips(style.overflowX) || el === document.scrollingElement)) issues.push({ kind: 'scroll-x', what: describe(el).slice(0, 30), by: el.scrollWidth - el.clientWidth });
   }
-  const buttons = [...document.querySelectorAll('#overlay-root button, #hud-controls-root button, #overlay-root select, #overlay-root input')]
-    .filter((b) => b.getClientRects().length && getComputedStyle(b).visibility !== 'hidden' && !b.closest('.sr-only'));
+  const buttons = [...document.querySelectorAll('#overlay-root button, #hud-controls-root button, #overlay-root select, #overlay-root input, #controle-root button, #controle-root summary' + warning.replace(' *', ' button'))]
+    .filter((b) => b.getClientRects().length && getComputedStyle(b).visibility !== 'hidden' && !b.closest('.sr-only') && !dormant(b));
   // What is actually visible of each control: clipped by any scrolling/clipping ancestor.
   const visibleRect = (el) => {
     const r = el.getBoundingClientRect();
@@ -139,15 +162,32 @@ const MEASURE = `(() => {
     }
     return box;
   };
+  // A control outside the viewport is only a fallback if scrolling brings it fully into view and hittable.
+  const reachable = (el) => {
+    const saved = [];
+    for (let a = el.parentElement; a; a = a.parentElement) saved.push([a, a.scrollTop, a.scrollLeft]);
+    const root = document.scrollingElement;
+    saved.push([root, root.scrollTop, root.scrollLeft]);
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    const r = el.getBoundingClientRect();
+    const inside = r.left >= -1 && r.top >= -1 && r.right <= vw + 1 && r.bottom <= vh + 1;
+    const hit = inside ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+    const ok = Boolean(hit && (hit === el || el.contains(hit) || (el.tagName === 'INPUT' && hit.closest('label')?.contains(el))));
+    for (const [node, top, left] of saved) { node.scrollTop = top; node.scrollLeft = left; }
+    return ok;
+  };
   const rects = buttons.map((b) => b.getBoundingClientRect());
   const shown = buttons.map(visibleRect);
   buttons.forEach((b, i) => {
     const r = rects[i];
-    if (r.left < -1 || r.top < -1 || r.right > vw + 1 || r.bottom > vh + 1) { issues.push({ kind: 'offscreen', what: describe(b), rect: [r.left, r.top, r.right, r.bottom].map(Math.round) }); return; }
+    if (r.left < -1 || r.top < -1 || r.right > vw + 1 || r.bottom > vh + 1) {
+      issues.push({ kind: reachable(b) ? 'offscreen-reachable' : 'offscreen', what: describe(b), rect: [r.left, r.top, r.right, r.bottom].map(Math.round) });
+      return;
+    }
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if (hit && hit !== b && !b.contains(hit) && !(b.tagName === 'INPUT' && hit.closest('label')?.contains(b))) issues.push({ kind: 'covered', what: describe(b), by: describe(hit) });
     if (b.tagName === 'BUTTON' && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1)) issues.push({ kind: 'label-overflow', what: describe(b) });
-    if (b.tagName === 'BUTTON' && (r.height < 47.5 || r.width < 47.5) && !b.closest('.touch-preview')) issues.push({ kind: 'small-target', what: describe(b), size: [Math.round(r.width), Math.round(r.height)] });
+    if ((b.tagName === 'BUTTON' || b.tagName === 'SUMMARY') && (r.height < 47.5 || r.width < 47.5) && !b.closest('.touch-preview')) issues.push({ kind: 'small-target', what: describe(b), size: [Math.round(r.width), Math.round(r.height)] });
     for (let j = i + 1; j < buttons.length; j++) {
       const o = shown[j];
       const v = shown[i];
@@ -171,15 +211,22 @@ const MEASURE = `(() => {
   return { issues, centring };
 })()`;
 
+/** Kinds that never fail the run: a reachable fallback is recorded, not hidden. */
+const NOTE_KINDS = new Set(['offscreen-reachable', 'scroll-exception']);
+/** With browser text at 200%, the vertical fallback itself is expected (docs/22 §2). */
+const TEXT_SCALE_NOTE_KINDS = new Set(['scroll-y', 'not-centred']);
+
+const describeIssue = (i) => `${i.kind}(${i.what}${i.by !== undefined ? ` · ${typeof i.by === 'number' ? i.by + 'px' : i.by}` : ''}${i.with ? ` × ${i.with}` : ''}${i.size ? ` ${i.size.join('×')}` : ''})`;
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
-  const pageScript = readFileSync(join(HERE, 'ux-audit-page.js'), 'utf8');
   const { chrome, profile, ws } = await launchChrome();
   const cdp = await connect(ws);
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   const report = [];
   let failures = 0;
+  let notes = 0;
   try {
     for (const viewport of VIEWPORTS) {
       const landscape = viewport.width > viewport.height;
@@ -188,26 +235,44 @@ async function main() {
         screenOrientation: { type: landscape ? 'landscapePrimary' : 'portraitPrimary', angle: landscape ? 90 : 0 },
       });
       await cdp.send('Emulation.setTouchEmulationEnabled', viewport.width < 1024 ? { enabled: true, maxTouchPoints: 5 } : { enabled: false });
-      const loaded = cdp.once('Page.loadEventFired');
-      await cdp.send('Page.navigate', { url: BASE_URL });
-      await loaded;
-      await sleep(600);
-      await evaluate(cdp, pageScript);
-      const screens = await evaluate(cdp, `window.__uxAudit.list(${JSON.stringify({ largeText: LARGE_TEXT, textScale: TEXT_SCALE })})`);
-      for (const name of screens) {
-        if (ONLY.length && !ONLY.some((prefix) => name.startsWith(prefix))) continue;
-        await evaluate(cdp, `window.__uxAudit.show(${JSON.stringify(name)})`);
-        await sleep(250);
-        let { issues, centring } = await evaluate(cdp, MEASURE);
-        // Zoomed text: the single vertical fallback container is allowed (docs/22 §2).
-        if (TEXT_SCALE > 1) issues = issues.filter((issue) => !['scroll-y', 'offscreen', 'not-centred'].includes(issue.kind));
-        const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
-        const file = join(OUT, `${viewport.label}${LARGE_TEXT ? '-large' : ''}${TEXT_SCALE > 1 ? `-x${TEXT_SCALE}` : ''}-${name}.png`);
-        writeFileSync(file, Buffer.from(shot.data, 'base64'));
-        failures += issues.length;
-        report.push({ viewport: viewport.label, screen: name, centring, issues });
-        const status = issues.length ? `✗ ${issues.map((i) => `${i.kind}(${i.what}${i.by !== undefined ? ` · ${typeof i.by === 'number' ? i.by + 'px' : i.by}` : ''}${i.with ? ` × ${i.with}` : ''}${i.size ? ` ${i.size.join('×')}` : ''})`).join('; ')}` : '✓';
-        console.log(`${viewport.label.padEnd(9)} ${name.padEnd(26)} ${status}`);
+      for (const target of TARGETS) {
+        const page = TARGET_PAGES[target];
+        if (!page) throw new Error(`Unknown --target ${target}`);
+        const pageScript = readFileSync(join(HERE, page.script), 'utf8');
+        const url = new URL(page.path, BASE_URL).href;
+        if (page.freshProfile) {
+          await evaluate(cdp, 'try { localStorage.clear(); sessionStorage.clear(); } catch {} true');
+        }
+        const loaded = cdp.once('Page.loadEventFired');
+        await cdp.send('Page.navigate', { url });
+        await loaded;
+        await sleep(600);
+        await evaluate(cdp, pageScript);
+        const screens = await evaluate(cdp, `window.__uxAudit.list(${JSON.stringify({ largeText: LARGE_TEXT, textScale: TEXT_SCALE })})`);
+        for (const name of screens) {
+          // A flow is a sequence: every step runs, only the selected ones are reported.
+          const selected = !ONLY.length || ONLY.some((prefix) => name.startsWith(prefix));
+          if (!selected && !page.freshProfile) continue;
+          const outcome = await evaluate(cdp, `window.__uxAudit.show(${JSON.stringify(name)})`);
+          const stepError = typeof outcome === 'string' ? outcome : null;
+          await sleep(250);
+          if (!selected || outcome?.skip) continue;
+          let { issues, centring } = await evaluate(cdp, MEASURE);
+          if (stepError) issues.push({ kind: 'flow-error', what: stepError });
+          const noteKinds = TEXT_SCALE > 1 ? new Set([...NOTE_KINDS, ...TEXT_SCALE_NOTE_KINDS]) : NOTE_KINDS;
+          const stepNotes = issues.filter((issue) => noteKinds.has(issue.kind));
+          issues = issues.filter((issue) => !noteKinds.has(issue.kind));
+          const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
+          const file = join(OUT, `${viewport.label}${LARGE_TEXT ? '-large' : ''}${TEXT_SCALE > 1 ? `-x${TEXT_SCALE}` : ''}-${name}.png`);
+          writeFileSync(file, Buffer.from(shot.data, 'base64'));
+          failures += issues.length;
+          notes += stepNotes.length;
+          report.push({ viewport: viewport.label, target, screen: name, centring, issues, notes: stepNotes });
+          const status = issues.length ? `✗ ${issues.map(describeIssue).join('; ')}` : '✓';
+          const noteText = stepNotes.length ? `  (nota: ${stepNotes.map(describeIssue).join('; ')})` : '';
+          console.log(`${viewport.label.padEnd(9)} ${name.padEnd(30)} ${status}${noteText}`);
+          if (stepError) break; // the rest of this flow would be measuring the wrong screen
+        }
       }
     }
   } finally {
@@ -217,7 +282,7 @@ async function main() {
     await sleep(300);
     rmSync(profile, { recursive: true, force: true });
   }
-  console.log(`\n${failures} issue(s). Screenshots and report.json in ${OUT}`);
+  console.log(`\n${report.length} estado(s) medidos, ${failures} problema(s), ${notes} nota(s). Capturas e report.json em ${OUT}`);
   process.exitCode = failures ? 1 : 0;
 }
 

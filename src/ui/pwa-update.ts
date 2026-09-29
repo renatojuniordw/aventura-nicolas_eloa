@@ -1,17 +1,19 @@
 /**
  * PWA update flow. A new service worker is downloaded in the background and
  * left waiting (registerType 'prompt'); this module decides WHEN it is safe
- * to activate it and reload — never while a level is being played.
+ * to activate it and reload — never while a level is being played, and never
+ * while a phone is paired as controller (a reload would drop the pairing,
+ * docs/19 §4 P1.2).
  *
- *  - Update found in the menu: activate and reload; otherwise show a banner outside gameplay.
- *  - Back on the menu (i.e. between levels) or app sent to background while
- *    not playing: apply it automatically.
+ *  - Outside gameplay and with no phone session, a banner offers "Atualizar".
+ *  - The app sent to background in that same safe state applies it.
+ *  - Entering the menu only re-evaluates the banner; it never reloads by itself.
+ *  - When the phone session ends, the banner comes back.
  */
 import { Events, type EventBus } from '../core/event-bus.js';
 
 /** Scene during which a reload would lose the player's run (normal, speedrun and explore modes all run inside 'game'). */
 const isPlayingScene = (name: string | null) => name === 'game';
-const MENU_SCENE = 'menu';
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface UpdateBanner {
@@ -24,6 +26,8 @@ export interface UpdateControllerDeps {
   /** Activates the waiting service worker and reloads the page. */
   applyUpdate: () => void | Promise<void>;
   banner: UpdateBanner;
+  /** A phone pairing session exists (QR on screen or phone paired): updating would break it. */
+  isPhoneSessionActive?: () => boolean;
 }
 
 export class UpdateController {
@@ -33,6 +37,9 @@ export class UpdateController {
   constructor(private readonly _deps: UpdateControllerDeps) {
     _deps.bus.on(Events.SCENE_CHANGED, ({ name }) => {
       this._syncBanner(name);
+    });
+    _deps.bus.on(Events.PHONE_LINK_CHANGED, () => {
+      this._syncBanner(this._deps.getSceneName());
     });
   }
 
@@ -48,12 +55,12 @@ export class UpdateController {
 
   /** The page was hidden (app minimised, tab switched, phone locked). */
   onHidden(): void {
-    if (this._pending && !isPlayingScene(this._deps.getSceneName())) this.apply();
+    if (this._pending && this._safe(this._deps.getSceneName())) this.apply();
   }
 
   /** Manual "Atualizar" tap. */
   apply(): void {
-    if (!this._pending || this._applying || isPlayingScene(this._deps.getSceneName())) return;
+    if (!this._pending || this._applying || !this._safe(this._deps.getSceneName())) return;
     this._applying = true;
     this._deps.banner.setVisible(false);
     const retry = () => {
@@ -67,8 +74,12 @@ export class UpdateController {
     }
   }
 
+  private _safe(sceneName: string | null): boolean {
+    return !isPlayingScene(sceneName) && !this._deps.isPhoneSessionActive?.();
+  }
+
   private _syncBanner(sceneName: string | null): void {
-    this._deps.banner.setVisible(this._pending && !this._applying && !isPlayingScene(sceneName));
+    this._deps.banner.setVisible(this._pending && !this._applying && this._safe(sceneName));
   }
 }
 
@@ -95,6 +106,7 @@ export function createUpdateBanner(onApply: () => void): UpdateBanner {
 export async function initPwaUpdates(game: {
   bus: EventBus;
   scenes: { currentName: string | null };
+  phoneControl?: { status: { session: boolean } };
 }): Promise<void> {
   if (!('serviceWorker' in navigator)) return;
   const { registerSW } = await import('virtual:pwa-register');
@@ -123,6 +135,7 @@ export async function initPwaUpdates(game: {
     getSceneName: () => game.scenes.currentName,
     applyUpdate: () => updateSW(true),
     banner,
+    isPhoneSessionActive: () => Boolean(game.phoneControl?.status.session),
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) controller.onHidden();

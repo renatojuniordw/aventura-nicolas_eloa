@@ -17,6 +17,33 @@ import { Sfx } from '../audio/sfx-catalog.js';
  * "wrong order" guard, per-mode game-over/finish wiring, and hazard hits.
  */
 
+/** Stand-in for PhoneControlCoordinator; `setOperational` flips the link state like a real drop/recovery. */
+function makeFakePhone({ paired = true, operational = true } = {}) {
+  const phone = {
+    isActive: paired,
+    isEngaged: false,
+    status: { session: paired, paired, operational, reason: operational ? 'ok' : 'no-response', message: operational ? 'Celular conectado e pronto.' : 'Controle sem resposta.' },
+    get canPlay() {
+      return !phone.isEngaged || phone.status.operational;
+    },
+    engage: vi.fn(() => {
+      if (!phone.isActive) return false;
+      phone.isEngaged = true;
+      return true;
+    }),
+    start: vi.fn(),
+    stop: vi.fn(() => {
+      phone.isActive = false;
+      phone.isEngaged = false;
+    }),
+    setOperational(bus, value) {
+      phone.status = { ...phone.status, operational: value, reason: value ? 'ok' : 'no-response', message: value ? 'Celular conectado e pronto.' : 'Controle sem resposta.' };
+      bus.emit(Events.PHONE_LINK_CHANGED, { session: true, paired: true, operational: value });
+    },
+  };
+  return phone;
+}
+
 function makeFakeGame(overrides = {}) {
   const bus = new EventBus();
   return {
@@ -56,7 +83,7 @@ function makeFakeGame(overrides = {}) {
     debug: { enabled: false, toggle: vi.fn() },
     scenes: { switchTo: vi.fn() },
     startSpeedrun: vi.fn(),
-    phoneControl: { isActive: false, start: vi.fn(), stop: vi.fn() },
+    phoneControl: makeFakePhone({ paired: false }),
     ...overrides,
   };
 }
@@ -464,18 +491,52 @@ describe('GameScene (unit)', () => {
   });
 
   it('tells the pause menu whether phone control is active', () => {
-    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+    const game = makeFakeGame({ phoneControl: makeFakePhone() });
     const scene = enterNormalLesson(game);
     scene.pause();
 
-    const { isPhoneControlActive } = game.menu.showPause.mock.calls[0][0];
+    const { isPhoneControlActive, phoneStatus } = game.menu.showPause.mock.calls[0][0];
     expect(isPhoneControlActive).toBe(true);
+    expect(phoneStatus).toEqual({ operational: true, message: 'Celular conectado e pronto.' });
+  });
+
+  it('engages a paired phone on entering a match', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone() });
+    const scene = enterNormalLesson(game);
+    expect(game.phoneControl.engage).toHaveBeenCalledTimes(1);
+    expect(scene.status).not.toBe('paused');
+    expect(game.menu.showPause).not.toHaveBeenCalled();
+  });
+
+  it('opens the match paused when the paired phone is not operational', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ operational: false }) });
+    enterNormalLesson(game);
+    expect(game.menu.showPause).toHaveBeenCalledWith(
+      expect.objectContaining({ phoneStatus: { operational: false, message: 'Controle sem resposta.' } }),
+    );
+  });
+
+  it('refuses to resume while the phone is down, then resumes once it recovers', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone() });
+    const scene = enterNormalLesson(game);
+    game.phoneControl.setOperational(game.bus, false);
+    scene.pause();
+
+    scene.resume();
+    expect(game.menu.hide).not.toHaveBeenCalled();
+    expect(game.input.resync).not.toHaveBeenCalled();
+
+    game.phoneControl.setOperational(game.bus, true);
+    // The pause screen was re-rendered with the new state.
+    expect(game.menu.showPause.mock.calls.at(-1)[0].phoneStatus.operational).toBe(true);
+    scene.resume();
+    expect(game.menu.hide).toHaveBeenCalledTimes(1);
+    expect(game.input.resync).toHaveBeenCalledTimes(1);
   });
 
   it('disabling phone control from the pause menu stops it and resumes play immediately', () => {
-    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ operational: false }) });
     const scene = enterNormalLesson(game);
-    scene.pause();
 
     const { onDisablePhoneControl } = game.menu.showPause.mock.calls[0][0];
     onDisablePhoneControl();
@@ -483,6 +544,7 @@ describe('GameScene (unit)', () => {
     expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
     expect(game.menu.hide).toHaveBeenCalledTimes(1);
     expect(game.input.resync).toHaveBeenCalledTimes(1);
+    expect(scene.status).not.toBe('paused');
   });
 });
 

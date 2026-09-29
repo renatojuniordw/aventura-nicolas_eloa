@@ -26,6 +26,8 @@ export const Events = Object.freeze({
   CELEBRATION: 'celebration.trigger',
   HUD_REFRESH: 'hud.refresh',
   PROGRESS_SAVED: 'progress.saved',
+  /** Phone-control session/health changed (docs/19): pause UI and the PWA update gate follow it. */
+  PHONE_LINK_CHANGED: 'phone.link.changed',
 });
 
 export type EventName = (typeof Events)[keyof typeof Events];
@@ -65,6 +67,7 @@ export interface EventPayloadMap {
   [Events.CELEBRATION]: unknown;
   [Events.HUD_REFRESH]: unknown;
   [Events.PROGRESS_SAVED]: { profileId: unknown; lessonId: unknown; entry: unknown };
+  [Events.PHONE_LINK_CHANGED]: { session: boolean; paired: boolean; operational: boolean };
 }
 
 type Handler<E extends EventName> = (payload: EventPayloadMap[E]) => void;

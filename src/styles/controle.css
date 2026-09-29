@@ -20,22 +20,25 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
 }
 
+/* Centred with auto margins, never align-items: content taller than the
+   screen must grow downward and stay reachable, not lose its top (docs/22 M20). */
 body {
   background: var(--color-bg);
   color: var(--color-cream);
   font-family: var(--font-ui);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  min-height: 100dvh;
   padding: 24px;
   text-align: center;
 }
 
 #controle-root {
+  margin: auto;
   max-width: 420px;
   width: 100%;
   display: flex;
@@ -66,6 +69,7 @@ body {
 .controle-start-btn {
   font-family: inherit;
   font-size: 1.15rem;
+  min-height: 48px;
   padding: 16px 32px;
   border-radius: 14px;
   border: 2px solid var(--color-gold-dark);
@@ -114,4 +118,184 @@ body {
 
 .controle-debug-reset {
   grid-column: 1 / -1;
+}
+
+.controle-wake,
+.controle-hint {
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.controle-wake-released,
+.controle-wake-error,
+.controle-wake-unavailable {
+  color: var(--color-gold);
+}
+
+/* Secondary task entry: quiet, but still a full-size target (docs/22 M20). */
+.controle-secondary-btn {
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(251, 244, 223, 0.3);
+  background: transparent;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.controle-diagnostics-note {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.controle-diagnostics-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.controle-diagnostics-actions button {
+  font: inherit;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(251, 244, 223, 0.4);
+  background: transparent;
+  color: inherit;
+}
+
+/* Shown only when copying failed: the full report scrolls inside itself (registered exception), never the page. */
+.controle-diagnostics-text {
+  width: 100%;
+  height: min(14rem, 38dvh);
+  resize: none;
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+
+/* Low landscape: less air, so an open diagnostic still fits without scrolling the page. */
+@media (max-height: 420px) {
+  body {
+    padding: 8px 24px;
+  }
+
+  #controle-root {
+    gap: 10px;
+  }
+
+  .controle-title {
+    font-size: 1.2rem;
+  }
+
+  .controle-status {
+    line-height: 1.35;
+  }
+
+  .controle-start-btn {
+    padding: 10px 24px;
+  }
+}
+
+/* ---- Modo bolsinha (docs/19 §4 P1.1) -------------------------------------
+   Dark, minimal and inert to ordinary touches. Only this surface loses
+   overscroll, selection and callouts; zoom stays available everywhere else. */
+
+body.pocket-mode {
+  background: #000;
+  color: rgba(251, 244, 223, 0.6);
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html:has(body.pocket-mode) {
+  overscroll-behavior: none;
+}
+
+body.pocket-mode #controle-root {
+  gap: 28px;
+}
+
+.pocket-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pocket-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3f8f5f;
+  flex: none;
+}
+
+.pocket-status-warn .pocket-dot {
+  background: #c9822b;
+}
+
+.pocket-wake {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.pocket-hold,
+.pocket-btn {
+  font: inherit;
+  color: rgba(251, 244, 223, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(251, 244, 223, 0.2);
+  border-radius: 14px;
+  padding: 14px 20px;
+  min-height: 48px;
+}
+
+.pocket-hold {
+  position: relative;
+  overflow: hidden;
+}
+
+.pocket-hold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(251, 244, 223, 0.15);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.pocket-hold.holding::after {
+  transform: scaleX(1);
+  transition: transform 2s linear;
+}
+
+.pocket-confirm-text {
+  margin: 0;
+  color: var(--color-cream);
+}
+
+.pocket-confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pocket-btn-exit {
+  color: var(--color-cream);
+  border-color: var(--color-gold-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pocket-hold.holding::after {
+    transition: none;
+  }
 }

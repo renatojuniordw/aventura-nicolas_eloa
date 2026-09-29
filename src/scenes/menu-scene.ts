@@ -51,11 +51,10 @@ export function describeLesson(lesson: LessonLike | null | undefined): string {
 export class MenuScene extends Scene {
   override enter(params: MenuParams = {}): void {
     // Arriving at the menu from anywhere (finishing a lesson, pausing out,
-    // the phone dropping) must always leave keyboard/touch working — phone
-    // mode replaces that composite entirely (see main.ts), and nothing else
-    // ever restored it. Re-pairing for the next lesson is one QR scan away;
-    // a menu with a dead keyboard is not an acceptable trade for skipping it.
-    if (this.game.phoneControl.isActive) this.game.phoneControl.stop();
+    // the phone dropping) must always leave keyboard/touch working, but the
+    // pairing itself survives (docs/19 §4 P1.2): remote jumps are ignored
+    // here and the next match re-engages the same phone without a new QR.
+    this.game.phoneControl.disengage();
     if (params.open === 'settings') this.openSettings(params.section);
     else this.render();
   }
@@ -371,13 +370,17 @@ export class MenuScene extends Scene {
   /** "Informações para suporte" (docs/18 §10): read on open/refresh only, copied only on request. */
   openSupportInfo(): void {
     const { frameStats } = this.game;
-    const report = formatSupportReport(
+    let report = formatSupportReport(
       readSupportEnvironment({
         reducedMotion: this.game.preferences.reducedMotion(),
         touchLayout: this.game.touchLayout.read(),
         frames: frameStats.summary(),
       }),
     );
+    // Phone-control events of this run and the one before a reload (docs/19 §4 P0.1), only when it was used.
+    const diagnostics = this.game.phoneDiagnostics;
+    const usedPhone = [diagnostics?.current, diagnostics?.previous].some((run) => run?.events.some((event) => event.type === 'join-sent'));
+    if (diagnostics && usedPhone) report += `\n\n${diagnostics.formatReport('Controle por celular — diagnóstico da conexão')}`;
     this.game.menu.showSupportInfo({
       report,
       measuring: frameStats.running,
@@ -399,14 +402,18 @@ export class MenuScene extends Scene {
     });
   }
 
-  /** Controle por celular (docs/12-controle-por-celular.md §6): shows the QR
-   * pairing screen and re-renders it as the phone joins/drops. */
+  /**
+   * Controle por celular (docs/12 §6, docs/19 §4 P1.2): shows the QR for a new
+   * session, or the live status of the one already paired — reopening this
+   * screen never creates a second session behind the adult's back.
+   */
   openPhonePairing(onLeave: () => void = () => this.render()): void {
-    let status: 'waiting' | 'paired' | 'disconnected' | 'error' = 'waiting';
-    let errorMessage: string | null = null;
-    let pairingUrl = '';
+    const phone = this.game.phoneControl;
     let showTimeoutHint = false;
-    let measureLatency: () => Promise<number | null> = () => Promise.resolve(null);
+    let endedMessage: string | null = null;
+    let offStatus: () => void = () => {};
+
+    const pairing = phone.pairing ?? phone.start();
 
     // If nobody ever scans the QR (camera didn't open, sensor permission
     // denied on the phone...), the screen must not just wait forever with no
@@ -414,54 +421,65 @@ export class MenuScene extends Scene {
     // (docs/12 §10: "precisa de um caminho de saída de volta pro controle
     // padrão").
     const timeoutId = setTimeout(() => {
-      if (status !== 'waiting') return;
+      if (phone.status.reason !== 'waiting-phone') return;
       showTimeoutHint = true;
       renderPairing();
     }, PAIRING_TIMEOUT_HINT_MS);
 
+    const leave = (next: () => void) => {
+      clearTimeout(timeoutId);
+      offStatus();
+      next();
+    };
+
     const renderPairing = () => {
+      const status = phone.status;
+      const screenStatus = endedMessage
+        ? 'error'
+        : !status.paired
+          ? 'waiting'
+          : status.operational
+            ? 'paired'
+            : 'disconnected';
       this.game.menu.showPhonePairing({
-        pairingUrl,
-        status,
-        errorMessage,
-        showTimeoutHint: showTimeoutHint && status === 'waiting',
-        measureLatency: () => measureLatency(),
-        onBack: () => {
-          clearTimeout(timeoutId);
-          this.game.phoneControl.stop();
-          onLeave();
-        },
+        pairingUrl: pairing.pairingUrl,
+        status: screenStatus,
+        statusMessage: endedMessage ?? status.message,
+        errorMessage: endedMessage,
+        showTimeoutHint: showTimeoutHint && screenStatus === 'waiting',
+        measureLatency: pairing.measureLatency,
+        onBack: () =>
+          leave(() => {
+            // A QR nobody scanned is abandoned; a paired phone stays paired.
+            if (!phone.isActive) phone.stop();
+            onLeave();
+          }),
+        onDisconnect: phone.isActive
+          ? () =>
+              leave(() => {
+                phone.stop();
+                onLeave();
+              })
+          : undefined,
+        onNewCode: endedMessage
+          ? () =>
+              leave(() => {
+                phone.stop();
+                this.openPhonePairing(onLeave);
+              })
+          : undefined,
         // The phone is the controller here: no on-screen controls practice offer.
-        onPlay: () => {
-          clearTimeout(timeoutId);
-          this._startNextLesson();
-        },
-        onSpeedrun: () => {
-          clearTimeout(timeoutId);
-          this.game.startSpeedrun();
-        },
+        onPlay: () => leave(() => this._startNextLesson()),
+        onSpeedrun: () => leave(() => this.game.startSpeedrun()),
       });
     };
 
-    const result = this.game.phoneControl.start({
-      onPaired: () => {
-        clearTimeout(timeoutId);
-        status = 'paired';
-        renderPairing();
-      },
-      onDisconnected: () => {
-        status = 'disconnected';
-        renderPairing();
-      },
-      onError: (message) => {
-        clearTimeout(timeoutId);
-        status = 'error';
-        errorMessage = message;
-        renderPairing();
-      },
+    offStatus = phone.onStatusChange((status) => {
+      if (status.reason === 'ended') endedMessage = status.message;
+      // `off` right after `ended` is the coordinator cleaning up: keep the explanation on screen.
+      if (status.reason === 'off' && endedMessage) return;
+      renderPairing();
     });
-    measureLatency = result.measureLatency;
-    pairingUrl = result.pairingUrl;
     renderPairing();
   }
 

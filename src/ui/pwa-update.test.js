@@ -4,15 +4,25 @@ import { UpdateController } from './pwa-update.js';
 
 function setup(scene = 'menu') {
   const bus = new EventBus();
-  const state = { scene };
+  const state = { scene, phoneSession: false };
   const applyUpdate = vi.fn();
   const banner = { setVisible: vi.fn() };
-  const controller = new UpdateController({ bus, getSceneName: () => state.scene, applyUpdate, banner });
+  const controller = new UpdateController({
+    bus,
+    getSceneName: () => state.scene,
+    applyUpdate,
+    banner,
+    isPhoneSessionActive: () => state.phoneSession,
+  });
   const go = (name) => {
     state.scene = name;
     bus.emit(Events.SCENE_CHANGED, { name });
   };
-  return { controller, applyUpdate, banner, go };
+  const setPhoneSession = (active) => {
+    state.phoneSession = active;
+    bus.emit(Events.PHONE_LINK_CHANGED, { session: active, paired: active, operational: active });
+  };
+  return { controller, applyUpdate, banner, go, setPhoneSession };
 }
 
 describe('UpdateController', () => {
@@ -86,4 +96,28 @@ it('allows retry after a rejected activation', async () => {
   expect(banner.setVisible).toHaveBeenLastCalledWith(true);
   controller.apply();
   expect(applyUpdate).toHaveBeenCalledTimes(2);
+});
+
+describe('UpdateController and phone control', () => {
+  it('waits while a phone is paired (QR screen, menu or pause), then offers it when the session ends', () => {
+    const { controller, applyUpdate, banner, setPhoneSession } = setup('menu');
+    setPhoneSession(true);
+    controller.onUpdateReady();
+    expect(banner.setVisible).toHaveBeenLastCalledWith(false);
+    controller.onHidden();
+    controller.apply();
+    expect(applyUpdate).not.toHaveBeenCalled();
+
+    setPhoneSession(false);
+    expect(banner.setVisible).toHaveBeenLastCalledWith(true);
+    controller.onHidden();
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('entering the menu never reloads by itself', () => {
+    const { controller, applyUpdate, go } = setup('game');
+    controller.onUpdateReady();
+    go('menu');
+    expect(applyUpdate).not.toHaveBeenCalled();
+  });
 });

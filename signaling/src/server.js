@@ -7,7 +7,7 @@ import { RoomManager } from './room-manager.js';
  * about socket.io — everything that decides *what* happens to a message
  * lives in RoomManager, unit tested on its own without a real socket.
  */
-export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) {
+export function createSignalingServer({ port = 3001, corsOrigin = false, rooms = new RoomManager() } = {}) {
   const httpServer = createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'text/plain' });
@@ -25,8 +25,6 @@ export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) 
     maxHttpBufferSize: 4 * 1024,
   });
 
-  const rooms = new RoomManager();
-
   io.on('connection', (socket) => {
     // Logged separately from join() below: this fires as soon as the
     // transport handshake succeeds, before any `join` payload arrives — the
@@ -36,11 +34,25 @@ export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) 
 
     socket.on('join', (payload) => {
       const result = rooms.join(socket, payload);
-      if (!result.ok) socket.emit('join-error', { error: result.error });
+      // The positive confirmation the client waits for before calling itself
+      // paired (docs/19 §4 P0.2); the token never reaches the logs.
+      if (result.ok) socket.emit('joined', { ...result.snapshot, token: result.token });
+      else socket.emit('join-error', { error: result.error });
     });
 
     socket.on('action', (payload) => {
       rooms.action(socket, payload);
+    });
+
+    socket.on('health', (payload) => {
+      rooms.health(socket, payload);
+    });
+
+    // Acknowledged: the client closes its socket only after this ran, since
+    // an event arriving together with the disconnect would be dropped.
+    socket.on('leave', (ack) => {
+      rooms.leave(socket);
+      if (typeof ack === 'function') ack();
     });
 
     // Round-trip latency probe for the "connection quality" indicator on the
@@ -53,15 +65,16 @@ export function createSignalingServer({ port = 3001, corsOrigin = false } = {}) 
       }
     });
 
-    socket.on('disconnect', () => {
-      rooms.disconnect(socket);
+    socket.on('disconnect', (reason) => {
+      rooms.disconnect(socket, reason);
     });
   });
 
   return {
-    listen: () => httpServer.listen(port, () => {
+    listen: (onListening) => httpServer.listen(port, () => {
       // eslint-disable-next-line no-console
-      console.log(`signaling server listening on :${port}`);
+      console.log(`signaling server listening on :${httpServer.address()?.port ?? port}`);
+      onListening?.(httpServer.address());
     }),
     close: () => new Promise((resolve) => io.close(() => resolve())),
     rooms,

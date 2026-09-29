@@ -8,6 +8,7 @@ import { KeyboardAdapter } from './input/keyboard-adapter.js';
 import { TouchAdapter } from './input/touch-adapter.js';
 import { CompositeAdapter } from './input/composite-adapter.js';
 import { PhoneControlCoordinator } from './net/phone-control-coordinator.js';
+import { DiagnosticsLog, buildLabel, readNavigationType, recordPageLifecycle } from './net/diagnostics-log.js';
 import { registerLifecycleListeners } from './core/lifecycle.js';
 import { CanvasRenderer } from './render/canvas-renderer.js';
 import { SpriteRenderer } from './render/sprites.js';
@@ -92,6 +93,8 @@ export interface GameContext {
   };
   debug: { enabled: boolean; toggle(): void };
   phoneControl: PhoneControlCoordinator;
+  /** Persisted phone-control connection events of this device (docs/19 §4 P0.1), for the support screen. */
+  phoneDiagnostics?: DiagnosticsLog;
   startLesson(lessonId: string | null | undefined, options?: Record<string, unknown>): void;
   startSpeedrun(): void;
   /** Starts a word (next pending by default); journey carries earlier completions in this session. */
@@ -218,7 +221,22 @@ export function createGame({
 
   // Phone-control mode (docs/12-controle-por-celular.md): the coordinator swaps
   // the composite above for AutoRun+Phone once the phone pairs, and back on stop.
-  const phoneControl = new PhoneControlCoordinator({ input, bus, restoreDefaultInput: useDefaultInput });
+  // Written to storage only once phone control is actually used (docs/10 §2.1).
+  const phoneDiagnostics = new DiagnosticsLog({
+    role: 'viewer',
+    build: buildLabel(),
+    navigation: readNavigationType(),
+    deferPersistence: true,
+  });
+  const phoneControl = new PhoneControlCoordinator({
+    input,
+    bus,
+    restoreDefaultInput: useDefaultInput,
+    onDiagnostic: (type, detail) => {
+      phoneDiagnostics.enablePersistence();
+      phoneDiagnostics.record(type, detail);
+    },
+  });
 
   const game = {
     bus,
@@ -262,6 +280,7 @@ export function createGame({
       },
     },
     phoneControl,
+    phoneDiagnostics,
     /** Jump to a lesson by id (used by menus and the victory screen). */
     startLesson(lessonId: string | null | undefined, options: Record<string, unknown> = {}) {
       scenes.switchTo('game', { lessonId, ...options });
@@ -341,6 +360,7 @@ if (bootCanvas && bootOverlay) {
     goToMenu: () => game.scenes.switchTo('menu'),
   });
   document.body.dataset.scene = game.scenes.currentName ?? 'boot';
+  if (game.phoneDiagnostics) recordPageLifecycle(game.phoneDiagnostics);
   game.loop.start();
   void initPwaUpdates(game);
 

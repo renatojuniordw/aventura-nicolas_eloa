@@ -35,10 +35,12 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 16  | [Letras com palavras de referência](16-plano-letras-com-palavras-de-referencia.md) | Associação falada A–Z (“A de amigo”) em todos os níveis de apoio              |
 | 17  | [Plano de melhorias do layout mobile](17-plano-melhorias-layout-mobile.md) | Revisão do HUD, menus, proporção, controles e zoom no iPhone; implementação registrada na §12 |
 | 18  | [Plano complementar de experiência mobile](18-plano-experiencia-mobile-complementar.md) | Conforto dos controles, prática guiada, navegação, carregamento e animações; implementação registrada na §13 |
-| 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes |
+| 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes; P0.1–P1.2 implementados na §8 (matriz de aparelhos pendente) |
 | 20  | [Melhorias inspiradas em Aventura das Letras](20-plano-melhorias-referencia-aventura-das-letras.md) | Comparação com a referência e propostas sem ESP32; mapa de mundos, palavras por tema e dica progressiva implementados na §12 |
 | 21  | [Importação de recursos de Aventura das Letras](21-plano-importacao-recursos-aventura-das-letras.md) | Inventário de arquivos aproveitáveis; sons, créditos, 10 palavras, textura do chão e fundo por mundo implementados nas §9–10 |
-| 22  | [Auditoria de UX mobile e plano de implementação](22-auditoria-ux-mobile-e-plano-de-implementacao.md) | Diagnóstico das telas, Configurações em hub, home centralizada, botões, paginação e critérios de acessibilidade; P0/P1 implementados e validados em navegador na §12 (aparelho real e app de controle pendentes) |
+| 22  | [Auditoria de UX mobile e plano de implementação](22-auditoria-ux-mobile-e-plano-de-implementacao.md) | Diagnóstico das telas, Configurações em hub, home centralizada, botões, paginação e critérios de acessibilidade; P0/P1 implementados e validados em navegador na §12; app de controle (M20) e fluxo real auditados na §13 (aparelho real pendente) |
+
+Validação posterior dos planos 17–22: [23 — Validação da implementação](23-validacao-implementacao-planos-17-a-22.md). A revisão distingue os recortes entregues dos critérios ainda pendentes; sua §6 registra a aplicação de 29/09/2026 (plano 19 implementado, auditoria visual ampliada, exceções registradas) e o que continua dependendo de aparelho real.
 
 ## Mapa rápido: onde está cada coisa
 

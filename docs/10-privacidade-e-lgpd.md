@@ -17,6 +17,7 @@
 | Respostas recentes por lição e última alternativa confundida | Navegador, `localStorage` | Escolher revisões e dicas |
 | Descobertas realizadas | Navegador, `localStorage` | Registrar as palavras exploradas e sílabas formadas |
 | Volume do som                     | Navegador, `localStorage`          | Manter a preferência de áudio         |
+| Diagnóstico técnico da conexão (só se o controle por celular for usado; sem nome nem código da sessão) | Navegador, `localStorage` | Explicar uma falha de conexão ao suporte (§2.1) |
 
 **O jogo não coleta:** localização, câmera, microfone, contatos, nem qualquer
 identificador do aparelho. Não há conta, login, senha ou cadastro.
@@ -50,15 +51,38 @@ isso vale destacar exatamente o que trafega:
   (`ping-check`/`pong-check`), usado só para mostrar "conexão boa/ruim" na
   tela de pareamento. Nenhum dado contínuo do acelerômetro sai do celular — a
   leitura bruta do sensor nunca deixa o aparelho da criança.
+- **Sinal de vida (desde 29/09/2026, docs/19):** cerca de uma vez por segundo
+  o celular envia `{ sensor: "ok" | "stale" | "none", visible: true | false }`
+  — se o sensor está respondendo e se a página está visível. A TV usa isso só
+  para pausar quando o controle para de funcionar. Não contém leitura do
+  sensor, horário do aparelho nem identificação.
+- **Credencial de retomada:** ao entrar na sala, cada aparelho recebe do
+  servidor um token aleatório que permite reconectar a mesma sessão após uma
+  queda ou recarga, sem novo QR. Fica só no `sessionStorage` daquela aba
+  (expira em 10 min sem uso), nunca é registrado em log e é apagado ao
+  desconectar ou quando a sala termina.
 - **O que não trafega:** nome, perfil, progresso, localização ou qualquer
   outro dado do save — o servidor de sinalização não tem acesso a nada disso,
   só repassa a palavra "pulo" (e o carimbo de tempo do teste de latência)
   entre os dois navegadores.
-- **Sem persistência:** o servidor guarda a sala (`session`) só na memória do
-  processo Node enquanto a partida dura; nada é escrito em disco ou banco de
-  dados. A sala sobrevive só a uma queda breve de conexão (até 5 min do lado
-  do celular, até 15s do lado da TV — ver docs/12 §6) e é apagada de vez
-  quando a partida realmente termina.
+- **Sem persistência no servidor:** o servidor guarda a sala (`session`) só na
+  memória do processo Node enquanto a sessão dura; nada é escrito em disco ou
+  banco de dados. A sala sobrevive só a uma queda de conexão (até 5 min do
+  lado do celular, até 2 min do lado da TV; uma sala nunca pareada termina em
+  15 min — ver docs/12 §11) e é apagada de vez ao expirar ou quando alguém
+  toca em "Desconectar celular". Os logs do servidor registram só os dois
+  primeiros caracteres do código da sessão, o papel e o motivo técnico da
+  desconexão — nunca o código completo nem o token.
+- **Diagnóstico local da conexão (docs/19 §4 P0.1):** cada aparelho guarda no
+  próprio `localStorage` um registro técnico da conexão (até 300 eventos da
+  execução atual e da anterior, sobrescritos a cada abertura): mudanças de
+  visibilidade da página, quedas e reconexões, resultado da entrada na sala,
+  estado da proteção de tela e do sensor. Não contém código da sessão, token,
+  endereço, nome, progresso nem leitura do sensor. Nunca é enviado: só aparece
+  em "Diagnóstico da conexão" (celular) e em "Informações para suporte" (jogo,
+  apenas se o controle por celular foi usado), e é copiado apenas por um
+  toque explícito. No celular há o botão "Apagar"; no jogo, ele é
+  sobrescrito na próxima abertura e sai com a limpeza dos dados do site.
 - **Sessão efêmera e aleatória:** o código de pareamento (`session`) é gerado
   na hora, só existe enquanto a partida está aberta, e só um celular pode
   parear por sala.

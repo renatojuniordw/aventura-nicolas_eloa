@@ -152,11 +152,14 @@ Com `registerType: 'prompt'`, um service worker novo é baixado em segundo plano
 velho. Quem decide *quando* ativar é `src/ui/pwa-update.ts` (`UpdateController`), que nunca
 recarrega a página durante uma fase:
 
-- **Versão nova pronta** → aparece o banner "Nova versão disponível!" com o botão
-  *Atualizar*, sempre fora do gameplay (some enquanto a cena é `game`).
-- **Volta ao menu** (entre fases) ou **app vai para segundo plano** fora do gameplay →
-  a atualização é aplicada automaticamente.
-- **Checagem periódica**: a cada 30 min e ao voltar para a aba/app (`visibilitychange`),
+- **Versão nova pronta** → aparece o banner "Nova versão pronta para instalar." com o
+  botão *Atualizar*, sempre fora do gameplay (some enquanto a cena é `game`).
+- **App vai para segundo plano** fora do gameplay → a atualização é aplicada. Entrar no
+  menu só reavalia o banner; não recarrega sozinho.
+- **Controle por celular** (docs/12 §11): enquanto existir sessão de pareamento — QR na
+  tela, celular pareado no menu ou na pausa — o banner some e nada é aplicado, porque a
+  recarga derrubaria o pareamento. Ao desconectar/expirar a sessão, o banner volta.
+- **Checagem periódica**: a cada 5 min e ao voltar para a aba/app (`visibilitychange`),
   já que um PWA instalado raramente é aberto do zero.
 
 ### Estratégia de cache offline (Workbox)
@@ -257,6 +260,12 @@ celular   → Nginx da VPS, mesmo domínio/porta 443, location /socket.io/
 Segundo serviço no `docker-compose.yml`, contêiner separado do jogo (não compartilha
 processo nem memória): repassa o evento `jump` entre o celular e a TV, sem tocar em
 gameplay, sem persistência e sem banco de dados (ver `signaling/src/room-manager.js`).
+
+O protocolo tem versão (`PROTOCOL_VERSION`, docs/12 §11): jogo e servidor precisam ser
+publicados juntos — o `./deploy.sh` já recria os dois serviços. Um cliente de outra versão
+(aba antiga aberta, cache antigo) recebe `version-mismatch` e a orientação de recarregar.
+Reiniciar o contêiner apaga as salas em memória: o celular espera a TV recriar a sala por
+até 60 s; depois disso é preciso gerar um novo QR.
 
 | Medida | Efeito |
 |---|---|

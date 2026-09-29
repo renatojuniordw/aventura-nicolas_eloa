@@ -1,6 +1,6 @@
 # 22 — Auditoria de UX mobile e plano de implementação
 
-Data: 28/09/2026. Estado: **P0 e P1 de interface implementados e validados em navegador (Chrome headless, matriz da §10); pendentes: aparelho real, leitor de tela e app de controle (M20)**. Registro da implementação na §12.
+Data: 28/09/2026. Estado: **P0 e P1 de interface implementados e validados em navegador (Chrome headless, matriz da §10); app de controle (M20) e fluxo real de navegação auditados em 29/09/2026 (§13); pendentes: aparelho real, leitor de tela e validação integrada de HUD/orientação em aparelho (M17/M18)**. Registro da implementação na §12.
 
 ## 1. Objetivo e alcance da revisão
 
@@ -217,7 +217,7 @@ Concluído quando os P0/P1 estiverem implementados, todas as funções permanece
 ### Validação
 
 - `npm test` (921 testes, 94 arquivos), `npm run typecheck` e `npm run build`: passam. Testes novos cobrem paginação sem perder itens, âncora ao mudar capacidade, restauração de página/foco pela trilha, árvore de Configurações e seus retornos, consentimento não registrado ao ler as informações aos responsáveis e reset restrito ao toque.
-- `npm run audit:ux -- --url http://localhost:5173` (`tools/ux-audit.mjs`, novo; requer `npm run dev`; `--large-text`, `--text-scale 2`, `--only`, `--viewports`): Chrome headless, 13 viewports da §10 × 35 telas/estados, verifica `scrollHeight/scrollWidth`, alvos fora da tela, `elementFromPoint`, rótulo dentro do botão, sobreposição, alvo < 48 px e centramento da home (≤ 8 px). Resultado com texto normal: **0 problemas**. Antes das mudanças, a mesma ferramenta mediu, por exemplo, Configurações com ~1 200 px de rolagem em 360 × 640, Caderno com ~6 700 px, home 123 px fora do centro em 412 × 915 e rótulos do coach vazando das caixas (M01).
+- `npm run audit:ux -- --url http://localhost:5173` (`tools/ux-audit.mjs`, novo; requer `npm run dev`; `--large-text`, `--text-scale 2`, `--only`, `--viewports`): Chrome headless, 13 viewports da §10 × 34 telas/estados (o registro original dizia 35; a lista em `tools/ux-audit-page.js` tem 34 — correção de 29/09/2026), verifica `scrollHeight/scrollWidth`, alvos fora da tela, `elementFromPoint`, rótulo dentro do botão, sobreposição, alvo < 48 px e centramento da home (≤ 8 px). Resultado com texto normal: **0 problemas**. Antes das mudanças, a mesma ferramenta mediu, por exemplo, Configurações com ~1 200 px de rolagem em 360 × 640, Caderno com ~6 700 px, home 123 px fora do centro em 412 × 915 e rótulos do coach vazando das caixas (M01).
 - `--text-scale 2` (texto a 200%) em 1280 × 720, 768 × 1024, 390 × 844 e 844 × 390: sem rolagem horizontal, sem corte e sem sobreposição; rolagem vertical de fallback onde necessária.
 
 ### Exceções e pendências registradas
@@ -225,5 +225,50 @@ Concluído quando os P0/P1 estiverem implementados, todas as funções permanece
 - **Texto ampliado do app em 568 × 320 e 320 × 568**: home, Configurações (Aplicativo, Ajuda e dados, Ajustar toque, Acessibilidade, Controles), aviso inicial, informações aos responsáveis, resultados e suporte usam o contêiner vertical de fallback (18–127 px). As demais viewports da matriz passam com texto ampliado.
 - **Suporte após falha de cópia**: caixa com o relatório completo rola dentro de si (dados copiáveis não são truncados).
 - **Coach em janela de desktop em retrato com texto a 200%**: o painel excede a área 16:9 do jogo. Em aparelhos de toque a partida só roda em paisagem.
-- **Não feito nesta entrega**: M20 (app de controle `controle.html`) não foi auditado nem alterado; M17/M18 mantidos como estavam (nenhuma medição do HUD foi alterada); `settings.tsx` legado continua no repositório (não é importado pelo `menu.ts`).
+- **Não feito nesta entrega**: M20 (app de controle `controle.html`) não foi auditado nem alterado — **feito em 29/09/2026, §13**; M17/M18 mantidos como estavam (nenhuma medição do HUD foi alterada); `settings.tsx` legado continua no repositório (não é importado pelo `menu.ts`).
+- **Lista de exceções de texto ampliado incompleta**: a revisão do doc 23 encontrou casos em 568 × 320 fora desta lista. O registro completo, com alcance conferido após rolagem, está na §13.
 - **Não validado**: aparelhos reais (Safari/iOS, Chrome/Android, PWA, teclado virtual, safe areas físicas), VoiceOver/TalkBack e toque simultâneo. A emulação não substitui esses testes; não declarar conformidade WCAG integral.
+
+## 13. Auditoria ampliada e registro de exceções (29/09/2026)
+
+Aplicação do doc 23 §5, item 2.
+
+### Ferramenta
+
+`npm run audit:ux` (`tools/ux-audit.mjs`) agora audita três alvos por viewport (`--target menus,controle,flow`, padrão os três):
+
+- **menus** — as 34 telas/estados montados pelos construtores com dados de exemplo, como antes;
+- **controle** — 17 estados da página `/controle` (M20) desenhados pela própria view (`src/controle/view.ts`, via `tools/ux-audit-controle-page.js`), sem socket nem sensor;
+- **flow** — o jogo real com perfil limpo, acionado pelos botões visíveis (`tools/ux-audit-flow-page.js`): primeiro acesso, home, mundos (ida e volta), as seis telas de Configurações com retorno, Controles → pareamento → volta, Caderno, uma partida real com HUD, pausa e confirmação de saída, e volta ao menu. Em retrato de toque, a partida para no aviso de orientação e a saída medida é o "Voltar ao menu" do aviso (M18). Botão não encontrado é falha (`flow-error`).
+
+Mudanças de medição: elementos `inert` (HUD sob modal, jogo sob o aviso de orientação) e conteúdo de `<details>` fechado não contam; o aviso de orientação é medido quando ativo. Um alvo fora da tela é rolado até a vista: se fica inteiro e clicável é **nota** `offscreen-reachable` (fallback alcançável), senão é falha `offscreen`. Com `--text-scale 2`, apenas `scroll-y` e centramento viram notas — antes todo `offscreen` era descartado, o que escondia conteúdo perdido. Contêiner marcado com `data-scroll-exception` (relatório completo após falha de cópia, no suporte e no controle) gera nota `scroll-exception`, nunca aprovação silenciosa. O Canvas continua fora da medição: HUD desenhado no Canvas não é verificado por esta ferramenta.
+
+### Resultados (Chrome headless, Vite local)
+
+| Execução | Casos | Problemas | Notas |
+| --- | ---: | ---: | --- |
+| Matriz normal, 13 viewports × (34 menus + 17 controle + 30 passos de fluxo; 28 em retrato de toque) | 1041 | **0** | 13 `scroll-exception` (relatório do controle após falha de cópia) |
+| Texto ampliado do app, 320 × 568 e 568 × 320 | 160 | 44 `scroll-y` (fallback vertical, lista abaixo) | 27 `offscreen-reachable`; **0 alvos inalcançáveis** |
+| Texto a 200% (`--text-scale 2`), 1280 × 720, 768 × 1024, 390 × 844, 844 × 390 | 320 | 2 (`covered` no coach em 390 × 844) | 159 (fallback vertical/alcançável) |
+
+Os dois casos do texto a 200% são a exceção já registrada na §12 (coach em janela retrato; em toque a partida só roda em paisagem). A medição antiga os escondia.
+
+### Registro de fallback vertical com texto ampliado do app
+
+Todos com alcance conferido: cada controle fora da vista inicial volta inteiro e clicável com rolagem do contêiner `.screen-body`/`.overlay`. Decisão: **aceitos como fallback** nesta etapa; os de até 14 px ficam como candidatos a ajuste de composição (backlog), sem reduzir alvos.
+
+| Viewport | Tela (px de rolagem) |
+| --- | --- |
+| 320 × 568 | home (121; no fluxo real 108), Ajustar toque (35), suporte (24), jornada concluída (20) |
+| 568 × 320 | aviso inicial (18), informações aos responsáveis (126), home (9), Acessibilidade (14), Controles (11), Ajustar toque (96), Aplicativo (75), Ajuda e dados (119), suporte (37), vitória do Explorar (48), jornada concluída (52), Caderno com muitas palavras (30), mundos (21), partes do mundo (2), lições (3) |
+| Controle (texto a 125%) | 568 × 320: calibração falhou (12), pronto (10); 320 × 568: relatório após falha de cópia (76) |
+
+A página do controle foi ajustada em vez de só registrada: centramento por `margin: auto` (com `align-items: center` o topo ficava cortado e inalcançável quando o conteúdo passava da altura), diagnóstico como tela própria com "Voltar" (uma tarefa por etapa), alvos de 48 px e composição compacta em altura ≤ 420 px.
+
+### M20 — app de controle
+
+Estados auditados: início, pedindo permissão, permissão negada, link inválido, calibrando, calibração falhou, conectando à sala, esperando o jogo, conexão perdida, sensor sem resposta, pronto, sessão encerrada, diagnóstico, diagnóstico com relatório, modo bolsinha (ok e com alerta) e confirmação de saída. Uma ação principal por estado; diagnóstico secundário. Sem teclado virtual nesta página (não há campo de texto). Não validado em aparelho, com leitor de tela nem com a página real conectada.
+
+### Ainda pendente
+
+Aparelhos reais (Safari/iOS, Chrome/Android, PWA, safe areas físicas, zoom do iPhone), VoiceOver/TalkBack, multitoque e a validação integrada de HUD/orientação por aparelho (M17/M18) — a ferramenta mede os controles DOM do HUD e o aviso de orientação, não o conteúdo do Canvas nem rotação física.

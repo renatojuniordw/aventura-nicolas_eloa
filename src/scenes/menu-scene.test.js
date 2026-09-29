@@ -2,6 +2,46 @@ import { describe, it, expect, vi } from 'vitest';
 import { MenuScene, describeLesson } from './menu-scene.js';
 import { Actions } from '../input/actions.js';
 
+const PAIRING = {
+  session: 'AB23CD45',
+  pairingUrl: 'https://example.test/controle?session=AB23CD45',
+  measureLatency: vi.fn(() => Promise.resolve(42)),
+};
+const OFF = { session: false, paired: false, operational: false, reason: 'off', message: '' };
+const WAITING = { session: true, paired: false, operational: false, reason: 'waiting-phone', message: 'Aponte a câmera' };
+const READY = { session: true, paired: true, operational: true, reason: 'ok', message: 'Celular conectado e pronto.' };
+
+/** Stand-in for PhoneControlCoordinator: status is driven by hand through `setStatus`. */
+function makeFakePhone({ paired = false } = {}) {
+  const listeners = new Set();
+  const phone = {
+    status: paired ? READY : OFF,
+    pairing: paired ? PAIRING : null,
+    get isActive() {
+      return phone.status.paired;
+    },
+    start: vi.fn(() => {
+      phone.pairing = PAIRING;
+      phone.status = WAITING;
+      return PAIRING;
+    }),
+    stop: vi.fn(() => {
+      phone.pairing = null;
+      phone.status = OFF;
+    }),
+    disengage: vi.fn(),
+    onStatusChange: vi.fn((listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    }),
+    setStatus(status) {
+      phone.status = status;
+      for (const listener of [...listeners]) listener(status);
+    },
+  };
+  return phone;
+}
+
 function makeFakeGame(overrides = {}) {
   return {
     profiles: {
@@ -38,15 +78,7 @@ function makeFakeGame(overrides = {}) {
     },
     renderer: { clear: vi.fn() },
     scenes: { switchTo: vi.fn() },
-    phoneControl: {
-      isActive: false,
-      start: vi.fn(() => ({
-        session: 'AB23CD45',
-        pairingUrl: 'https://example.test/controle?session=AB23CD45',
-        measureLatency: vi.fn(() => Promise.resolve(42)),
-      })),
-      stop: vi.fn(),
-    },
+    phoneControl: makeFakePhone(),
     startSpeedrun: vi.fn(),
     startLesson: vi.fn(),
     startExploration: vi.fn(),
@@ -241,20 +273,40 @@ describe('MenuScene', () => {
     );
   });
 
-  it('re-renders the pairing screen as "paired" once the phone connects', () => {
+  it('re-renders the pairing screen as "paired" once the phone is operational', () => {
     const game = makeFakeGame();
     const scene = new MenuScene(game);
     scene.openPhonePairing();
 
-    const { onPaired } = game.phoneControl.start.mock.calls[0][0];
-    onPaired();
+    game.phoneControl.setStatus(READY);
 
     expect(game.menu.showPhonePairing).toHaveBeenLastCalledWith(
-      expect.objectContaining({ status: 'paired' }),
+      expect.objectContaining({ status: 'paired', onDisconnect: expect.any(Function) }),
     );
   });
 
-  it('stops phone control and returns to the main menu on "Voltar"', () => {
+  it('shows a paired phone that stopped answering as "disconnected", with the coordinator\'s message', () => {
+    const game = makeFakeGame();
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    game.phoneControl.setStatus({ ...READY, operational: false, reason: 'sensor', message: 'O sensor parou.' });
+
+    expect(game.menu.showPhonePairing).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'disconnected', statusMessage: 'O sensor parou.' }),
+    );
+  });
+
+  it('reopening the screen with a paired phone shows it instead of creating a new session', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ paired: true }) });
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    expect(game.phoneControl.start).not.toHaveBeenCalled();
+    expect(game.menu.showPhonePairing).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'paired' }));
+  });
+
+  it('abandons an unscanned QR on "Voltar" and returns to the main menu', () => {
     const game = makeFakeGame({
       profiles: {
         listProfiles: vi.fn(() => [{ id: 'p1', name: 'Nicolas', characterId: 'char-nicolas' }]),
@@ -273,6 +325,45 @@ describe('MenuScene', () => {
 
     expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
     expect(game.menu.showMainMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a paired phone paired on "Voltar"; only "Desconectar celular" ends it', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ paired: true }) });
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    game.menu.showPhonePairing.mock.calls.at(-1)[0].onBack();
+    expect(game.phoneControl.stop).not.toHaveBeenCalled();
+
+    scene.openPhonePairing();
+    game.menu.showPhonePairing.mock.calls.at(-1)[0].onDisconnect();
+    expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps explaining an ended session and offers a new QR code', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ paired: true }) });
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+
+    game.phoneControl.setStatus({ ...OFF, session: true, reason: 'ended', message: 'A sessão expirou.' });
+    game.phoneControl.setStatus(OFF); // the coordinator cleaning up right after
+
+    const last = game.menu.showPhonePairing.mock.calls.at(-1)[0];
+    expect(last).toMatchObject({ status: 'error', errorMessage: 'A sessão expirou.' });
+    last.onNewCode();
+    expect(game.phoneControl.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops following the phone status once the screen is left', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ paired: true }) });
+    const scene = new MenuScene(game);
+    scene.openPhonePairing();
+    game.menu.showPhonePairing.mock.calls.at(-1)[0].onBack();
+    const renders = game.menu.showPhonePairing.mock.calls.length;
+
+    game.phoneControl.setStatus({ ...READY, operational: false, reason: 'sensor', message: 'x' });
+
+    expect(game.menu.showPhonePairing.mock.calls.length).toBe(renders);
   });
 
   it('passes measureLatency through to the pairing screen', async () => {
@@ -304,29 +395,20 @@ describe('MenuScene', () => {
     const scene = new MenuScene(game);
     scene.openPhonePairing();
 
-    const { onPaired } = game.phoneControl.start.mock.calls[0][0];
-    onPaired();
+    game.phoneControl.setStatus(READY);
     vi.advanceTimersByTime(45_000);
 
     expect(game.menu.showPhonePairing.mock.calls.at(-1)[0].showTimeoutHint).toBe(false);
     vi.useRealTimers();
   });
 
-  it('stops phone control on entering the menu, so keyboard/touch always work when arriving there', () => {
-    const game = makeFakeGame({ phoneControl: { isActive: true, start: vi.fn(), stop: vi.fn() } });
+  it('disengages phone input on entering the menu without ending the pairing', () => {
+    const game = makeFakeGame({ phoneControl: makeFakePhone({ paired: true }) });
     const scene = new MenuScene(game);
 
     scene.enter();
 
-    expect(game.phoneControl.stop).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not touch phone control on entering the menu when it was never active', () => {
-    const game = makeFakeGame();
-    const scene = new MenuScene(game);
-
-    scene.enter();
-
+    expect(game.phoneControl.disengage).toHaveBeenCalledTimes(1);
     expect(game.phoneControl.stop).not.toHaveBeenCalled();
   });
 

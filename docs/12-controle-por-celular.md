@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
 });
 ```
 
-**Ciclo de vida da sala:** criada quando o jogo (viewer) entra com um `session` novo. Cada lado tem sua própria janela de reconexão antes da sala morrer de vez: 5 minutos sem nenhum `controller` conectado (o celular pode legitimamente ficar minutos em segundo plano/tela bloqueada), 15 segundos sem o `viewer` conectado (a TV também está na mesma rede WiFi, mas uma queda ali normalmente é só um soluço resolvido pela reconexão automática do socket.io — uma janela mais longa deixaria o celular mostrando "reconectando" por tempo demais depois de uma partida que já tinha realmente terminado). Sem persistência — tudo em memória do processo Node (`RoomManager`, `signaling/src/room-manager.js`).
+**Ciclo de vida da sala:** criada quando o jogo (viewer) entra com um `session` novo. Cada lado tem sua própria janela de recuperação, contada a partir da queda: 5 minutos sem `controller` e 2 minutos sem `viewer`; uma sala cujo QR nunca foi lido termina em 15 minutos. Expirar avisa quem ainda está conectado (`room-closed` com motivo). "Desconectar celular" encerra na hora. Sem persistência — tudo em memória do processo Node (`RoomManager`, `signaling/src/room-manager.js`). Protocolo, retomada autenticada e saúde: §11 (plano 19).
 
 ## 4. `PhoneAdapter` (novo arquivo em `src/input/`)
 
@@ -285,9 +285,9 @@ Todos os itens desta seção — críticos e de segunda iteração — foram imp
 
 ### Críticas — antes da primeira versão jogável
 
-**Detecção de desconexão do celular durante a partida.** ✅ Feito. `RoomManager` avisa a TV (`peer-left`) assim que o `controller` cai; o `PhoneControlCoordinator` reaproveita o caminho de pausa já existente (`Events.APP_BLURRED` → `GameScene.pause()`) em vez de inventar um novo, então o personagem para em vez de bater no primeiro obstáculo sozinho.
+**Detecção de desconexão do celular durante a partida.** ✅ Feito; ampliado pela §11 (queda do próprio jogo, sensor parado e página oculta também pausam). `RoomManager` avisa a TV (`peer-left`) assim que o `controller` cai; o `PhoneControlCoordinator` reaproveita o caminho de pausa já existente (`Events.APP_BLURRED` → `GameScene.pause()`) em vez de inventar um novo, então o personagem para em vez de bater no primeiro obstáculo sozinho.
 
-**Screen Wake Lock no celular.** ✅ Feito, com um cuidado extra: a Wake Lock API se libera sozinha sempre que a aba vai para segundo plano e **não se readquire sozinha**. `WakeLockKeeper` (`src/controle/main.ts`) reescuta `visibilitychange` e pede o lock de novo sempre que a página volta a ficar visível — sem isso, uma única distração no celular desligava a proteção pro resto da partida, sem aviso nenhum.
+**Screen Wake Lock no celular.** ✅ Feito, com um cuidado extra: a Wake Lock API se libera sozinha sempre que a aba vai para segundo plano e **não se readquire sozinha**. `WakeLockKeeper` (hoje `src/controle/wake-lock-keeper.ts`, com estados explícitos — §11) reescuta `visibilitychange` e pede o lock de novo sempre que a página volta a ficar visível — sem isso, uma única distração no celular desligava a proteção pro resto da partida, sem aviso nenhum.
 
 **Feedback tátil no celular ao detectar o pulo.** ✅ Feito. `navigator.vibrate(50)` a cada `jump` confirmado, com uma janela mínima entre vibrações para não sobrepor.
 
@@ -302,3 +302,36 @@ Todos os itens desta seção — críticos e de segunda iteração — foram imp
 **Timeout no fluxo de pareamento.** ✅ Feito. Depois de 45s sem ninguém parear, a tela de QR mostra uma dica apontando para o botão "Voltar" (que já existia, sempre visível) — um caminho de saída de volta pro controle padrão, sem travar a tela de start.
 
 **Atualizar o doc 10 de privacidade/LGPD.** ✅ Feito — ver [10 — Privacidade e LGPD, §2.1](10-privacidade-e-lgpd.md#21-exceção-controle-por-celular-opcional-desligado-por-padrão), que também cobre o novo ping de latência.
+
+## 11. Estabilidade, retomada e modo bolsinha (plano 19, 29/09/2026)
+
+Implementa [19 — Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md), P0.1–P1.2. As seções anteriores continuam válidas no que não for alterado aqui.
+
+**Protocolo versão 2** (`PROTOCOL_VERSION` em `signaling/src/room-manager.js` e `src/net/signaling-socket.ts`; versões diferentes recebem `version-mismatch` — servidor e jogo precisam ser publicados juntos):
+
+| Mensagem | Sentido | Conteúdo |
+| --- | --- | --- |
+| `join` | cliente → servidor | `{ role, session, token, protocol }`; repetir é idempotente. |
+| `joined` | servidor → quem entrou | Snapshot `{ protocol, role, resumed, generation, peers: { viewer, controller } }` + `token` de retomada. Só com ele o cliente se considera na sala. |
+| `join-error` | servidor → quem entrou | `room-full`, `room-not-found`, `version-mismatch`, `invalid-session`, `invalid-role`, `already-joined`. |
+| `presence`, `peer-joined`, `peer-left` | servidor → o outro lado | Snapshot após qualquer entrada/saída; `peer-left` traz `reason` (`dropped`/`left`). O celular também sabe quando a TV sai e volta. |
+| `action` | celular → servidor → jogo | `{ button, pressed, seq }`; o servidor acrescenta `generation` (sobe a cada entrada do celular). |
+| `health` → `peer-health` | celular → servidor → jogo | `{ sensor: ok/stale/none, visible }` a cada 1 s e em cada mudança de visibilidade. |
+| `leave` | cliente → servidor | Encerramento explícito, com ack antes de fechar o socket (o socket.io do servidor descarta eventos que chegam junto com a desconexão). |
+| `session-replaced`, `room-closed` | servidor → cliente | Terminais: o socket para de reconectar. `room-closed` traz `ended`/`expired`. |
+
+**Retomada autenticada.** Cada papel recebe um token aleatório (guardado no `sessionStorage` da aba, 10 min). Um socket novo com o token substitui atomicamente o antigo (recarga, troca de rede com as duas conexões sobrepostas); o antigo recebe `session-replaced`, e sua ação ou `disconnect` tardio não afetam o substituto. O código do QR sozinho só ocupa vaga vazia — nunca derruba um aparelho ativo. Sem token válido depois de reinício do servidor, o celular fica em "Esperando o jogo voltar" (`room-not-found` com novas tentativas por até 60 s) até a TV recriar a sala.
+
+**Estado operacional e pausa.** `PhoneControlCoordinator` (`src/net/phone-control-coordinator.ts`) avalia a cada evento e a cada 500 ms, com o relógio do próprio jogo: socket do jogo na sala, celular presente, sinal de vida com até 3 s, sensor `ok` e página visível. Motivos: `waiting-phone`, `checking`, `reconnecting`, `phone-reconnecting`, `phone-hidden`, `sensor`, `no-response`, `ended`. Perder a saúde durante a partida pausa uma vez e limpa o input; a pausa mostra o motivo e bloqueia "Continuar" e "Recomeçar fase" até voltar, com "Desativar controle por celular" sempre disponível. Ao continuar, o auto-run só é reativado pelo `resume()`.
+
+**Comandos sem fila antiga.** Pulos e sinais de vida saem só com a sala confirmada; o que o socket.io tiver enfileirado antes de perceber a queda é descartado do `sendBuffer`; o servidor ignora comandos de um socket que ainda não refez o `join`; o jogo descarta `generation` antiga e `seq` repetida (`src/net/action-filter.ts`) e só aceita pulos com a partida em andamento e o controle saudável. Não se usa `volatile` do socket.io: na 4.8 ele também descarta um pacote enquanto o anterior ainda é escrito, o que perderia pulos seguidos.
+
+**Continuidade.** Voltar ao menu devolve teclado/toque e ignora pulos, sem desconectar; a próxima partida usa o mesmo celular. Iniciar partida com o controle fora do ar abre pausada com a explicação. A tela de pareamento, reaberta, mostra a sessão existente (com "Desconectar celular") em vez de criar outra. Atualização do PWA fica adiada enquanto houver sessão (inclusive QR na tela) e é oferecida quando ela termina.
+
+**Página do celular.** `MotionSession` mantém um único `devicemotion` (repetir o início não empilha listeners), valida amostras finitas e exige calibração com pelo menos 10 amostras e repouso plausível — sem isso mostra erro e oferece tentar de novo. Lacuna maior que 500 ms entre amostras reinicia o detector. "Pronto" só aparece com sala confirmada, jogo presente e amostra recente; a proteção de tela aparece em linha própria e só afirma proteção com lock ativo. `WakeLockKeeper` tem estados `requesting/active/released/unavailable/error`, readquire após `release` com página visível, limita falhas seguidas e libera lock que chegue depois de `stop()`. Renderização em `src/controle/view.ts`.
+
+**Modo bolsinha.** Oferecido depois de "Pronto": tela preta, só o estado mínimo, sem ações de toque simples. Sair exige segurar 2 s e confirmar ("Continuar protegido" com foco inicial; volta sozinho ao modo protegido em 6 s); ativação por teclado/tecnologia assistiva vai direto à confirmação. Contém overscroll, seleção e menu de contexto só nessa superfície; tela cheia é tentada e opcional. Não bloqueia botões físicos, barra do navegador nem a tela do sistema.
+
+**Diagnóstico.** `DiagnosticsLog` (`src/net/diagnostics-log.ts`) guarda até 300 eventos da execução atual e da anterior (ver docs/10 §2.1). No celular: "Diagnóstico da conexão" (copiar/apagar); no jogo: anexado a "Informações para suporte" quando o controle foi usado.
+
+**Limites e validação.** Tempos (1 s de sinal, 3 s para pausar, 1 s para sensor suspeito, janelas de 2 e 5 min) são valores iniciais para ensaio. Testes automatizados, incluindo integração com servidor e clientes socket.io reais (`src/net/signaling-integration.test.js`), não substituem a matriz de aparelhos do plano 19 §5, ainda não executada. A página web não garante sensores com a tela bloqueada.

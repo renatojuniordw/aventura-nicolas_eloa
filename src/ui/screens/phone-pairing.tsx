@@ -8,6 +8,8 @@ interface PhonePairingOptions {
   pairingUrl: string;
   status: PairingStatus;
   errorMessage?: string | null;
+  /** The coordinator's own explanation of the link (reconnecting, sensor, ...); overrides the generic text. */
+  statusMessage?: string | null;
   /** Shown after a while with nobody pairing (docs/12 §10) — nudges toward the always-available "Voltar". */
   showTimeoutHint?: boolean;
   /** Round-trip time to the signaling server, in ms, or null if unreachable. Polled while this screen is open. */
@@ -15,12 +17,16 @@ interface PhonePairingOptions {
   onBack: () => void;
   onPlay: () => void;
   onSpeedrun: () => void;
+  /** "Desconectar celular": the only way a paired session ends on purpose (docs/19 §4 P1.2). */
+  onDisconnect?: () => void;
+  /** After the session ended: start over with a new QR code. */
+  onNewCode?: () => void;
 }
 
 const STATUS_TEXT: Record<PairingStatus, string> = {
   waiting: 'Aponte a câmera do celular para o QR code para parear.',
   paired: 'Celular pareado! Prenda no corpo da criança e toque em Jogar.',
-  disconnected: 'O celular desconectou. Aguardando reconexão...',
+  disconnected: 'O celular não está respondendo. Aguardando...',
   error: 'Não foi possível parear.',
 };
 
@@ -91,11 +97,14 @@ function PhonePairingScreen({
   pairingUrl,
   status,
   errorMessage,
+  statusMessage,
   showTimeoutHint,
   measureLatency,
   onBack,
   onPlay,
   onSpeedrun,
+  onDisconnect,
+  onNewCode,
 }: PhonePairingOptions) {
   return (
     // QR beside the instructions when the screen is wide, above them otherwise (docs/22 M13).
@@ -103,15 +112,15 @@ function PhonePairingScreen({
       <h2>Controle por celular</h2>
       <div className="phone-pairing-layout">
         <div className="phone-pairing-media">
-          {status !== 'paired' ? <QrCode url={pairingUrl} /> : (
+          {status === 'waiting' ? <QrCode url={pairingUrl} /> : (
             <div className="phone-pairing-paired-badge" aria-hidden="true">
-              📱✅
+              {status === 'paired' ? '📱✅' : status === 'error' ? '📱✖️' : '📱⏳'}
             </div>
           )}
         </div>
         <div className="phone-pairing-text">
           <p className="phone-pairing-status" aria-live="polite">
-            {status === 'error' && errorMessage ? errorMessage : STATUS_TEXT[status]}
+            {status === 'error' && errorMessage ? errorMessage : statusMessage || STATUS_TEXT[status]}
           </p>
           {showTimeoutHint ? (
             <p className="phone-pairing-hint">
@@ -129,6 +138,16 @@ function PhonePairingScreen({
                   <span aria-hidden="true">⚡ </span>Corrida do alfabeto
                 </MenuButton>
               </>
+            ) : null}
+            {onNewCode ? (
+              <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" onClick={onNewCode}>
+                Gerar novo QR code
+              </MenuButton>
+            ) : null}
+            {onDisconnect ? (
+              <MenuButton data-nav-id="disconnect" onClick={onDisconnect}>
+                <span aria-hidden="true">📴 </span>Desconectar celular
+              </MenuButton>
             ) : null}
             <MenuButton data-nav-id="back" onClick={onBack}>
               Voltar

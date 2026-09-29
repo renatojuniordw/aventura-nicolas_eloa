@@ -14,6 +14,8 @@ interface PauseOptions {
   /** Controle por celular (docs/12-controle-por-celular.md): lets a parent drop back to keyboard/touch mid-game without abandoning the lesson. */
   isPhoneControlActive?: boolean;
   onDisablePhoneControl?: () => void;
+  /** Live link state while a phone drives this match; not operational locks Continuar/Recomeçar (docs/19 §4 P0.2). */
+  phoneStatus?: { operational: boolean; message: string };
 }
 
 function PauseMenuStep({
@@ -24,20 +26,30 @@ function PauseMenuStep({
   onToggleMute,
   isPhoneControlActive,
   onDisablePhoneControl,
+  phoneStatus,
   goTo,
 }: PauseOptions & { goTo: (step: PauseStep) => void }) {
+  const phoneBlocked = Boolean(phoneStatus && !phoneStatus.operational);
   // On very small screens the HUD drops its fullscreen button (mobile.css), so
   // the pause menu always carries the toggle — which also says how to leave.
   const { supported: fullscreenSupported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
   return (
     <div className="overlay screen pause-screen">
       <h2>Pausa</h2>
-      <p>Respire fundo e continue quando quiser.</p>
+      {phoneStatus ? (
+        <p className={`pause-phone-status${phoneBlocked ? ' pause-phone-status-blocked' : ''}`} role="status" aria-live="polite">
+          <span aria-hidden="true">📱 </span>
+          {phoneStatus.message}
+          {phoneBlocked ? ' Continue quando o celular voltar, ou desative o controle por celular.' : ''}
+        </p>
+      ) : (
+        <p>Respire fundo e continue quando quiser.</p>
+      )}
       <div className="overlay-actions overlay-actions-grid">
-        <MenuButton className="primary" data-autofocus="" onClick={onResume}>
+        <MenuButton className="primary" data-autofocus={phoneBlocked ? undefined : ''} disabled={phoneBlocked} onClick={onResume}>
           Continuar
         </MenuButton>
-        <MenuButton onClick={() => goTo('confirm-restart')}>
+        <MenuButton disabled={phoneBlocked} onClick={() => goTo('confirm-restart')}>
           Recomeçar fase
         </MenuButton>
         <MenuButton onClick={() => goTo('confirm-menu')}>
@@ -52,7 +64,7 @@ function PauseMenuStep({
           </MenuButton>
         ) : null}
         {isPhoneControlActive ? (
-          <MenuButton onClick={onDisablePhoneControl}>
+          <MenuButton data-autofocus={phoneBlocked ? '' : undefined} onClick={onDisablePhoneControl}>
             📱 Desativar controle por celular
           </MenuButton>
         ) : null}
@@ -117,6 +129,7 @@ export function buildPauseScreen(
     onToggleMute,
     isPhoneControlActive = false,
     onDisablePhoneControl,
+    phoneStatus,
   }: PauseOptions,
   goTo: (step: PauseStep) => void,
 ) {
@@ -130,8 +143,10 @@ export function buildPauseScreen(
         onToggleMute={onToggleMute}
         isPhoneControlActive={isPhoneControlActive}
         onDisablePhoneControl={onDisablePhoneControl}
+        phoneStatus={phoneStatus}
         goTo={goTo}
       />,
+      // Resume refuses by itself while the phone is down (GameScene.resume), so the shortcuts stay safe.
       { primary: onResume, back: onResume },
     );
   }
