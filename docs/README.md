@@ -37,7 +37,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 18  | [Plano complementar de experiência mobile](18-plano-experiencia-mobile-complementar.md) | Conforto dos controles, prática guiada, navegação, carregamento e animações; implementação registrada na §13 |
 | 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes |
 | 20  | [Melhorias inspiradas em Aventura das Letras](20-plano-melhorias-referencia-aventura-das-letras.md) | Comparação com a referência e propostas sem ESP32; mapa de mundos, palavras por tema e dica progressiva implementados na §12 |
-| 21  | [Importação de recursos de Aventura das Letras](21-plano-importacao-recursos-aventura-das-letras.md) | Inventário de arquivos aproveitáveis; sons de acerto/erro, licença e créditos implementados na §9 |
+| 21  | [Importação de recursos de Aventura das Letras](21-plano-importacao-recursos-aventura-das-letras.md) | Inventário de arquivos aproveitáveis; sons, créditos, 10 palavras, textura do chão e fundo por mundo implementados nas §9–10 |
 
 ## Mapa rápido: onde está cada coisa
 

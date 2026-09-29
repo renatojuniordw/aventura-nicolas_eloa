@@ -883,3 +883,101 @@ describe('GameScene answer sounds', () => {
     expect(game.audio.stopSfx).toHaveBeenCalledTimes(2);
   });
 });
+
+/**
+ * Scenarios translated from Aventura das Letras' Godot tests (docs/21 §6):
+ * `answer_feedback.gd` and `respawn_collectibles.gd`, kept where this game has
+ * the same mechanic. Deliberate differences: a wrong answer here costs a heart
+ * (unless assisted) instead of renewing hearts, and a fall keeps what was
+ * already collected instead of restoring the whole segment.
+ */
+describe('reference scenarios: answer feedback', () => {
+  const wrongItem = (scene) => scene.level.items.find((item) => item.type === 'distractor');
+
+  it('a wrong answer keeps the player, the world and the letters already found', () => {
+    const scene = enterExplore(makeFakeGame({ preferences: preferences({ supportLevel: 'assisted' }) }));
+    collectTarget(scene);
+    const world = scene.level;
+    const stream = scene.stream;
+    const position = { x: scene.player.body.x, y: scene.player.body.y };
+    const found = scene.exploreRun.currentLetterIndex;
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      scene.onItemCollected(wrongItem(scene));
+      expect(scene.status).toBe('running');
+      expect(scene.level).toBe(world);
+      expect(scene.stream).toBe(stream);
+      expect({ x: scene.player.body.x, y: scene.player.body.y }).toEqual(position);
+      expect(scene.exploreRun.currentLetterIndex).toBe(found);
+      expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.WRONG);
+      expect(scene.mistakes).toBe(attempt);
+    }
+  });
+
+  it('a correct answer replaces the error feedback with the celebration', () => {
+    const game = makeFakeGame();
+    const scene = enterExplore(game);
+    scene.onItemCollected(wrongItem(scene));
+    expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.WRONG);
+    collectTarget(scene);
+    expect(scene.hudModel.feedback.kind).toBe(FeedbackKind.CORRECT);
+    expect(game.effects.spawnConfetti).toHaveBeenCalledTimes(1);
+  });
+
+  it('effects freeze while paused and continue on resume', () => {
+    const game = makeFakeGame();
+    const scene = enterNormalLesson(game);
+    collectTarget(scene);
+    scene.pause();
+    game.effects.update.mockClear();
+    scene.update(0.5);
+    expect(game.effects.update).not.toHaveBeenCalled();
+    scene.resume();
+    scene.update(0.016);
+    expect(game.effects.update).toHaveBeenCalled();
+  });
+});
+
+describe('reference scenarios: respawn and collectibles', () => {
+  it('a fall returns to the respawn point without costing a heart or counting a reading error', () => {
+    const game = makeFakeGame({ profiles: { getActiveProfile: vi.fn(() => ({ id: 'p1' })) } });
+    const scene = enterExplore(game);
+    collectTarget(scene);
+    game.progress.recordAnswer.mockClear();
+    game.progress.recordLessonAnswer.mockClear();
+    scene.player.body.x += 400;
+
+    game.bus.emit(Events.PLAYER_FELL);
+
+    expect(scene.player.body.x).toBe(scene.levelManager.getRespawnPoint().x);
+    expect(scene.lives.lives).toBe(scene.lives.maxLives);
+    expect(scene.mistakes).toBe(0);
+    expect(game.progress.recordAnswer).not.toHaveBeenCalled();
+    expect(game.progress.recordLessonAnswer).not.toHaveBeenCalled();
+  });
+
+  it('after a fall the letters already found stay found and the current target is still offered', () => {
+    const scene = enterExplore(makeFakeGame());
+    collectTarget(scene);
+    const found = scene.exploreRun.currentLetterIndex;
+
+    scene.respawn();
+
+    expect(scene.exploreRun.currentLetterIndex).toBe(found);
+    const target = scene.stream.liveTarget;
+    expect(target?.label).toBe(scene.exploreRun.currentLetter);
+    expect(scene.level.items).toContain(target);
+    expect(scene.levelManager.collected.has(target.id)).toBe(false);
+  });
+
+  it('the same pickup is reported once, however long the player stands on it', () => {
+    const game = makeFakeGame();
+    const scene = enterExplore(game);
+    const reported = vi.fn();
+    game.bus.on(Events.ITEM_COLLECTED, reported);
+    const target = scene.stream.liveTarget;
+    const body = { ...scene.player.body, x: target.x, y: target.y };
+    for (let frame = 0; frame < 5; frame += 1) scene.levelManager.update({ body });
+    expect(reported).toHaveBeenCalledTimes(1);
+  });
+});

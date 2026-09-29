@@ -243,3 +243,5 @@ Entregue:
 Verificação: `npm test` (863 testes, incluindo mundos, cobertura da segmentação, palavras temáticas sem duplicatas, dica na cena e telas do mapa), `npm run typecheck` e `npm run build` passaram. Capturas em navegador (1000×700 e 390×800) da home, lista de mundos e detalhe do Pomar conferidas.
 
 Pendente (continua como proposta): etapa “2 de 3” e espaços `BO · LA` no HUD das lições (dependem do Monta-sílabas), L3 (identidade visual por mundo), F3–F5, minijogos da §6, poderes da §7, recompensas da §8. Não houve teste com criança nem em aparelho real; a qualidade da voz ao falar sílabas isoladas (“bo, la”) precisa ser ouvida no iPhone/Android alvo.
+
+**Atualização (28/09/2026, plano 21 §10):** mais 10 palavras (unidades Na Cozinha e Nosso Corpo, vindas das dissílabas da referência); cada mundo agora usa um fundo fixo (parte de L3 — paleta, decoração e som por mundo continuam pendentes); chão com textura de grama e terra da referência.

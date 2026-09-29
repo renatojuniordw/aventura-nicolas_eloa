@@ -122,6 +122,19 @@ export class CanvasRenderer {
     this.ctx.restore();
   }
 
+  /**
+   * Draw a texture region 1:1 (one source pixel = one world pixel) at a
+   * rounded screen position. Tiles laid on an integer world grid all shift by
+   * the same rounded camera offset, so neighbours never open a hairline seam
+   * while the camera glides between pixels.
+   */
+  worldTile(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number): void {
+    this.ctx.drawImage(
+      image, sx, sy, sw, sh,
+      Math.round(dx - this.camera.x), Math.round(dy - this.camera.y), sw, sh,
+    );
+  }
+
   // --- Screen space (HUD, overlays drawn on canvas) -------------------------
 
   screenFillRect(x: number, y: number, w: number, h: number, color: string): void {

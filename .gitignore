@@ -25,3 +25,7 @@ evidence/
 .gemini/
 .claude/
 .antigravity/
+# Originais de terceiros baixados para avaliação (docs/21 §4.2). Não versionados:
+# reproduzíveis pela URL fixada e pelo SHA-256 em THIRD_PARTY_NOTICES.md; só os
+# derivados aprovados entram em public/.
+imports/

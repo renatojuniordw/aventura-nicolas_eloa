@@ -77,6 +77,9 @@ interface Segment {
   spots: Spot[]; // world-space, sorted left to right
 }
 
+/** Background of courses that belong to no world (Explorar). */
+const DEFAULT_BACKGROUND = 'bg:primavera-lago';
+
 /** The mutable world the stream grows. Same shape `LevelManager`, physics and the renderer read. */
 export interface StreamLevel {
   schemaVersion: number;
@@ -119,6 +122,8 @@ export interface WorldStreamOptions {
   /** Distractors per regular segment (the start meadow always gets fewer). */
   distractorsPerSegment?: number;
   random?: () => number;
+  /** Panoramic background key (`bg:*`); the course's world decides it. */
+  background?: string;
 }
 
 export interface SpawnPortalOptions {
@@ -173,6 +178,7 @@ export class WorldStream {
     distractorPool,
     distractorsPerSegment = DISTRACTORS_PER_SEGMENT,
     random = Math.random,
+    background = DEFAULT_BACKGROUND,
   }: WorldStreamOptions) {
     this._templates = TEMPLATE_IDS.map((templateId) => {
       const raw = getLevelData(templateId);
@@ -192,7 +198,7 @@ export class WorldStream {
       tileset: 'placeholder',
       viewport: { width: VIEWPORT_WIDTH, height: 540 },
       tileSize: 32,
-      background: 'bg:primavera-lago',
+      background,
       music: null,
       playerStart: { x: SEGMENT_START_X, y: SEGMENT_START_Y },
       checkpoint: { x: SEGMENT_START_X, y: SEGMENT_START_Y },

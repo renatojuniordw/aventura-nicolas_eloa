@@ -63,6 +63,19 @@ const SYLLABLES: Readonly<Record<string, readonly string[]>> = {
   NENÊ: ['NE', 'NÊ'],
   IRMÃ: ['IR', 'MÃ'],
 
+  // Lote importado de Aventura das Letras (docs/21 §5), conferido com as
+  // pistas `hint` da referência
+  PRATO: ['PRA', 'TO'],
+  GARFO: ['GAR', 'FO'],
+  POTE: ['PO', 'TE'],
+  JARRA: ['JAR', 'RA'],
+  LEITE: ['LEI', 'TE'],
+  BOCA: ['BO', 'CA'],
+  NARIZ: ['NA', 'RIZ'],
+  DENTE: ['DEN', 'TE'],
+  BRAÇO: ['BRA', 'ÇO'],
+  PERNA: ['PER', 'NA'],
+
   // Explorar
   TAMBOR: ['TAM', 'BOR'],
   BARCO: ['BAR', 'CO'],

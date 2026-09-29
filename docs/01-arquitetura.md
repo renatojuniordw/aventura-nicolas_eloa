@@ -259,7 +259,7 @@ src/
 │   ├── answer-validator.ts      # acertou ou errou?
 │   ├── characters.ts            # os 4 personagens
 │   ├── atlas-meta.ts            # medidas da sprite sheet de produção
-│   └── levels/*.json            # 172 fases geradas
+│   └── levels/*.json            # 182 fases geradas
 ├── persistence/
 │   ├── storage-adapter.ts       # contrato + implementação em memória
 │   ├── local-storage-adapter.ts

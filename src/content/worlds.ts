@@ -11,6 +11,12 @@ export interface World {
   /** Decorative emoji; the title always carries the meaning. */
   icon: string;
   description: string;
+  /**
+   * Panoramic background every lesson of this world is played on (docs/20
+   * §4 L3), so a world keeps a stable, recognisable look. Keys of
+   * `render/asset-plan.ts` BACKGROUND_ASSETS.
+   */
+  background: string;
   unitIds: readonly string[];
 }
 
@@ -20,6 +26,7 @@ export const WORLDS: readonly World[] = [
     title: 'Jardim das Letras',
     icon: '🌷',
     description: 'O alfabeto de A a Z',
+    background: 'bg:garden-pixel',
     unitIds: ['alfabeto'],
   },
   {
@@ -27,6 +34,7 @@ export const WORLDS: readonly World[] = [
     title: 'Pomar das Sílabas',
     icon: '🍎',
     description: 'As famílias silábicas',
+    background: 'bg:primavera-pomar',
     unitIds: [
       'silabas-b', 'silabas-c', 'silabas-d', 'silabas-f', 'silabas-g', 'silabas-l',
       'silabas-m', 'silabas-p', 'silabas-s', 'silabas-t', 'silabas-v',
@@ -37,6 +45,7 @@ export const WORLDS: readonly World[] = [
     title: 'Vale dos Desafios',
     icon: '⛰️',
     description: 'Dígrafos e encontros de consoantes',
+    background: 'bg:outono-vale',
     unitIds: ['digrafos', 'encontros-consonantais'],
   },
   {
@@ -44,14 +53,19 @@ export const WORLDS: readonly World[] = [
     title: 'Lago das Palavras',
     icon: '🌊',
     description: 'Palavras curtas de uma e duas sílabas',
+    background: 'bg:primavera-lago',
     unitIds: ['palavras-monossilabas', 'palavras-dissilabas'],
   },
   {
     id: 'bosque-das-descobertas',
     title: 'Bosque das Descobertas',
     icon: '🌳',
-    description: 'Palavras por tema: animais, alimentos, casa, brinquedos e família',
-    unitIds: ['palavras-animais', 'palavras-alimentos', 'palavras-casa', 'palavras-brinquedos', 'palavras-familia'],
+    description: 'Palavras por tema: animais, alimentos, casa, brinquedos, família, cozinha e corpo',
+    background: 'bg:outono-bosque',
+    unitIds: [
+      'palavras-animais', 'palavras-alimentos', 'palavras-casa', 'palavras-brinquedos', 'palavras-familia',
+      'palavras-cozinha', 'palavras-corpo',
+    ],
   },
 ];
 

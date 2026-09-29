@@ -104,10 +104,10 @@ Abra o endereço mostrado no terminal (por padrão `http://localhost:65000`).
 
 ## Conteúdo
 
-**21 unidades** e **172 lições**, cobrindo alfabeto, famílias silábicas, dígrafos,
+**23 unidades** e **182 lições**, cobrindo alfabeto, famílias silábicas, dígrafos,
 encontros consonantais, palavras de uma e duas sílabas e palavras por tema (animais,
-alimentos, casa, brinquedos e família). As unidades se agrupam em cinco mundos, que a
-criança escolhe em **Escolher aventura**. O progresso é salvo por jogador
+alimentos, casa, brinquedos, família, cozinha e corpo). As unidades se agrupam em cinco
+mundos, cada um com seu cenário, que a criança escolhe em **Escolher aventura**. O progresso é salvo por jogador
 no próprio navegador, com estrelas por precisão.
 
 Todo o conteúdo é **dado**: acrescentar palavras é editar
@@ -207,8 +207,8 @@ Nginx na VPS (`docker/nginx-vps.conf`) faz proxy reverso com rate limiting e TLS
 Este projeto foi inspirado em
 [Aventura das Letras](https://github.com/samarameneses/aventura-das-letras), de Samara
 Meneses (licença MIT). Daí em diante seguiu um caminho próprio, com outra proposta e
-outras mecânicas. Os cenários, itens e objetos em `public/assets/` e os sons de
-acerto/erro em `public/assets/audio/sfx/` vêm desse projeto e estão sob a licença MIT
+outras mecânicas. Os cenários, itens e objetos em `public/assets/`, a textura do chão
+em `public/assets/terrain/` e os sons de acerto/erro em `public/assets/audio/sfx/` vêm desse projeto e estão sob a licença MIT
 dela (texto integral em `public/licenses/aventura-das-letras-MIT.txt`) — ver
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

@@ -1,6 +1,6 @@
 # 21 — Plano de aproveitamento e importação de recursos de Aventura das Letras
 
-Data: **28/09/2026**. Estado: **primeira entrega (etapas 1 e 2) implementada — ver §9**; etapas 3 a 5 seguem como plano.
+Data: **28/09/2026**. Estado: **etapas 1 a 4 implementadas (§9 e §10)**; da etapa 5, os testes com mecânica equivalente foram traduzidos e as mecânicas novas seguem no plano 20.
 
 ## 1. Escopo e base da análise
 
@@ -185,3 +185,44 @@ A versão inicial deste documento foi só planejamento; a implementação da pri
 **Verificações.** `npm test` (879 testes), `npm run typecheck` e `npm run build` passaram. Testes novos em `audio-manager.test.js`, `game-scene.test.js` e `lifecycle.test.js`.
 
 **Pendente.** Audição real (volume relativo à voz, caráter do erro) em desktop, Android e iPhone; confirmar reprodução offline após instalar o cache; validar o desbloqueio na primeira interação — `unlock()` continua usando um elemento sem fonte — e o retorno do segundo plano, inclusive com celular como controle. Etapas 3 a 5 da §8 não foram iniciadas.
+
+## 10. Implementação das etapas 3 a 5 (28/09/2026)
+
+### Etapa 3 — lote de dez palavras
+
+Decisão: em vez da lista sugerida na §5.2, o lote segue **dois grupos temáticos da própria referência**, para que cada unidade tenha cinco palavras coerentes entre si (quatro distratores do mesmo tema). Seis palavras da sugestão ficaram; PORTA, LIVRO, CAIXA e NUVEM saíram por não formarem grupo com as demais e podem compor um próximo lote.
+
+| Unidade (ordem) | Palavras | Grupo na referência |
+| --- | --- | --- |
+| `palavras-cozinha` — Na Cozinha (22) | PRATO, GARFO, POTE, JARRA, LEITE | “Na cozinha” e “Hora do lanche” |
+| `palavras-corpo` — Nosso Corpo (23) | BOCA, NARIZ, DENTE, BRAÇO, PERNA | “Nosso corpo” e “Hora de cuidar” |
+
+- Unidades acrescentadas **no fim** do currículo: ids, ordem e terrenos das 172 fases anteriores não mudaram (conferido: `generate:levels` só criou os 10 arquivos novos). Ambas entram no mundo Bosque das Descobertas.
+- Segmentação em `syllables.ts`, idêntica à pista `hint` da referência para cada palavra (ex.: `Leia em duas partes: NA · RIZ`).
+- Nenhuma entra no Explorar: não há ilustração dessas palavras (a referência também não tem), então não foram para `word-bank.ts`.
+- Pronúncias: os campos `spoken` da referência escrevem o nome da letra por extenso (“letra bê”, “éfe”, “agá”). A narração local continua usando a letra e a palavra de referência (“Encontre a letra b de bola”, plano 16). Trocar para a grafia fonética só depois de ouvir as duas formas no iPhone/Android alvo; não alterado.
+- `activities.json` (inclui o tipo `quantity`) e `positive_feedback` não foram importados.
+- Testes em `worlds.test.ts`: posição das unidades, ausência das palavras no currículo e no Explorar, quatro opções distintas por lição e fase gerada para cada uma.
+
+### Etapa 4 — textura do chão e identidade dos mundos
+
+- `grass.png` baixado para `imports/aventura-das-letras/game/art/` (pasta agora no `.gitignore`: originais ficam fora do versionamento, reproduzíveis pela URL e pelo SHA-256 em `THIRD_PARTY_NOTICES.md`).
+- Inspeção: não é um tileset de várias peças, e sim um único bloco de pixel art 40×40 ampliado para 1254×1254. Derivado `public/assets/terrain/grass-pixel-v1.webp`: WebP sem perdas **40×40, 1.580 bytes** (antes 939.893), amostrando o centro de cada bloco depois de verificar que todos são uniformes. Linhas 0–9 são grama e 10–39 são terra.
+- Desenho (`render/sprites.ts`): a textura é desenhada 1:1 em pixels do mundo, numa grade ancorada no x 0 do mundo, para que sólidos vizinhos continuem o mesmo padrão. A terra se repete a cada 30 px em qualquer profundidade; a faixa de grama só aparece nos topos expostos. Só a parte visível é desenhada. O novo `CanvasRenderer.worldTile` arredonda a posição na tela, o que evita emendas de 1 px com a câmera entre pixels. Até a textura carregar (pré-carregada no boot, 1,5 KB), o chão usa as cores lisas antigas. Colisões não mudaram.
+- Identidade por mundo (L3 do plano 20, parcial): achado no código — todo stream fixava `bg:primavera-lago`, então todas as fases usavam o mesmo fundo. Agora cada mundo em `worlds.ts` declara seu fundo (Jardim → jardim, Pomar → pomar, Vale → vale, Lago → lago, Bosque → bosque), e `createLessonStream` o aplica. A Maratona usa o Jardim; o Explorar continua no lago. Os oito PNG da §4.1 não foram baixados de novo.
+- `speed.png`: não baixado, pois ainda não há poder que o use (§4.2).
+- Testes: `sprites.test.js` (fallback, cobertura exata do sólido, grade contínua, só o trecho visível) e `stream-courses.test.ts` (fundo estável por mundo e diferente entre mundos).
+
+### Etapa 5 — testes e mecânicas da referência
+
+Traduzidos para Vitest em `game-scene.test.js` os cenários de `answer_feedback.gd` e `respawn_collectibles.gd` que têm mecânica equivalente: erro mantém posição, mundo e letras achadas; acerto substitui o aviso de erro; efeitos congelam na pausa; queda volta ao ponto de retorno sem custar coração nem contar erro de leitura; o alvo atual continua oferecido após a queda; a mesma coleta é reportada uma vez. Todos passaram sem mudar código de jogo.
+
+Diferenças mantidas de propósito: aqui o erro custa coração (exceto no apoio assistido) em vez de renovar corações, e a queda preserva o que já foi coletado em vez de restaurar o trecho inteiro.
+
+**Não implementado:** `lava_jump.gd` e `powers_continuity.gd` pressupõem lava e poderes, que ainda não existem aqui. Essas mecânicas, assim como terrenos de `adventure_terrain.gd`, são as entregas 3 a 6 do plano 20 (Monta-sílabas, ponte e água, ritmo de sessão, luz e tartaruga) e exigem decisões de produto próprias. Os testes serão traduzidos junto com elas.
+
+### Verificação
+
+`npm test` (895 testes), `npm run typecheck` e `npm run build` passaram. O service worker gerado inclui `assets/terrain/grass-pixel-v1.webp`. O aviso de chunk acima de 500 kB já existia antes destas mudanças.
+
+**Pendente:** conferir no navegador e no aparelho alvo a aparência do chão (emendas, contraste com as letras, custo por quadro) e dos cinco fundos por mundo; ouvir a pronúncia das 10 palavras novas.

@@ -219,7 +219,7 @@ tecla fica presa) e o jogo pausa sozinho.
 
 ## 8. Conteúdo disponível
 
-**21 unidades** e **172 lições** nesta versão:
+**23 unidades** e **182 lições** nesta versão:
 
 | Unidade | Lições | Exemplos |
 |---|---|---|
@@ -230,10 +230,13 @@ tecla fica presa) e o jogo pausa sozinho.
 | Palavras de uma sílaba | 24 | SOL, MAR, PÉ, PÃO, FLOR, LUZ |
 | Palavras de duas sílabas | 30 | BOLA, CASA, MAMÃE, GATO, VOVÓ |
 | Palavras por tema (animais, alimentos, casa, brinquedos, família) | 20 | GALO, SUCO, SOFÁ, PIÃO, IRMÃ |
+| Na cozinha e Nosso corpo | 10 | PRATO, GARFO, LEITE, NARIZ, BRAÇO |
 
 As unidades novas foram acrescentadas **depois** das existentes: nenhum id de lição
-mudou e o progresso salvo continua valendo; quem já concluiu tudo encontra as 20
-palavras temáticas como próximas descobertas.
+mudou e o progresso salvo continua valendo; quem já concluiu tudo encontra as 30
+palavras temáticas como próximas descobertas. As 10 de cozinha e corpo vêm da lista
+de dissílabas de Aventura das Letras (ver [21](21-plano-importacao-recursos-aventura-das-letras.md) §10),
+com a divisão silábica conferida contra as pistas da referência.
 
 ### Escolher aventura (mapa de mundos)
 
@@ -241,13 +244,19 @@ A placa **Sua próxima descoberta** da home também é o botão **Escolher avent
 (a home não ganhou botão extra). Ela abre cinco mundos, definidos em
 `src/content/worlds.ts` sobre as unidades do currículo:
 
-| Mundo | Unidades |
-|---|---|
-| Jardim das Letras | Alfabeto |
-| Pomar das Sílabas | Famílias silábicas |
-| Vale dos Desafios | Dígrafos e encontros consonantais |
-| Lago das Palavras | Palavras de uma e de duas sílabas |
-| Bosque das Descobertas | Palavras por tema |
+| Mundo | Unidades | Cenário |
+|---|---|---|
+| Jardim das Letras | Alfabeto | Jardim |
+| Pomar das Sílabas | Famílias silábicas | Pomar na primavera |
+| Vale dos Desafios | Dígrafos e encontros consonantais | Vale no outono |
+| Lago das Palavras | Palavras de uma e de duas sílabas | Lago na primavera |
+| Bosque das Descobertas | Palavras por tema | Bosque no outono |
+
+Cada mundo tem **um cenário fixo**: toda lição dele é jogada sobre o mesmo fundo, então
+repetir uma fase mantém a identidade visual. A Maratona do Alfabeto usa o cenário do
+Jardim das Letras; o Explorar usa o lago. O chão de todas as fases é desenhado com uma
+textura de grama e terra em pixel art (só visual — a colisão continua sendo a geometria);
+até a textura carregar, o chão aparece nas cores lisas de antes.
 
 Cada cartão mostra o progresso e, no mundo da próxima lição, o selo em texto
 **Você está aqui** (foco inicial). Dentro do mundo, as lições aparecem por unidade:

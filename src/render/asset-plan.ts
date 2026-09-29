@@ -23,6 +23,8 @@ export const WORLD_ASSETS: Readonly<Record<string, string>> = Object.freeze({
   'item:letter-carrier': '/assets/items/letter-carrier-pixel-v1.webp',
   'object:checkpoint': '/assets/objects/checkpoint-pixel-v1.webp',
   'object:finish-portal': '/assets/objects/finish-portal-pixel-v1.webp',
+  // 40x40 lossless WebP (~1.5 KB) derived from Aventura das Letras' grass.png (docs/21 §4.2).
+  'terrain:grass': '/assets/terrain/grass-pixel-v1.webp',
 });
 
 const GAMEPLAY_POSES = new Set<string>(Object.values(POSE_BY_STATE));

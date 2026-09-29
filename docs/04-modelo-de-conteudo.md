@@ -18,7 +18,7 @@ src/content/curriculum.json          ← escrito à mão (fonte de verdade)
 tools/generate-levels.mts            ← combina currículo + templates de terreno
         │
         ▼
-src/content/levels/fase-*.json       ← 172 arquivos gerados (versionados)
+src/content/levels/fase-*.json       ← 182 arquivos gerados (versionados)
         │
         │  level-registry.ts (import.meta.glob)
         ▼
@@ -196,7 +196,7 @@ malformado, a geração **falha ali**, e não dentro do jogo.
 
 ```bash
 npm run generate:levels
-# Geradas 172 fases em src/content/levels/ (a partir de 21 unidades).
+# Geradas 182 fases em src/content/levels/ (a partir de 23 unidades).
 ```
 
 > As fases geradas são **versionadas** no repositório, para que o jogo funcione sem passo

@@ -205,6 +205,24 @@
       "icon": "TIA",
       "objectiveTemplate": "Encontre a palavra {target}",
       "pool": ["TIA", "TIO", "NENÊ", "IRMÃ"]
+    },
+    {
+      "id": "palavras-cozinha",
+      "title": "Na Cozinha",
+      "order": 22,
+      "type": "word",
+      "icon": "PRATO",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["PRATO", "GARFO", "POTE", "JARRA", "LEITE"]
+    },
+    {
+      "id": "palavras-corpo",
+      "title": "Nosso Corpo",
+      "order": 23,
+      "type": "word",
+      "icon": "BOCA",
+      "objectiveTemplate": "Encontre a palavra {target}",
+      "pool": ["BOCA", "NARIZ", "DENTE", "BRAÇO", "PERNA"]
     }
   ]
 }

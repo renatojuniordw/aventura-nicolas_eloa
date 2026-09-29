@@ -4,6 +4,8 @@ import { WORLDS, buildWorldMap, worldOfUnit } from './worlds.js';
 import { REVIEWED_SYLLABLE_WORDS, syllablesOf } from './syllables.js';
 import { WORD_BANK } from './word-bank.js';
 import { normalize } from './text-utils.js';
+import { choicesForLesson } from './curriculum-model.js';
+import { getLevelData } from './level-registry.js';
 
 describe('worlds (docs/20 §4 L1)', () => {
   it('places every curriculum unit in exactly one world, with no unknown unit', () => {
@@ -55,8 +57,38 @@ describe('reviewed syllables (docs/20 §5 F2)', () => {
   it('keeps the new theme words distinct from the words already taught', () => {
     const themed = UNITS.filter((unit) => unit.id.startsWith('palavras-') && unit.order >= 17).flatMap((unit) => unit.pool);
     const earlier = UNITS.filter((unit) => unit.order < 17).flatMap((unit) => unit.pool).map(normalize);
-    expect(themed).toHaveLength(20);
+    expect(themed).toHaveLength(30);
     for (const word of themed) expect(earlier, word).not.toContain(normalize(word));
     expect(new Set(themed.map(normalize)).size).toBe(themed.length);
+  });
+});
+
+describe('lote importado de Aventura das Letras (docs/21 §5)', () => {
+  const imported = UNITS.filter((unit) => ['palavras-cozinha', 'palavras-corpo'].includes(unit.id));
+
+  it('comes after every earlier unit, so old lesson ids and the trail order stay put', () => {
+    expect(imported.map((unit) => unit.order)).toEqual([22, 23]);
+    const firstNew = LESSON_ORDER.indexOf('palavras-cozinha-prato');
+    expect(LESSON_ORDER.slice(firstNew)).toHaveLength(10);
+    expect(worldOfUnit('palavras-corpo')?.id).toBe('bosque-das-descobertas');
+  });
+
+  it('adds words absent from the curriculum and the Explorar bank', () => {
+    const others = [
+      ...UNITS.filter((unit) => !imported.includes(unit)).flatMap((unit) => unit.pool),
+      ...WORD_BANK.map((word) => word.label),
+    ].map(normalize);
+    for (const word of imported.flatMap((unit) => unit.pool)) expect(others, word).not.toContain(normalize(word));
+  });
+
+  it('offers the answer plus three distinct distractors and a generated level for each lesson', () => {
+    for (const unit of imported) {
+      for (const lesson of unit.lessons) {
+        const choices = choicesForLesson(unit, lesson);
+        expect(new Set(choices).size, lesson.id).toBe(4);
+        expect(choices.filter((label) => label === lesson.target), lesson.id).toHaveLength(1);
+        expect(getLevelData(lesson.levelId), lesson.levelId).toBeTruthy();
+      }
+    }
   });
 });

@@ -2,6 +2,7 @@ import { getLevelData } from '../content/level-registry.js';
 import { normalize } from '../content/text-utils.js';
 import type { Lesson } from '../content/curriculum-model.js';
 import type { WordEntry } from '../content/word-bank.js';
+import { getWorld, worldOfUnit } from '../content/worlds.js';
 import { WorldStream } from './world-stream.js';
 
 export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -64,6 +65,8 @@ export function createSpeedrunStream({
     distractorPool: (target) => speedrunDistractors(target, { allowNeighbourLetters }),
     distractorsPerSegment,
     random,
+    // The marathon is the alphabet, so it runs through the letters' world.
+    background: getWorld('jardim-das-letras')?.background,
   });
 }
 
@@ -97,5 +100,6 @@ export function createLessonStream(
     distractorPool: () => pool,
     distractorsPerSegment,
     random,
+    background: worldOfUnit(lesson.unitId)?.background,
   });
 }

@@ -14,6 +14,16 @@ import type { Box } from '../physics/aabb.js';
 import type { PlayerController } from '../gameplay/player/player-controller.js';
 import type { AssetManager } from '../core/asset-manager.js';
 
+/**
+ * Grass-and-dirt texture (docs/21 §4.2): a 40x40 pixel-art tile drawn 1:1 in
+ * world pixels on a grid anchored at world 0, so neighbouring solids join
+ * without seams. Rows 0-9 are the grass band (only on exposed tops); rows
+ * 10-39 are dirt, repeated to fill any depth. Collisions never read this.
+ */
+const TERRAIN_TILE = 40;
+const TERRAIN_GRASS_ROWS = 10;
+const TERRAIN_DIRT_ROWS = TERRAIN_TILE - TERRAIN_GRASS_ROWS;
+
 /** How long each animation frame stays on screen. */
 const FRAME_DURATION_MS = 110;
 
@@ -121,7 +131,35 @@ export class SpriteRenderer {
     const level = this._level;
     if (!level) return;
 
-    for (const solid of level.solids) {
+    const texture = this._image<HTMLImageElement>('terrain:grass');
+    if (texture && typeof renderer.worldTile === 'function') {
+      this._drawTexturedGround(renderer, texture, level.solids);
+    } else {
+      this._drawFlatGround(renderer, level.solids);
+    }
+    for (const platform of level.oneWayPlatforms) {
+      renderer.worldFillRect(platform.x, platform.y, platform.w, platform.h, COLORS.platform);
+      renderer.worldFillRect(platform.x, platform.y, platform.w, 4, '#f2ce80');
+      renderer.worldFillRect(platform.x, platform.y + platform.h - 3, platform.w, 3, '#8e561d');
+    }
+  }
+
+  private _drawTexturedGround(renderer: CanvasRenderer, texture: HTMLImageElement, solids: Box[]): void {
+    const left = renderer.camera?.x ?? Number.NEGATIVE_INFINITY;
+    const right = left + (renderer.width || VIEWPORT.width);
+    // Dirt first on every solid (its grid anchored at world y 0), then the grass band on exposed tops.
+    for (const solid of solids) {
+      tileRegion(renderer, texture, TERRAIN_GRASS_ROWS, TERRAIN_DIRT_ROWS, solid, 0, left, right);
+    }
+    for (const surface of this._surfaces) {
+      const band = { x: surface.x, y: surface.y, w: surface.w, h: Math.min(TERRAIN_GRASS_ROWS, surface.h) };
+      tileRegion(renderer, texture, 0, TERRAIN_GRASS_ROWS, band, surface.y, left, right);
+    }
+  }
+
+  /** Flat colours: used until the texture loads (and by renderers without `worldTile`). */
+  private _drawFlatGround(renderer: CanvasRenderer, solids: Box[]): void {
+    for (const solid of solids) {
       renderer.worldFillRect(solid.x, solid.y, solid.w, solid.h, COLORS.ground);
       // Subdued bottom rim for depth
       renderer.worldFillRect(solid.x, solid.y + solid.h - 4, solid.w, 4, '#482a13');
@@ -131,11 +169,6 @@ export class SpriteRenderer {
       renderer.worldFillRect(surface.x, surface.y, surface.w, 8, COLORS.groundTop);
       renderer.worldFillRect(surface.x, surface.y, surface.w, 2, '#a5df57');
       renderer.worldFillRect(surface.x, surface.y + 7, surface.w, 2, '#503518');
-    }
-    for (const platform of level.oneWayPlatforms) {
-      renderer.worldFillRect(platform.x, platform.y, platform.w, platform.h, COLORS.platform);
-      renderer.worldFillRect(platform.x, platform.y, platform.w, 4, '#f2ce80');
-      renderer.worldFillRect(platform.x, platform.y + platform.h - 3, platform.w, 3, '#8e561d');
     }
   }
 
@@ -379,4 +412,36 @@ function computeSurfaces(solids: Box[] = []): Box[] {
           Math.abs(other.y + other.h - solid.y) < 0.5,
       ),
   );
+}
+
+/**
+ * Fills `box` with the texture rows [sy, sy + rows), repeated every
+ * TERRAIN_TILE horizontally (anchored at world x 0) and every `rows`
+ * vertically (anchored at `originY`). Columns outside [left, right) — the
+ * visible slice of the world — are skipped, so long streamed floors cost only
+ * what is on screen.
+ */
+function tileRegion(
+  renderer: CanvasRenderer,
+  texture: CanvasImageSource,
+  sy: number,
+  rows: number,
+  box: Box,
+  originY: number,
+  left: number,
+  right: number,
+): void {
+  const x0 = Math.max(box.x, left);
+  const x1 = Math.min(box.x + box.w, right);
+  if (x1 <= x0 || box.h <= 0) return;
+  const bottom = box.y + box.h;
+  for (let ty = originY + Math.floor((box.y - originY) / rows) * rows; ty < bottom; ty += rows) {
+    const top = Math.max(ty, box.y);
+    const h = Math.min(ty + rows, bottom) - top;
+    for (let tx = Math.floor(x0 / TERRAIN_TILE) * TERRAIN_TILE; tx < x1; tx += TERRAIN_TILE) {
+      const start = Math.max(tx, x0);
+      const w = Math.min(tx + TERRAIN_TILE, x1) - start;
+      renderer.worldTile(texture, start - tx, sy + (top - ty), w, h, start, top);
+    }
+  }
 }

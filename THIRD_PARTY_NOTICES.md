@@ -47,5 +47,18 @@ pixel a pixel; a revisão exata da origem e o hash dos PNG usados não foram reg
 | `checkpoint.png` | `public/assets/objects/checkpoint-pixel-v1.webp` | `5518d72442b5e2d2dcbfce89ad6be117a268444e07cb4409fe6c3bcb7e345ba6` |
 | `finish.png` | `public/assets/objects/finish-portal-pixel-v1.webp` | `aa3e6dffef1bfcd1c66f739be1042002747b31d1451bbed8a24ee177a4b25892` |
 
+### Textura do chão
+
+Revisão `bbcd9eb37244f54c4b011081977f254da4f62d82`, importada em 28/09/2026.
+
+| Origem | Destino | Formato | SHA-256 |
+| --- | --- | --- | --- |
+| [`game/art/grass.png`](https://github.com/samarameneses/aventura-das-letras/blob/bbcd9eb37244f54c4b011081977f254da4f62d82/game/art/grass.png) | — (original, não distribuído) | PNG RGB 1254×1254, 939.893 bytes | `8148b3f45d38009305fb5d8b8d198c15d68bac620fda64e3870f7fd306b2331e` |
+| derivado | `public/assets/terrain/grass-pixel-v1.webp` | WebP sem perdas 40×40, 1.580 bytes | `6aad39c779fd9e13bbf21239f01b46fa146830d181f2cbd37bd6431959bbf611` |
+
+Modificação: redução para a resolução nativa da pixel art. O original é uma grade de
+40×40 blocos ampliada (~31,35 px por bloco); o derivado toma a cor do centro de cada
+bloco, após conferir que cada bloco é uniforme. Nenhuma cor foi alterada.
+
 A arte dos personagens e retratos de Nicolas e Eloá é própria deste projeto e não faz parte
 desta importação.

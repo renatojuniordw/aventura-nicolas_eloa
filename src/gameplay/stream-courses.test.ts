@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createExploreStream, createLessonStream, createSpeedrunStream, ALPHABET } from './stream-courses.js';
 import { WORD_BANK } from '../content/word-bank.js';
-import { getLesson } from '../content/curriculum.js';
+import { LESSONS, getLesson } from '../content/curriculum.js';
+import { WORLDS, getWorld } from '../content/worlds.js';
+import { BACKGROUND_ASSETS } from '../render/asset-plan.js';
 import { normalize } from '../content/text-utils.js';
 
 describe('createExploreStream', () => {
@@ -39,5 +41,30 @@ describe('createLessonStream', () => {
     const distractors = stream.level.items.filter((i) => i.type === 'distractor');
     expect(distractors.length).toBeGreaterThan(0);
     for (const item of distractors) expect(normalize(item.label)).not.toBe(normalize(lesson.target));
+  });
+});
+
+describe('world identity (docs/20 §4 L3)', () => {
+  const lessonIn = (unitId: string) => LESSONS.find((lesson) => lesson.unitId === unitId)!;
+
+  it("plays each lesson on its world's background, the same on every repeat", () => {
+    for (const world of WORLDS) {
+      for (const unitId of world.unitIds) {
+        const lesson = lessonIn(unitId);
+        expect(createLessonStream(lesson).level.background, unitId).toBe(world.background);
+        expect(createLessonStream(lesson, { random: () => 0.9 }).level.background).toBe(world.background);
+      }
+    }
+  });
+
+  it('gives each world its own background, all of them shipped art', () => {
+    const backgrounds = WORLDS.map((world) => world.background);
+    expect(new Set(backgrounds).size).toBe(WORLDS.length);
+    for (const key of backgrounds) expect(BACKGROUND_ASSETS[key], key).toBeTruthy();
+  });
+
+  it('runs the alphabet marathon in the letters world and keeps Explorar on the lake', () => {
+    expect(createSpeedrunStream().level.background).toBe(getWorld('jardim-das-letras')!.background);
+    expect(createExploreStream(WORD_BANK[0]).level.background).toBe('bg:primavera-lago');
   });
 });

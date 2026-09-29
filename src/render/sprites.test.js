@@ -133,3 +133,61 @@ it.each([null, new Map([['item:letter-carrier', {}]])])('fits full word labels w
   expect(renderer.worldText).toHaveBeenCalledWith('BOLA', 216, 316, expect.any(Object));
   expect(item).toEqual({ id: 'word', label: 'BOLA', type: 'target', x: 200, y: 300, w: 32, h: 32 });
 });
+
+describe('SpriteRenderer textured terrain (docs/21 §4.2)', () => {
+  const grass = { width: 40, height: 40 };
+  const tiledRenderer = (cameraX = 0) => ({ ...createMockRenderer(), camera: { x: cameraX, y: 0 }, worldTile: vi.fn() });
+
+  it('keeps the flat colours until the texture has loaded', () => {
+    const sprites = new SpriteRenderer({ assets: new Map() });
+    sprites.setLevel({ solids: [{ x: 0, y: 444, w: 80, h: 96 }], oneWayPlatforms: [] });
+    const renderer = tiledRenderer();
+    sprites.drawTerrain(renderer);
+    expect(renderer.worldTile).not.toHaveBeenCalled();
+    expect(renderer.worldFillRect).toHaveBeenCalledWith(0, 444, 80, 96, COLORS.ground);
+  });
+
+  it('covers a solid exactly with dirt, plus the grass band on its exposed top', () => {
+    const sprites = new SpriteRenderer({ assets: new Map([['terrain:grass', grass]]) });
+    const solid = { x: 20, y: 444, w: 100, h: 96 };
+    sprites.setLevel({ solids: [solid], oneWayPlatforms: [] });
+    const renderer = tiledRenderer();
+    sprites.drawTerrain(renderer);
+
+    const calls = renderer.worldTile.mock.calls.map(([, sx, sy, w, h, dx, dy]) => ({ sx, sy, w, h, dx, dy }));
+    const dirt = calls.filter((call) => call.sy >= 10);
+    const grassBand = calls.filter((call) => call.sy < 10);
+    const area = (list) => list.reduce((sum, call) => sum + call.w * call.h, 0);
+
+    expect(area(dirt)).toBe(solid.w * solid.h);
+    expect(area(grassBand)).toBe(solid.w * 10);
+    expect(grassBand.every((call) => call.dy === solid.y && call.sy === 0)).toBe(true);
+    for (const call of calls) {
+      expect(call.dx).toBeGreaterThanOrEqual(solid.x);
+      expect(call.dx + call.w).toBeLessThanOrEqual(solid.x + solid.w);
+      expect(call.dy + call.h).toBeLessThanOrEqual(solid.y + solid.h);
+      expect(call.sx + call.w).toBeLessThanOrEqual(40);
+      expect(call.sy + call.h).toBeLessThanOrEqual(40);
+    }
+  });
+
+  it('anchors the tile grid to the world, so two touching solids continue the same pattern', () => {
+    const sprites = new SpriteRenderer({ assets: new Map([['terrain:grass', grass]]) });
+    sprites.setLevel({ solids: [{ x: 0, y: 444, w: 60, h: 96 }, { x: 60, y: 444, w: 60, h: 96 }], oneWayPlatforms: [] });
+    const renderer = tiledRenderer();
+    sprites.drawTerrain(renderer);
+    for (const [, sx, , , , dx] of renderer.worldTile.mock.calls) expect(sx).toBe(dx % 40);
+  });
+
+  it('draws only the visible slice of a long streamed floor', () => {
+    const sprites = new SpriteRenderer({ assets: new Map([['terrain:grass', grass]]) });
+    sprites.setLevel({ solids: [{ x: 0, y: 444, w: 40000, h: 96 }], oneWayPlatforms: [] });
+    const renderer = tiledRenderer(5000);
+    sprites.drawTerrain(renderer);
+    for (const [, , , w, , dx] of renderer.worldTile.mock.calls) {
+      expect(dx + w).toBeGreaterThan(5000);
+      expect(dx).toBeLessThan(5000 + 960);
+    }
+    expect(renderer.worldTile.mock.calls.length).toBeLessThan(200);
+  });
+});
