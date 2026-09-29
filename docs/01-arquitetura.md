@@ -240,7 +240,7 @@ src/
 │   ├── sprites.ts               # desenho do mundo com a arte de produção
 │   ├── sprite-assets.ts         # recortes, chave de fundo e posição do portal
 │   ├── asset-plan.ts            # que arte carregar, e quando (fase / personagem)
-│   ├── hud.ts / hud-model.ts    # interface (modelo puro + desenho)
+│   ├── hud.ts / hud-model.ts    # modelo puro do HUD + seta espacial no Canvas (resto do HUD em ui/hud-controls.tsx)
 │   └── effects.ts               # partículas (confete)
 ├── content/
 │   ├── curriculum.json          # fonte de verdade do conteúdo pedagógico

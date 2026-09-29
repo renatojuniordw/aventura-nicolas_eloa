@@ -39,8 +39,8 @@ normal (docs/22): coleções e textos longos são divididos em páginas explíci
 texto muito ampliado um único contêiner vertical entra como fallback, sem corte
 nem rolagem horizontal. A partida usa o Canvas em
 paisagem com escala uniforme 16:9 (faixas laterais em telas mais largas, nunca
-mundo esticado). HUD e controles respeitam safe areas; o HUD do Canvas desvia
-dos botões DOM medidos e usa segunda linha quando falta espaço. A home é um
+mundo esticado). HUD e controles respeitam safe areas; o HUD informativo é DOM,
+numa grade com os botões (sem sobreposição) e em `rem`. A home é um
 bloco centralizado verticalmente na área útil (descontada a faixa do botão de
 tela cheia): jogador → próxima descoberta → Começar/Continuar → Explorar |
 Corrida → Caderno | Configurações; os pares ficam lado a lado enquanto a

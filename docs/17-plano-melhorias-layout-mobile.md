@@ -2,8 +2,8 @@
 
 > **Atualização (28/09/2026):** a estratégia de rolagem nos menus descrita aqui foi substituída por telas que cabem sem rolagem e coleções paginadas — ver [22](22-auditoria-ux-mobile-e-plano-de-implementacao.md) §12.
 
-Data: 28/09/2026. Status: **entregas 1–4 e 6 implementadas no código; entrega 5
-parcial (HUD continua em Canvas); aceite no iPhone 17 pendente** — ver §12.
+Data: 28/09/2026. Status: **entregas 1–6 implementadas no código (HUD informativo em
+DOM desde 29/09/2026, §13); aceite no iPhone 17 e em tablet físico pendente** — ver §12–13.
 
 ## 1. Escopo e evidências
 
@@ -441,7 +441,7 @@ O comportamento oficial resultante está em `docs/11` §1–1.2, `docs/03` §8 e
 | 2 — HUD sem colisões | Área útil medida (`hud-safe-area.ts`) e convertida para unidades do Canvas; corações à esquerda dos botões; segunda linha para corações e depois nome/selo; quadro de letras desce quando não cabe; safe areas em textos e seta assistida; 3 botões de 48 px | `render/hud.ts`, `ui/hud-safe-area.ts`, `main.ts`, `main.css` |
 | 3 — Menu utilizável | `.overlay.home-screen` como único dono da rolagem (fundo com tinta em camada, sem `::before`); `:where(.overlay) button` devolve a hierarquia às variantes; DOM reordenado (Começar, Explorar, Corrida, Caderno, Configurações, progresso) e grade 2 colunas em paisagem baixa com `display: contents` na linha de meta; uma única ação de troca (retrato com rótulo; botão só sem retrato); reserva para tela cheia só com `.has-fullscreen`; subtítulo do Explorar visível só para leitor de tela em altura ≤ 400 px | `main-menu.tsx`, `main.css`, `mobile.css` |
 | 4 — Geometria e áreas seguras | Shell em tela inteira com Canvas 16:9 uniforme e centralizado; controles e botões usam o shell e as safe areas; ilustração do Explorar abaixo das linhas do HUD | `main.css`, `mobile.css` |
-| 5 — HUD responsivo e leitura | **Parcial:** fatores de legibilidade no Canvas (objetivo ≈ 18 px CSS em 667 px) e fontes do DOM em `rem`. A migração do HUD informativo para DOM **não** foi feita | `render/hud.ts`, `mobile.css`, `main.css` |
+| 5 — HUD responsivo e leitura | Concluída em 29/09/2026 — ver §13 | `ui/hud-info.ts`, `ui/hud-controls.tsx`, `render/hud.ts`, `main.css` |
 | 6 — Consistência | Tela cheia no menu de pausa (e fora do HUD em telas ≤ 340 px de altura ou ≤ 560 px de largura); ícone 🔊 para ouvir; wrapper de montagem só restringe altura; `select` das configurações sem rolagem horizontal; `device.isTouch` relido a cada partida | `pause.tsx`, `hud-controls.tsx`, `mobile.css`, `main.ts` |
 
 Testes novos: multitoque, dedos na mesma ação, `lostpointercapture`, captura no botão,
@@ -462,7 +462,49 @@ Pendente:
 - Roteiro de §3.4 no iPhone 17 real (Safari e PWA) e em Android; registrar versão do
   iOS, modo de abertura e se o zoom deixou de ocorrer. Só então avaliar o fallback de
   Touch Events da terceira etapa, que não foi implementado.
-- Migração do HUD informativo para DOM (entrega 5, item 3 de §4).
-- Opção manual para mostrar os controles de toque em híbridos.
-- Revisão de contraste medida (4,5:1 / 3:1) e matriz completa de §10 em tablet.
+- ~~Migração do HUD informativo para DOM~~, ~~opção manual para híbridos~~ e ~~contraste
+  medido~~: feitos, ver §13.
+- Matriz completa de §10 em tablet **físico** (a matriz emulada 768 × 1024 / 1024 × 768 passa).
+
+## 13. Conclusão das pendências de código (29/09/2026)
+
+Aplicação da revalidação do doc 23 §7.
+
+**Entrega 5 — HUD informativo em DOM.** Nome da fase, selo de progresso/cronômetro,
+objetivo, quadro de letras do Explorar, corações e faixa de resposta passaram para
+`HudControls` (`src/ui/hud-controls.tsx`), a partir de um snapshot do `HudModel`
+(`src/ui/hud-info.ts`) que a cena envia a cada quadro; a view só re-renderiza quando o
+snapshot muda (o cronômetro na sua própria resolução). O motor não importa React.
+Layout: uma grade no topo — estado (fase, selo, ilustração do Explorar) | objetivo, quadro
+e faixa de resposta | corações e botões —, com colunas laterais nunca menores que o
+conteúdo; os corações descem para baixo dos botões quando falta largura. Não há
+sobreposição por construção. Container queries em `em` (acompanham o texto ampliado):
+abaixo de 22em o objetivo ganha linha própria; com altura abaixo de 16em (mundo 16:9
+em janela retrato) fica o essencial, menor. Tudo em `rem`, com variante de alto
+contraste. Não é região viva: o `LiveAnnouncer` continua anunciando objetivo e resposta
+uma vez; corações e quadro têm rótulo acessível. O Canvas (`render/hud.ts`) desenha só a
+seta de apoio assistido na borda, indicador espacial; o desenho duplicado foi removido.
+
+**Opção manual em híbridos.** "Botões de toque na tela: Automático / Sempre mostrar" em
+Configurações → Controles, por aparelho (`TouchLayoutStore.visibility`). Aparece onde muda
+algo — ponteiro principal fino (notebook com tela de toque, tablet com teclado) — ou quando
+já está em "Sempre mostrar", para poder desfazer. `device.isTouch` = detecção OU escolha;
+"Restaurar controles" preserva a escolha. O relatório de suporte a inclui.
+
+**Contraste medido.** `npm run audit:ux` mede o contraste do texto contra o fundo pintado:
+camadas semitransparentes compostas e cada parada de gradiente (pior caso); onde o CSS não
+descreve o fundo (imagem, Canvas por baixo) mede os pixels de uma captura com todo texto
+transparente (decil pior). Metas 4,5:1, e 3:1 para texto grande e rótulos só de símbolo;
+controles desativados viram nota. `--high-contrast` roda a matriz com alto contraste.
+Encontrado e corrigido: selo "Ativo" do seletor de personagem (#e63946 → #d62839, 4,17 →
+4,97:1). Resultado: 0 falhas de contraste na matriz normal (13 viewports) e com alto
+contraste; controles "Anterior" desativados da paginação (2,49:1) ficam como nota.
+
+**Auditoria do HUD.** Quatro estados de partida com os textos mais longos (letra, letra com
+erro, Explorar com dica, corrida) e o HUD real da partida do fluxo são medidos em toda a
+matriz: blocos dentro da tela, sem sobreposição e sem palavra partida entre linhas. Em
+toque + retrato a partida não roda (aviso de orientação), então esses estados são pulados ali.
+
+Limites: medição em Chrome headless; iPhone/Android/tablet físicos, leitores de tela e
+zoom do Safari seguem pendentes (§12).
 

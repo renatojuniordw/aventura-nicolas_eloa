@@ -269,6 +269,21 @@ A página do controle foi ajustada em vez de só registrada: centramento por `ma
 
 Estados auditados: início, pedindo permissão, permissão negada, link inválido, calibrando, calibração falhou, conectando à sala, esperando o jogo, conexão perdida, sensor sem resposta, pronto, sessão encerrada, diagnóstico, diagnóstico com relatório, modo bolsinha (ok e com alerta) e confirmação de saída. Uma ação principal por estado; diagnóstico secundário. Sem teclado virtual nesta página (não há campo de texto). Não validado em aparelho, com leitor de tela nem com a página real conectada.
 
+### Atualização da revalidação (docs/23 §8)
+
+- **HUD medido.** O HUD informativo passou para DOM (docs/17 §13) e a ferramenta mede seus blocos: dentro da tela, sem sobreposição, sem palavra partida entre linhas. Quatro estados de partida com textos longos (letra, letra com erro, Explorar com dica e ilustração, corrida com cronômetro) entram no alvo `menus`; em toque + retrato são pulados (a partida mostra o aviso de orientação, medido no fluxo). O Canvas só desenha o mundo e a seta de apoio assistido.
+- **Contraste medido** em todos os estados (docs/17 §13), com `--high-contrast` para a matriz com alto contraste. Animações de entrada são concluídas antes de medir.
+- **Controles:** "Botões de toque na tela" (Automático / Sempre mostrar) aparece em aparelhos de ponteiro fino; em toque a tela de Controles não muda.
+
+| Execução (ferramenta final) | Casos | Problemas | Notas |
+| --- | ---: | ---: | --- |
+| Matriz normal, 13 viewports | 1069 | **0** | 102 `contrast-inactive` (Anterior/Próxima desativados), 13 `scroll-exception` |
+| Alto contraste, 13 viewports | 1069 | **0** | idem |
+| Texto ampliado, 320 × 568 e 568 × 320 | 164 | 42 `scroll-y`, todos do registro acima | 0 alvos inalcançáveis, 0 contraste |
+| Texto a 200%, 4 viewports | 328 | 2 `covered` do coach em 390 × 844 (exceção da §12) | fallback vertical/alcançável |
+
+Exceção nova registrada: texto do navegador a 200% num celular deitado de 320 px de altura (568 × 320, fora da matriz de 200%) — o HUD ocupa a tela inteira; não há como caber texto de 32 px nessa altura. A partida continua pausável.
+
 ### Ainda pendente
 
-Aparelhos reais (Safari/iOS, Chrome/Android, PWA, safe areas físicas, zoom do iPhone), VoiceOver/TalkBack, multitoque e a validação integrada de HUD/orientação por aparelho (M17/M18) — a ferramenta mede os controles DOM do HUD e o aviso de orientação, não o conteúdo do Canvas nem rotação física.
+Aparelhos reais (Safari/iOS, Chrome/Android, PWA, safe areas físicas, zoom do iPhone), VoiceOver/TalkBack, multitoque e rotação física (M17/M18 em aparelho).

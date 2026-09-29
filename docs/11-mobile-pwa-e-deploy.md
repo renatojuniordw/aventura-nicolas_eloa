@@ -92,19 +92,18 @@ o Canvas mantém escala uniforme 16:9, centralizado; telas mais largas ganham fa
 laterais discretas em vez de um mundo esticado. Menus, botões do HUD e controles de
 toque usam o shell inteiro e suas safe areas.
 
-O HUD em Canvas recebe a área útil real de `src/ui/hud-safe-area.ts`: a caixa medida
-da `.hud-controls-bar`, a caixa do Canvas e `env(safe-area-inset-*)`, convertidas para
-unidades do Canvas (`x = (xCSS − canvasLeft) × canvas.width / canvasRect.width`) e
-recalculadas em resize/rotação/mudança dos botões, nunca por frame. Com isso
-(`src/render/hud.ts`):
+O HUD informativo é DOM (`src/ui/hud-controls.tsx`, docs/17 §13): nome da fase, selo de
+progresso/cronômetro, objetivo, quadro de letras, corações e faixa de resposta dividem uma
+grade no topo com os botões, dentro das safe areas:
 
-- os corações ficam à esquerda dos botões DOM; se objetivo, nome da fase e corações não
-  cabem numa linha, os corações (e depois o nome da fase com o selo de progresso) descem
-  para uma segunda linha, em vez de encolher o objetivo;
-- o quadro de letras fica sob o objetivo quando cabe inteiro entre as colunas; senão
-  desce abaixo delas;
-- os textos são ampliados quando o mundo é exibido menor que 960 px (objetivo ≈ 18 px
-  CSS numa tela de 667 px), combinando com "Texto ampliado" até um teto;
+- colunas laterais nunca menores que o conteúdo; a central (objetivo, quadro, resposta) fica
+  com o restante e quebra linhas entre palavras; corações descem para baixo dos botões
+  quando falta largura — não há sobreposição por construção;
+- tamanhos em `rem` (seguem "Texto ampliado" e o zoom do navegador); abaixo de 22em de
+  largura o objetivo ganha linha própria; abaixo de 16em de altura só o essencial, menor;
+- o quadro de letras fica em uma linha, com casas que encolhem até um mínimo;
+- o Canvas desenha só a seta de apoio assistido na borda, posicionada pela área útil de
+  `src/ui/hud-safe-area.ts` (safe areas e escala do mundo em unidades do Canvas);
 - em telas muito pequenas (altura ≤ 340 px ou largura ≤ 560 px) o botão de tela cheia do
   HUD some e a opção fica no menu de pausa, que também diz como sair.
 

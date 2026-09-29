@@ -3,8 +3,86 @@ import type { WordEntry } from '../content/word-bank.js';
 import { mountScreen } from './screens/mount-screen.js';
 import { clear } from './dom.js';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { isFullscreenSupported, isFullscreen, toggleFullscreen, onFullscreenChange } from './fullscreen.js';
+import { hudSnapshotKey, type HudSnapshot } from './hud-info.js';
+
+/** Latest HUD snapshot, pushed by the game scene; listeners fire only on real changes. */
+class HudInfoStore {
+  private _snapshot: HudSnapshot | null = null;
+  private _key = '';
+  private _listeners = new Set<() => void>();
+
+  get = (): HudSnapshot | null => this._snapshot;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
+  };
+
+  set(snapshot: HudSnapshot | null): void {
+    const key = snapshot ? hudSnapshotKey(snapshot) : '';
+    if (key === this._key) return;
+    this._key = key;
+    this._snapshot = snapshot;
+    for (const listener of [...this._listeners]) listener();
+  }
+}
+
+const FEEDBACK_SIGNS = { correct: '✔', wrong: '✖', hint: '💡' } as const;
+
+/**
+ * The informative HUD in DOM (docs/17 §4, entrega 5): level, progress badge,
+ * objective, letter board, hearts and the answer banner, laid out on the same
+ * grid as the action buttons, so they can never overlap and every size is in
+ * rem (follows "Texto ampliado" and browser zoom). Not a live region: the
+ * objective and feedback are announced once by LiveAnnouncer, the clock never.
+ */
+function HudStatus({ info }: { info: HudSnapshot }) {
+  return (
+    <>
+      {info.levelName && <p className="hud-level">Fase: {info.levelName}</p>}
+      {info.badge && <p className="hud-badge">{info.badge}</p>}
+    </>
+  );
+}
+
+function HudGoal({ info }: { info: HudSnapshot }) {
+  const found = info.board.filter((slot) => slot.revealed).length;
+  return (
+    <>
+      {info.objective && <p className="hud-objective">{info.objective}</p>}
+      {info.board.length > 0 && (
+        <p className="hud-board" role="img" aria-label={`Palavra: ${found} de ${info.board.length} letras encontradas`}>
+          {info.board.map((slot, i) => (
+            <span key={i} className={`hud-slot${slot.revealed ? ' is-revealed' : ''}${slot.isNext ? ' is-next' : ''}`} aria-hidden="true">
+              {slot.revealed ? slot.char : '_'}
+            </span>
+          ))}
+        </p>
+      )}
+    </>
+  );
+}
+
+function HudHearts({ info }: { info: HudSnapshot }) {
+  const hearts = Array.from({ length: info.maxLives }, (_, i) => i < info.lives);
+  return (
+    <p className="hud-hearts" role="img" aria-label={`Vidas: ${info.lives} de ${info.maxLives}`}>
+      {hearts.map((full, i) => <span key={i} className={`hud-heart${full ? ' is-full' : ''}`} aria-hidden="true">♥</span>)}
+    </p>
+  );
+}
+
+function HudFeedback({ info }: { info: HudSnapshot }) {
+  if (!info.feedback) return null;
+  // Not colour alone: the banner starts with a sign that says right, wrong or hint.
+  return (
+    <p className={`hud-feedback is-${info.feedback.kind}`} aria-hidden="true">
+      <span className="hud-feedback-sign">{FEEDBACK_SIGNS[info.feedback.kind]}</span> {info.feedback.message}
+    </p>
+  );
+}
 
 interface PauseButtonOptions {
   onPause: () => void;
@@ -15,8 +93,9 @@ interface PauseButtonOptions {
   journeyLabel?: string;
 }
 
-function HudControlsBar({ onPause, onRepeat, onHint, word, journeyLabel }: PauseButtonOptions) {
+function HudControlsBar({ onPause, onRepeat, onHint, word, journeyLabel, store }: PauseButtonOptions & { store: HudInfoStore }) {
   const [fullscreen, setFullscreen] = useState(() => isFullscreen());
+  const info = useSyncExternalStore(store.subscribe, store.get, store.get);
   const supported = isFullscreenSupported();
 
   useEffect(() => {
@@ -24,8 +103,15 @@ function HudControlsBar({ onPause, onRepeat, onHint, word, journeyLabel }: Pause
   }, []);
 
   return (
-    <>
-    {word && <figure className="hud-word-picture"><WordPicture word={word} /><figcaption>{journeyLabel}</figcaption></figure>}
+    <div className={`hud-layer${info ? ' has-info' : ''}`}>
+    <div className="hud-top">
+    <div className="hud-status">
+      {info && <HudStatus info={info} />}
+      {word && <figure className="hud-word-picture"><WordPicture word={word} /><figcaption>{journeyLabel}</figcaption></figure>}
+    </div>
+    <div className="hud-goal">{info && <HudGoal info={info} />}{info && <HudFeedback info={info} />}</div>
+    <div className="hud-side">
+    {info && <HudHearts info={info} />}
     <div className="hud-controls-bar">
       {onRepeat && <button className="hud-ctrl-btn hud-repeat-btn" type="button" aria-label="Ouvir novamente" title="Ouvir novamente" onClick={onRepeat}><span aria-hidden="true">🔊</span></button> }
       {onHint && <button className="hud-ctrl-btn hud-hint-btn" type="button" aria-label="Pedir dica" title="Pedir dica" onClick={onHint}><span aria-hidden="true">💡</span></button>}
@@ -55,7 +141,9 @@ function HudControlsBar({ onPause, onRepeat, onHint, word, journeyLabel }: Pause
         ⏸
       </button>
     </div>
-    </>
+    </div>
+    </div>
+    </div>
   );
 }
 
@@ -120,14 +208,20 @@ interface HudControlsOptions {
 export class HudControls {
   private _root: HTMLElement;
   private _current: { node: HTMLElement; cleanup: () => void } | null = null;
+  private _info = new HudInfoStore();
 
   constructor({ root }: HudControlsOptions) {
     this._root = root;
   }
 
+  /** The match's HUD information; cheap to call every frame (re-renders only on change). */
+  updateInfo(snapshot: HudSnapshot | null): void {
+    this._info.set(snapshot);
+  }
+
   showPauseButton(options: PauseButtonOptions): void {
     this._current?.cleanup();
-    const { node, cleanup } = mountScreen(<HudControlsBar {...options} />);
+    const { node, cleanup } = mountScreen(<HudControlsBar {...options} store={this._info} />);
     clear(this._root);
     this._root.append(node);
     this._current = { node, cleanup };
@@ -145,6 +239,7 @@ export class HudControls {
   hidePauseButton(): void {
     this._current?.cleanup();
     this._current = null;
+    this._info.set(null);
     clear(this._root);
   }
 }

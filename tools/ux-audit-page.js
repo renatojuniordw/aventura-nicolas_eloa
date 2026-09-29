@@ -12,17 +12,19 @@
 
   async function load() {
     if (modules) return modules;
-    const [menu, hudControls, words] = await Promise.all([
+    const [menu, hudControls, words, hudModel, hudInfo] = await Promise.all([
       import('/src/ui/menu.ts'),
       import('/src/ui/hud-controls.tsx'),
       import('/src/content/word-bank.ts'),
+      import('/src/render/hud-model.ts'),
+      import('/src/ui/hud-info.ts'),
     ]);
     document.getElementById('splash-screen')?.remove();
     document.querySelector('.orientation-warning')?.remove();
     const root = document.getElementById('overlay-root');
     overlay = new menu.MenuOverlay({ root });
     hud = new hudControls.HudControls({ root: document.getElementById('hud-controls-root') });
-    modules = { words: words.WORD_BANK };
+    modules = { words: words.WORD_BANK, HudModel: hudModel.HudModel, FeedbackKind: hudModel.FeedbackKind, hudSnapshot: hudInfo.hudSnapshot };
     return modules;
   }
 
@@ -59,7 +61,21 @@
     'Controles: Maior, À direita, Longe', 'Fluidez: 60 fps médios, p95 18 ms (1200 quadros)',
   ].join('\n');
 
+  /** The DOM HUD of a match (docs/17 §4 entrega 5), with the longest texts the game uses. */
+  const showHud = ({ word, feedback, ...model }, controls = {}) => {
+    overlay.hide();
+    const hudModel = new modules.HudModel(model);
+    if (word) hudModel.setWordBoard(word.split(''), 2);
+    if (feedback) hudModel.showFeedback(modules.FeedbackKind[feedback[0]], feedback[1], 5);
+    hud.showPauseButton({ onPause: noop, onRepeat: noop, onHint: noop, ...controls });
+    hud.updateInfo(modules.hudSnapshot(hudModel));
+  };
+
   const screens = {
+    'hud-letter': () => showHud({ levelName: 'Letra G', objective: 'Colete a letra G', lives: 3 }),
+    'hud-letter-feedback': () => showHud({ levelName: 'Família do NH', objective: 'Pegue as sílabas da família do NH', lives: 1, feedback: ['WRONG', 'Ops! Esse era "LHA". Procure "NHA". Tente de novo, você consegue!'] }),
+    'hud-explore': () => showHud({ levelName: 'Bosque das Descobertas', objective: 'Monte a palavra: BORBOLETA', lives: 2, isSpeedrun: true, showTimer: false, speedrunProgress: '2/9 letras', word: 'BORBOLETA', feedback: ['HINT', 'Dica: a próxima letra é R, de rato.'] }, { word: modules.words[0], journeyLabel: 'Palavra 2 de 3' }),
+    'hud-speedrun': () => showHud({ levelName: 'Corrida do alfabeto', objective: 'Pegue a letra M', lives: 3, isSpeedrun: true, timer: 754.2, speedrunProgress: '13/26', feedback: ['CORRECT', 'Isso! M de macaco.'] }, { onRepeat: undefined, onHint: undefined }),
     'privacy': () => overlay.showPrivacyNotice({ onConfirm: noop, onOpenGuardianInfo: noop }),
     'guardian-info': () => overlay.showGuardianInfo?.({ onBack: noop }),
     // Mounted in `show` (the builder is not exposed by MenuOverlay).
@@ -112,7 +128,10 @@
     async show(name) {
       await load();
       hud.hidePauseButton();
-      document.body.dataset.scene = name.startsWith('coach') ? 'game' : 'menu';
+      // A touch screen in portrait never shows a match: the orientation warning
+      // takes over (measured by the flow target), so there is no HUD to measure.
+      if (name.startsWith('hud-') && matchMedia('(pointer: coarse)').matches && innerHeight > innerWidth) return { skip: true };
+      document.body.dataset.scene = name.startsWith('coach') || name.startsWith('hud-') ? 'game' : 'menu';
       if (name === 'fullscreen-offer') {
         const { buildFullscreenOffer } = await import('/src/ui/screens/fullscreen-offer.tsx');
         overlay._show(buildFullscreenOffer, { onDone: noop }, { key: 'fullscreen-offer', modal: true });

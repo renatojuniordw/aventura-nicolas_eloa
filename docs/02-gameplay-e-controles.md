@@ -132,8 +132,8 @@ corações nem cronômetro (oferecida uma vez no primeiro jogo em tela de toque)
 
 - **Movimento reduzido** (sistema ou jogo): sem tremor de câmera, sem sucção e sem flash branco
   no portal — o personagem apenas entra e a fase fecha.
-- **Texto ampliado** e **alto contraste** também valem para o HUD desenhado no Canvas; textos
-  longos encolhem para caber em vez de cortar.
+- **Texto ampliado** e **alto contraste** também valem para o HUD (DOM, em `rem`); textos
+  longos quebram linha entre palavras em vez de encolher ou cortar.
 - Objetivo e mensagens de acerto/erro são repetidos numa região ARIA *live* (`ui/live-announcer.ts`)
   para leitores de tela, sem repetir a mesma frase a cada quadro. A navegação espacial em si
   **não** foi validada com leitor de tela.

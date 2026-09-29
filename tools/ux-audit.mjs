@@ -18,12 +18,16 @@
  *     centre — a control outside it is scrolled into view to tell a reachable
  *     vertical fallback (note) from content lost off-screen (failure);
  *   - every button label inside its box; no two buttons intersecting;
+ *   - DOM HUD blocks (level, badge, objective, board, hearts, buttons,
+ *     picture, answer banner) inside the screen, not overlapping, no word
+ *     broken letter by letter;
  *   - text contrast against the background painted under it (layers
  *     composited, gradient stops worst case): 4.5:1, or 3:1 for large text and
  *     symbol-only labels; disabled controls and backgrounds CSS cannot tell
  *     (image, the Canvas showing through) are notes.
  * jsdom cannot measure any of this; this script is what validates layout.
- * Canvas-drawn HUD content is not measured (only the DOM controls over it).
+ * The Canvas only draws the world and the edge arrow of assisted support,
+ * which are not measured.
  *
  * Usage: node tools/ux-audit.mjs [--url http://localhost:5173] [--out dir]
  *        [--target menus,controle,flow] [--only home,settings]
@@ -132,6 +136,10 @@ async function evaluate(cdp, expression) {
 
 /** Runs in the page: overflow, reach and label checks for what is on screen now. */
 const MEASURE = `(() => {
+  // Measure the settled screen, not an entrance fade half way through.
+  for (const animation of document.getAnimations()) {
+    try { if (animation.effect?.getComputedTiming().endTime !== Infinity) animation.finish(); } catch { /* infinite or detached */ }
+  }
   const issues = [];
   const vw = window.innerWidth, vh = window.innerHeight;
   // Not operable right now: under a modal or the orientation warning (inert), or folded in a closed <details>.
@@ -327,7 +335,22 @@ const MEASURE = `(() => {
         range.selectNodeContents(n);
         return [...range.getClientRects()];
       });
-      pending.push({ what, need, reason: back.unmeasured, fg: [fg[0], fg[1], fg[2], fg[3] * opacity], rects: rects.map((q) => [q.left, q.top, q.width, q.height]) });
+      // Only the part actually on screen: clipped by scrolling/overflow ancestors and the viewport.
+      let clip = { left: 0, top: 0, right: vw, bottom: vh };
+      for (let node = el.parentElement; node; node = node.parentElement) {
+        const ov = getComputedStyle(node);
+        if (ov.overflowX === 'visible' && ov.overflowY === 'visible') continue;
+        // Inside the borders: content is clipped at the padding box.
+        const box = node.getBoundingClientRect();
+        const inner = { left: box.left + node.clientLeft, top: box.top + node.clientTop };
+        clip = { left: Math.max(clip.left, inner.left), top: Math.max(clip.top, inner.top), right: Math.min(clip.right, inner.left + node.clientWidth), bottom: Math.min(clip.bottom, inner.top + node.clientHeight) };
+      }
+      const visibleRects = rects.map((q) => {
+        const left = Math.max(q.left, clip.left), top = Math.max(q.top, clip.top);
+        return [left, top, Math.min(q.right, clip.right) - left, Math.min(q.bottom, clip.bottom) - top];
+      }).filter(([, , w, h]) => w > 2 && h > 2);
+      if (!visibleRects.length) continue;
+      pending.push({ what, need, reason: back.unmeasured, fg: [fg[0], fg[1], fg[2], fg[3] * opacity], rects: visibleRects });
       continue;
     }
     const worst = Math.min(...back.colors.map((bg) => ratio(over([fg[0], fg[1], fg[2], fg[3] * opacity], bg), bg)));
@@ -336,6 +359,32 @@ const MEASURE = `(() => {
       issues.push({ kind: inactive ? 'contrast-inactive' : 'contrast', what, by: worst.toFixed(2) + ':1 < ' + need + ':1' });
     }
   }
+
+  // DOM HUD (docs/17 §4 entrega 5): its blocks never overlap, never leave the
+  // screen (the HUD does not scroll) and never break a word inside a line.
+  const hudBlocks = [...document.querySelectorAll('.hud-layer :is(.hud-level, .hud-badge, .hud-objective, .hud-board, .hud-hearts, .hud-controls-bar, .hud-word-picture, .hud-feedback)')]
+    .filter((el) => !dormant(el) && el.getClientRects().length);
+  hudBlocks.forEach((el, i) => {
+    const a = el.getBoundingClientRect();
+    if (a.left < -1 || a.top < -1 || a.right > vw + 1 || a.bottom > vh + 1) issues.push({ kind: 'offscreen', what: describe(el), rect: [a.left, a.top, a.right, a.bottom].map(Math.round) });
+    for (const other of hudBlocks.slice(i + 1)) {
+      if (el.contains(other) || other.contains(el)) continue;
+      const b = other.getBoundingClientRect();
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) issues.push({ kind: 'overlap', what: describe(el), with: describe(other) });
+    }
+    if (el.matches('.hud-level, .hud-badge, .hud-objective, .hud-feedback')) {
+      // A word split across two lines has more than one line box.
+      for (const node of [...el.querySelectorAll('*'), el].flatMap((e) => [...e.childNodes]).filter((n) => n.nodeType === 3)) {
+        for (const m of node.textContent.matchAll(/[^\\s]+/g)) {
+          const range = document.createRange();
+          range.setStart(node, m.index);
+          range.setEnd(node, m.index + m[0].length);
+          const tops = new Set([...range.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round(q.top)));
+          if (tops.size > 1) issues.push({ kind: 'word-broken', what: describe(el), by: m[0] });
+        }
+      }
+    }
+  });
   const board = document.querySelector('.home-board');
   let centring = null;
   if (board) {

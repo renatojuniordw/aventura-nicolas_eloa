@@ -146,14 +146,123 @@ body {
   pointer-events: auto;
 }
 
-.hud-controls-bar {
+/*
+ * Informative HUD in DOM (docs/17 §4, entrega 5). One grid row shares the top
+ * edge: status (level, progress, Explorar picture) | objective and letter
+ * board | hearts and the action buttons. Side columns never go below their
+ * content, the middle one takes what is left and wraps its text, so nothing
+ * can overlap whatever the screen or text size; hearts drop under the buttons
+ * when the right column is short. Only the buttons take pointer events.
+ */
+.hud-layer {
   position: absolute;
-  top: max(10px, env(safe-area-inset-top));
-  right: max(10px, env(safe-area-inset-right));
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  pointer-events: none;
+  font-family: 'Trebuchet MS', sans-serif;
+  color: #ffffff;
+  container: hud / size;
+}
+.hud-controls-root > .hud-layer { pointer-events: none; }
+.hud-layer button { pointer-events: auto; }
+.hud-layer p { margin: 0; }
+
+.hud-top {
+  display: grid;
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr);
+  grid-template-areas: "status goal side";
+  align-items: start;
+  gap: 8px;
+  width: 100%;
+}
+/* Narrow (a portrait window): status and buttons share the first row, the objective gets its own. */
+@container hud (max-width: 22em) {
+  .hud-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status side" "goal goal"; }
+}
+/* Short (the 16:9 world letterboxed in a portrait window): the essentials only, smaller. */
+@container hud (max-height: 16em) {
+  .hud-level, .hud-word-picture { display: none; }
+  .hud-objective { font-size: 1rem; padding: 4px 12px; }
+  .hud-hearts { font-size: 1rem; }
+  .hud-slot { height: 1.75rem; font-size: 1rem; }
+  .hud-feedback { font-size: 0.9375rem; padding: 4px 10px; }
+}
+.hud-status { grid-area: status; }
+.hud-goal { grid-area: goal; max-width: 32rem; }
+.hud-side { grid-area: side; }
+.hud-status { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 14rem; }
+.hud-goal { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.hud-side { display: flex; flex-wrap: wrap-reverse; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
+
+.hud-level,
+.hud-badge,
+.hud-objective,
+.hud-hearts {
+  background: rgba(27, 36, 48, 0.82);
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: bold;
+  line-height: 1.25;
+}
+.hud-level { font-size: 1rem; }
+.hud-badge { font-size: 0.9375rem; color: #ffd166; background: rgba(18, 24, 38, 0.88); white-space: nowrap; }
+.hud-objective { font-size: 1.1875rem; text-align: center; padding: 6px 16px; }
+.hud-hearts { display: flex; gap: 4px; padding: 4px 8px; font-size: 1.375rem; line-height: 1; }
+.hud-heart { color: rgba(255, 255, 255, 0.4); }
+.hud-heart.is-full { color: #ff4d5e; text-shadow: 0 0 1px #ffffff; }
+
+.hud-board { display: flex; justify-content: center; gap: 5px; max-width: 100%; }
+/* One row: slots shrink to fit instead of pushing the answer banner down. */
+.hud-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 2.25rem;
+  min-width: 1.25rem;
+  height: 2.5rem;
+  border: 2px solid rgba(255, 209, 102, 0.6);
+  border-radius: 8px;
+  background: rgba(18, 30, 74, 0.88);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.375rem;
+  font-weight: bold;
+}
+.hud-slot.is-revealed { color: #ffd166; border-color: #ffd166; }
+.hud-slot.is-next { border-color: #ffd166; border-width: 3px; }
+
+.hud-feedback {
+  max-width: 100%;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 1.125rem;
+  font-weight: bold;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+.hud-feedback.is-correct { background: rgba(35, 105, 40, 0.94); }
+.hud-feedback.is-wrong { background: rgba(150, 38, 38, 0.94); }
+.hud-feedback.is-hint { background: rgba(33, 66, 140, 0.94); }
+
+html[data-contrast="high"] .hud-level,
+html[data-contrast="high"] .hud-badge,
+html[data-contrast="high"] .hud-objective,
+html[data-contrast="high"] .hud-hearts,
+html[data-contrast="high"] .hud-slot { background: #000000; border-color: #ffffff; }
+html[data-contrast="high"] .hud-heart { color: #9a9a9a; }
+html[data-contrast="high"] .hud-heart.is-full { color: #ff5c6c; }
+html[data-contrast="high"] .hud-feedback.is-correct { background: #0b4d12; }
+html[data-contrast="high"] .hud-feedback.is-wrong { background: #6e0f0f; }
+html[data-contrast="high"] .hud-feedback.is-hint { background: #12205a; }
+
+.hud-controls-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 5;
 }
 
 .hud-ctrl-btn,
@@ -1499,13 +1608,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 }
 .journey-words .word-picture-fallback, .hud-word-picture .word-picture-fallback { font-size: 0.75rem; padding: 4px; }
 .hud-word-picture {
-  position: absolute;
-  /* Below the level name/progress badge rows (render/hud.ts), clear of the notch. */
-  top: calc(24% + env(safe-area-inset-top));
-  left: max(2%, env(safe-area-inset-left));
+  /* In the status column, under the level name and progress badge. */
   margin: 0;
-  width: 15%;
-  max-width: 144px;
+  width: clamp(64px, 15vw, 144px);
   text-align: center;
   pointer-events: none;
 }

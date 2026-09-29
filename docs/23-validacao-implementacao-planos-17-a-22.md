@@ -1,6 +1,6 @@
 # 23 — Validação da implementação dos planos 17–22
 
-> **Revalidação atual:** veja a §7, baseada em `c815ab3`. As §§1–5 são o diagnóstico histórico de `5cda30d`; a §6 registra as correções posteriores. Não usar a tabela da §1 como estado atual: o plano 19 recebeu implementação e M20 foi auditado, mas a revalidação encontrou lacunas adicionais.
+> **Estado atual:** veja a §8 (correções e reavaliação após a §7). A §7 é a revalidação de `c815ab3`. As §§1–5 são o diagnóstico histórico de `5cda30d`; a §6 registra as correções posteriores. Não usar a tabela da §1 como estado atual: o plano 19 recebeu implementação e M20 foi auditado, mas a revalidação encontrou lacunas adicionais.
 
 Data: 29/09/2026. Base inspecionada: `5cda30d`, workspace inicialmente limpo.
 
@@ -178,3 +178,47 @@ As reproduções acima executaram os módulos locais via `node --import ./tools/
 Limites: auditoria em Chrome headless/Vite local, sem acesso a aparelhos físicos ou produção. Os testes de telas isoladas usam dados de exemplo, e o fluxo real cobre um subconjunto de estados. `elementFromPoint` no centro do alvo e medidas de overflow não comprovam, sozinhos, visibilidade integral de todo conteúdo/foco; tampouco medem texto desenhado no Canvas. Não houve nova validação de offline, audição, VoiceOver/TalkBack, zoom físico do iPhone ou rede móvel. As referências externas e sua procedência remota não foram reavaliadas; os hashes foram comparados ao registro local.
 
 Prioridade: corrigir os casos de saúde/retomada/comandos do plano 19, concluir as pendências funcionais assumidas do plano 17 e executar os roteiros físicos. As expansões do plano 20 continuam backlog, sem confundi-las com o recorte já entregue.
+
+## 8. Correções da §7 e reavaliação (29/09/2026)
+
+Base: `c815ab3` + alterações desta sessão. Cada achado da §7 foi conferido no código antes de corrigir, corrigido, coberto por teste e reproduzido de novo com os módulos reais (`node --import ./tools/register-ts-hook.mjs`, script descartável).
+
+### Plano 19 — os quatro achados
+
+| Achado da §7 | Correção | Reprodução após a correção |
+| --- | --- | --- |
+| Alta — saúde da geração anterior reaproveitada | O transporte apaga a saúde e reinicia `controllerSince` ao ver geração nova (snapshot, presença ou sinal que chega antes); `ViewerLink.generation`; `evaluatePhoneLink` só aceita sinal da geração vigente. | snapshot g1 → saúde g1 → snapshot g2 sem saúde: `operational: false` (antes `true`). |
+| Alta — token expira em sessão ativa | Validade de 20 min desde o último uso; comandos, sinais de vida, tráfego recebido e `pagehide` renovam (no máximo a cada 5 s). | token lido após 30 min de uso: válido (antes `null` após 10 min). |
+| Média — join repetido não idempotente | Mesmo socket no mesmo papel recebe a mesma geração, token e contadores. Teste “is idempotent” agora compara geração e credencial; integração socket.io real com `rejoin()`. | mesmo socket duas vezes: geração 1 → 1, mesmo token (antes 1 → 2, token novo). |
+| Média — sem expiração de comandos atrasados | Protocolo 3: celular carimba `sentAt` monotônico; o jogo estima diferença de relógios + trânsito mínimo pela menor amostra recente da geração e descarta atraso extra > 1 s; armamento em entrar, recuperar saúde e “Continuar” descarta pulos anteriores. Sem comparar relógios absolutos. | pulo com 3 s de atraso na mesma conexão: descartado (antes aceito). |
+
+### Plano 17 — pendências funcionais
+
+- **Entrega 5 concluída:** HUD informativo em DOM, em grade com os botões (sem sobreposição por construção), em `rem`, com alto contraste; Canvas só com a seta espacial. Ver [17 §13](17-plano-melhorias-layout-mobile.md#13-conclusão-das-pendências-de-código-29092026).
+- **Opção manual em híbridos:** “Botões de toque na tela: Automático / Sempre mostrar”.
+- **Contraste medido** no navegador (fundos compostos, gradientes e, onde o CSS não descreve o fundo, pixels reais). Um defeito real corrigido (selo “Ativo”, 4,17 → 4,97:1).
+
+Durante a correção a auditoria pegou três regressões minhas, todas corrigidas antes desta reavaliação: a nova opção criava rolagem em Controles (568 × 320), “Fase: Alfabeto” quebrava letra a letra/no meio da palavra e a faixa de dica saía da tela com texto a 200% em 844 × 390.
+
+### Reavaliação por plano
+
+| Plano | Código | Aceite |
+| --- | --- | --- |
+| 17 | **Completo**: entregas 1–6 e as três pendências de código. | Pendente em aparelho: zoom no iPhone 17 (Safari/PWA), Android, tablet físico. |
+| 18 | **Completo** (M1–M8, sem mudança). | Pendente: ergonomia, leitor de tela, desempenho e crianças em aparelho. |
+| 19 | **Completo**: P0.1–P1.2 e os quatro achados da §7. | Pendente: matriz de aparelhos da §5 e as três sessões reais de 30 min da §6. |
+| 20 | **Primeiro recorte completo.** Expansões (Monta-sílabas, terrenos, poderes, recompensas etc.) seguem backlog proposto, não defeito. Limite de três escolhas do mapa: superado pelo fluxo do plano 22, aguardando decisão do responsável. | Pendente: uso por crianças. |
+| 21 | **Recorte das §§9–10 completo.** | Pendente: audição, pronúncia, offline de produção, aparência em aparelho. |
+| 22 | **Completo**, incluindo HUD agora medido e contraste. Exceções registradas em [22 §13](22-auditoria-ux-mobile-e-plano-de-implementacao.md#13-auditoria-ampliada-e-registro-de-exceções-29092026). | Pendente: aparelhos, VoiceOver/TalkBack, rotação física. |
+
+**Conclusão:** tudo o que é verificável em código, testes e navegador automatizado está implementado e passa. O que resta não pode ser feito nesta sessão — aparelhos físicos, leitores de tela, rede móvel, audição e uso por crianças — ou é backlog/decisão de produto (expansões do plano 20). Não declarar os planos aceitos antes desses roteiros.
+
+### Verificações
+
+- `npm test`: **1007 testes em 101 arquivos** passaram. (Menos que os 1022 da §6: os ~36 casos de geometria do HUD em Canvas saíram de `hud.test.js` com a migração; o layout do HUD agora é verificado no navegador. Entraram testes de token, filtro, transporte, coordenador, join, opção de toque, snapshot e view do HUD.)
+- `npm --prefix signaling test`: **41 testes** passaram.
+- `npm run typecheck` e `npm run build` passaram (71 entradas no precache; aviso de chunk > 500 kB, preexistente).
+- `npm run audit:ux` (Chrome headless, Vite local): normal **1069 estados, 0 problemas**; `--high-contrast` **1069, 0**; `--large-text` 320 × 568/568 × 320 **164 estados, 42 `scroll-y`**, todos do registro de fallback; `--text-scale 2` **328 estados, 2 `covered`** do coach em retrato, exceção registrada. Contraste: 0 falhas.
+
+Limites: nada disso substitui aparelho real; a ferramenta mede o DOM e pixels de captura, não o conteúdo do Canvas além da seta nem rotação física.
+

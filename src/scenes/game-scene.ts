@@ -13,6 +13,7 @@ import { getCharacter } from '../content/characters.js';
 import { Camera } from '../render/camera.js';
 import { lessonAssets } from '../render/asset-plan.js';
 import { FeedbackKind, HudModel } from '../render/hud-model.js';
+import { hudSnapshot } from '../ui/hud-info.js';
 import { SpeedrunRun } from '../gameplay/speedrun-run.js';
 import { ALPHABET, createExploreStream, createLessonStream, createSpeedrunStream } from '../gameplay/stream-courses.js';
 import type { StreamItem, StreamLevel, WorldStream } from '../gameplay/world-stream.js';
@@ -478,6 +479,8 @@ export class GameScene extends Scene {
       });
     }
 
+    // Informative HUD in DOM; the Canvas keeps only the spatial indicator.
+    this.game.hudControls.updateInfo?.(hudSnapshot(this.hudModel));
     this.game.hud.draw(this.hudModel);
   }
 
