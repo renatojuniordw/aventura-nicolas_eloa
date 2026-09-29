@@ -37,7 +37,8 @@
   };
 
   window.__uxAudit = {
-    async list({ largeText, textScale = 1 } = {}) {
+    async list({ largeText, textScale = 1, highContrast = false } = {}) {
+      if (highContrast) document.documentElement.dataset.contrast = 'high';
       view = await import('/src/controle/view.ts');
       if (largeText) document.documentElement.style.fontSize = '125%';
       if (textScale > 1) document.documentElement.style.fontSize = `${textScale * 100}%`;

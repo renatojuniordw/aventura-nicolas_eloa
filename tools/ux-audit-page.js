@@ -102,7 +102,8 @@
   };
 
   window.__uxAudit = {
-    async list({ largeText, textScale = 1 } = {}) {
+    async list({ largeText, textScale = 1, highContrast = false } = {}) {
+      if (highContrast) document.documentElement.dataset.contrast = 'high';
       await load();
       if (largeText) document.documentElement.dataset.textSize = 'large';
       if (textScale > 1) document.documentElement.style.fontSize = `${textScale * 100}%`;

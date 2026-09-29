@@ -84,7 +84,8 @@ export interface GameContext {
   controlsPractice: ControlsPracticeStore;
   /** Screen-reader mirror of the canvas objective and feedback. */
   announcer: LiveAnnouncer;
-  device: { isTouch: boolean };
+  /** `isTouch`: show touch controls (detected or chosen); `coarsePointer`: detection alone. */
+  device: { isTouch: boolean; coarsePointer: boolean };
   curriculum: {
     units: Unit[];
     lessons: Lesson[];
@@ -264,6 +265,9 @@ export function createGame({
       // The manual "Sempre mostrar" wins over detection for hybrids (docs/17 §6).
       get isTouch() {
         return isTouchDevice() || touchLayout.read().visibility === 'always';
+      },
+      get coarsePointer() {
+        return isTouchDevice();
       },
     },
     curriculum: {

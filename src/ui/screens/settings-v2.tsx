@@ -226,12 +226,6 @@ function AccessSettings({ experience, systemReducedMotion, onExperienceChange, b
 function ControlsSettings({ touch, touchVisibility, onOpenSection, onOpenPhonePairing, back }: SettingsOptions & { back: () => void }) {
   return (
     <SettingsFrame title="Controles" onBack={back}>
-      {touchVisibility && (
-        <label className="settings-select">Botões de toque na tela<select data-nav-id="touch-visibility" value={touchVisibility.value}
-          onChange={(e) => touchVisibility.onChange(e.currentTarget.value as TouchVisibility)}>
-          <option value="auto">Automático</option><option value="always">Sempre mostrar</option>
-        </select></label>
-      )}
       <ul className="settings-hub settings-list">
         {touch && (
           <li><MenuButton className="settings-hub-btn" data-nav-id="settings-touch" onClick={() => onOpenSection('touch')}>
@@ -246,6 +240,13 @@ function ControlsSettings({ touch, touchVisibility, onOpenSection, onOpenPhonePa
         <li><MenuButton className="settings-hub-btn" data-nav-id="phone-pairing" onClick={onOpenPhonePairing}>
           <span className="settings-hub-icon" aria-hidden="true">📱</span>Usar outro celular como controle
         </MenuButton></li>
+        {touchVisibility && (
+          // A grid cell like the buttons, so the screen keeps its height.
+          <li className="settings-hub-field"><label className="settings-select">Botões de toque na tela<select data-nav-id="touch-visibility" value={touchVisibility.value}
+            onChange={(e) => touchVisibility.onChange(e.currentTarget.value as TouchVisibility)}>
+            <option value="auto">Automático</option><option value="always">Sempre mostrar</option>
+          </select></label></li>
+        )}
       </ul>
       {!touch && <p className="settings-help">Os ajustes dos botões de toque aparecem numa tela de toque ou com "Sempre mostrar" (computador com tela de toque, tablet com teclado).</p>}
     </SettingsFrame>

@@ -1190,7 +1190,7 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   top: -9px;
   left: 50%;
   transform: translateX(-50%);
-  background: #e63946;
+  background: #d62839;
   color: #ffffff;
   font-family: var(--font-ui);
   font-size: clamp(0.58rem, 1.1vh, 0.66rem);

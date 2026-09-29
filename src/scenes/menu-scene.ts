@@ -332,7 +332,9 @@ export class MenuScene extends Scene {
         reopen();
       },
       onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings('app') }),
-      touchVisibility: this.game.touchLayout
+      // Only where it changes something: a detected touch screen shows the
+      // buttons anyway. Kept while "Sempre mostrar" is on, so it can be undone.
+      touchVisibility: this.game.touchLayout && (!this.game.device?.coarsePointer || this.game.touchLayout.read().visibility === 'always')
         ? {
             value: this.game.touchLayout.read().visibility,
             onChange: (visibility) => {

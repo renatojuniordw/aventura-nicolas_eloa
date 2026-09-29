@@ -42,6 +42,8 @@ Se é a primeira vez no projeto, leia nesta ordem:
 
 Validação posterior dos planos 17–22: [23 — Validação da implementação](23-validacao-implementacao-planos-17-a-22.md). A revisão distingue os recortes entregues dos critérios ainda pendentes; sua §6 registra a aplicação de 29/09/2026 (plano 19 implementado, auditoria visual ampliada, exceções registradas) e o que continua dependendo de aparelho real.
 
+Novo módulo planejado: [24 — Menu de modalidades e Hora de pular](24-plano-hora-de-pular-e-menu-de-modalidades.md). Detalha o hub com Aventura das letras e Hora de pular, Pulo livre, Jardim dos pulos, comemoração, arquitetura SOLID, persistência por perfil e critérios de UI/UX e validação. **Planejamento; ainda não implementado.**
+
 ## Mapa rápido: onde está cada coisa
 
 | Quero mexer em...                               | Vá para                                                                         |

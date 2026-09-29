@@ -17,13 +17,17 @@
  *   - every control inside the viewport and hit by `elementFromPoint` at its
  *     centre — a control outside it is scrolled into view to tell a reachable
  *     vertical fallback (note) from content lost off-screen (failure);
- *   - every button label inside its box; no two buttons intersecting.
+ *   - every button label inside its box; no two buttons intersecting;
+ *   - text contrast against the background painted under it (layers
+ *     composited, gradient stops worst case): 4.5:1, or 3:1 for large text and
+ *     symbol-only labels; disabled controls and backgrounds CSS cannot tell
+ *     (image, the Canvas showing through) are notes.
  * jsdom cannot measure any of this; this script is what validates layout.
  * Canvas-drawn HUD content is not measured (only the DOM controls over it).
  *
  * Usage: node tools/ux-audit.mjs [--url http://localhost:5173] [--out dir]
  *        [--target menus,controle,flow] [--only home,settings]
- *        [--viewports 360x640,667x375] [--large-text]
+ *        [--viewports 360x640,667x375] [--large-text] [--high-contrast]
  *        [--text-scale 2]   (browser text at 200%: vertical scrolling and
  *                            reachable off-screen controls become notes;
  *                            horizontal scroll and unreachable controls fail)
@@ -52,6 +56,7 @@ const TARGET_PAGES = {
   flow: { path: '/', script: 'ux-audit-flow-page.js', freshProfile: true },
 };
 const LARGE_TEXT = args.includes('--large-text');
+const HIGH_CONTRAST = args.includes('--high-contrast');
 const TEXT_SCALE = Number(arg('text-scale', '1'));
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
@@ -197,6 +202,140 @@ const MEASURE = `(() => {
       if (overlapX > 1 && overlapY > 1) issues.push({ kind: 'overlap', what: describe(b), with: describe(buttons[j]) });
     }
   });
+
+  // Contrast (docs/17 §6): text colour against the background really painted
+  // under it — semi-transparent layers composited, every gradient stop tried
+  // (worst case kept). 4.5:1 for text, 3:1 for large text and for symbol-only
+  // labels (component graphics). Disabled controls are exempt in WCAG but
+  // still reported, as a note. A background that cannot be computed from CSS
+  // (image, or the game Canvas showing through) is a note, not a pass.
+  const px = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  px.canvas.width = px.canvas.height = 1;
+  const colorCache = new Map();
+  const rgba = (value) => {
+    if (colorCache.has(value)) return colorCache.get(value);
+    px.clearRect(0, 0, 1, 1);
+    px.fillStyle = 'rgba(0,0,0,0)';
+    px.fillStyle = value;
+    px.fillRect(0, 0, 1, 1);
+    const d = px.getImageData(0, 0, 1, 1).data;
+    const color = [d[0], d[1], d[2], d[3] / 255];
+    colorCache.set(value, color);
+    return color;
+  };
+  const over = (top, below) => {
+    const a = top[3] + below[3] * (1 - top[3]);
+    if (a === 0) return [0, 0, 0, 0];
+    return [0, 1, 2].map((i) => (top[i] * top[3] + below[i] * below[3] * (1 - top[3])) / a).concat(a);
+  };
+  const channel = (c) => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const lum = (c) => 0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2]);
+  const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const colorsIn = (image) => (image.match(/(rgba?|hsla?|oklch|oklab|lab|lch|color)[(][^()]*[)]|#[0-9a-fA-F]{3,8}/g) ?? []);
+  /** Candidate backdrops (child layers first), or a reason they cannot be computed. */
+  const backdrops = (el) => {
+    const layers = [];
+    for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
+      const cs = getComputedStyle(node);
+      const image = cs.backgroundImage;
+      const own = [];
+      if (image && image !== 'none') {
+        if (image.includes('url(')) return { unmeasured: 'imagem de fundo' };
+        own.push(colorsIn(image).map(rgba));
+      }
+      own.push([rgba(cs.backgroundColor)]);
+      layers.push(...own);
+      const opaque = own.some((set) => set.length && set.every((c) => c[3] >= 0.999));
+      if (opaque) break;
+      if (node === document.documentElement) {
+        const r = el.getBoundingClientRect();
+        const below = document.elementsFromPoint(Math.min(vw - 1, Math.max(0, r.left + r.width / 2)), Math.min(vh - 1, Math.max(0, r.top + r.height / 2)));
+        if (below.some((b) => b.tagName === 'CANVAS' && !el.contains(b))) return { unmeasured: 'Canvas por baixo' };
+        layers.push([[255, 255, 255, 1]]);
+      }
+    }
+    // Composite bottom-up, keeping every combination of gradient stops.
+    let result = [[0, 0, 0, 0]];
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const set = layers[i].length ? layers[i] : [[0, 0, 0, 0]];
+      result = result.flatMap((below) => set.map((top) => over(top, below))).slice(0, 64);
+    }
+    return { colors: result.map((c) => over(c, [255, 255, 255, 1])) };
+  };
+  const hasOwnText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+  const textOf = (el) => (el.tagName === 'SELECT' ? el.selectedOptions[0]?.textContent ?? '' : el.tagName === 'INPUT' ? el.value : [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('')).trim();
+  const contrastSeen = new Set();
+  const pending = [];
+  window.__contrastPending = pending;
+  /** Worst decile of sampled backdrop pixels, from a screenshot taken with all text transparent. */
+  window.__contrastSample = async (src) => {
+    document.getElementById('__audit_hide')?.remove();
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const k = img.width / vw;
+    return pending.map((p) => {
+      const ratios = [];
+      for (const [x, y, w, h] of p.rects) {
+        for (let i = 0; i < 8; i++) for (let j = 0; j < 4; j++) {
+          const sx = Math.floor((x + (w * (i + 0.5)) / 8) * k);
+          const sy = Math.floor((y + (h * (j + 0.5)) / 4) * k);
+          if (sx < 0 || sy < 0 || sx >= canvas.width || sy >= canvas.height) continue;
+          const d = ctx.getImageData(sx, sy, 1, 1).data;
+          const bg = [d[0], d[1], d[2], 1];
+          ratios.push(ratio(over(p.fg, bg), bg));
+        }
+      }
+      ratios.sort((a, b) => a - b);
+      return { what: p.what, need: p.need, reason: p.reason, ratio: ratios.length ? ratios[Math.floor(ratios.length * 0.1)] : null };
+    });
+  };
+  for (const el of document.querySelectorAll('#app *, body > *:not(script):not(style) *')) {
+    if (contrastSeen.has(el)) continue;
+    contrastSeen.add(el);
+    const field = el.tagName === 'SELECT' || (el.tagName === 'INPUT' && ['text', 'number', 'search'].includes(el.type));
+    if (!field && !hasOwnText(el)) continue;
+    if (el.closest('svg, canvas, option, script, style, [hidden]') || dormant(el)) continue;
+    const r = el.getBoundingClientRect();
+    // Visually hidden labels (screen readers only) are 1 px and clipped: nothing to see.
+    if (r.width <= 2 || r.height <= 2 || r.bottom <= 0 || r.right <= 0 || r.top >= vh || r.left >= vw) continue;
+    const cs = getComputedStyle(el);
+    if ((cs.clip && cs.clip !== 'auto') || (cs.clipPath && cs.clipPath.startsWith('inset(50%'))) continue;
+    if (cs.visibility !== 'visible' || cs.display === 'none') continue;
+    let opacity = 1;
+    for (let node = el; node && node.nodeType === 1; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
+    if (opacity < 0.01) continue;
+    const text = textOf(el);
+    // Emoji keep their own colours whatever CSS says: nothing to measure.
+    if (!text || !/[^\\s\\p{Extended_Pictographic}\\u200d\\ufe0f]/u.test(text)) continue;
+    const fg = rgba(cs.color);
+    const size = parseFloat(cs.fontSize);
+    const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+    const symbolsOnly = !/[0-9A-Za-zÀ-ÿ]/.test(text);
+    const need = large || symbolsOnly ? 3 : 4.5;
+    const back = backdrops(el);
+    const what = text.replace(/\\s+/g, ' ').slice(0, 30);
+    if (back.unmeasured) {
+      // Resolved from a screenshot with the text hidden (see sampleContrast).
+      const rects = field ? [el.getBoundingClientRect()] : [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => {
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        return [...range.getClientRects()];
+      });
+      pending.push({ what, need, reason: back.unmeasured, fg: [fg[0], fg[1], fg[2], fg[3] * opacity], rects: rects.map((q) => [q.left, q.top, q.width, q.height]) });
+      continue;
+    }
+    const worst = Math.min(...back.colors.map((bg) => ratio(over([fg[0], fg[1], fg[2], fg[3] * opacity], bg), bg)));
+    if (worst + 0.005 < need) {
+      const inactive = Boolean(el.closest(':disabled, [aria-disabled="true"]'));
+      issues.push({ kind: inactive ? 'contrast-inactive' : 'contrast', what, by: worst.toFixed(2) + ':1 < ' + need + ':1' });
+    }
+  }
   const board = document.querySelector('.home-board');
   let centring = null;
   if (board) {
@@ -208,11 +347,30 @@ const MEASURE = `(() => {
     centring = Math.round(Math.abs(top - bottom));
     if (top >= 0 && bottom >= 0 && centring > 8) issues.push({ kind: 'not-centred', what: 'home-board', by: centring });
   }
-  return { issues, centring };
+  return { issues, centring, pendingContrast: pending.length };
 })()`;
 
+/** Makes every glyph transparent so a screenshot shows only what is painted behind the text. */
+const HIDE_TEXT = `(() => {
+  const style = document.createElement('style');
+  style.id = '__audit_hide';
+  style.textContent = '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; transition: none !important; }';
+  document.head.appendChild(style);
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))));
+})()`;
+
+/** Contrast over backgrounds CSS cannot describe (images, the game Canvas), measured on real pixels. */
+async function sampleContrast(cdp) {
+  await evaluate(cdp, HIDE_TEXT);
+  const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
+  const results = await evaluate(cdp, `window.__contrastSample(${JSON.stringify(`data:image/png;base64,${shot.data}`)})`);
+  return results.map((r) => (r.ratio === null
+    ? { kind: 'contrast-unmeasured', what: r.what, by: r.reason }
+    : r.ratio + 0.005 < r.need ? { kind: 'contrast', what: r.what, by: `${r.ratio.toFixed(2)}:1 < ${r.need}:1 (${r.reason}, pixels)` } : null)).filter(Boolean);
+}
+
 /** Kinds that never fail the run: a reachable fallback is recorded, not hidden. */
-const NOTE_KINDS = new Set(['offscreen-reachable', 'scroll-exception']);
+const NOTE_KINDS = new Set(['offscreen-reachable', 'scroll-exception', 'contrast-inactive', 'contrast-unmeasured']);
 /** With browser text at 200%, the vertical fallback itself is expected (docs/22 §2). */
 const TEXT_SCALE_NOTE_KINDS = new Set(['scroll-y', 'not-centred']);
 
@@ -248,7 +406,7 @@ async function main() {
         await loaded;
         await sleep(600);
         await evaluate(cdp, pageScript);
-        const screens = await evaluate(cdp, `window.__uxAudit.list(${JSON.stringify({ largeText: LARGE_TEXT, textScale: TEXT_SCALE })})`);
+        const screens = await evaluate(cdp, `window.__uxAudit.list(${JSON.stringify({ largeText: LARGE_TEXT, textScale: TEXT_SCALE, highContrast: HIGH_CONTRAST })})`);
         for (const name of screens) {
           // A flow is a sequence: every step runs, only the selected ones are reported.
           const selected = !ONLY.length || ONLY.some((prefix) => name.startsWith(prefix));
@@ -257,14 +415,19 @@ async function main() {
           const stepError = typeof outcome === 'string' ? outcome : null;
           await sleep(250);
           if (!selected || outcome?.skip) continue;
-          let { issues, centring } = await evaluate(cdp, MEASURE);
+          let { issues, centring, pendingContrast } = await evaluate(cdp, MEASURE);
           if (stepError) issues.push({ kind: 'flow-error', what: stepError });
           const noteKinds = TEXT_SCALE > 1 ? new Set([...NOTE_KINDS, ...TEXT_SCALE_NOTE_KINDS]) : NOTE_KINDS;
           const stepNotes = issues.filter((issue) => noteKinds.has(issue.kind));
           issues = issues.filter((issue) => !noteKinds.has(issue.kind));
           const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
-          const file = join(OUT, `${viewport.label}${LARGE_TEXT ? '-large' : ''}${TEXT_SCALE > 1 ? `-x${TEXT_SCALE}` : ''}-${name}.png`);
+          const file = join(OUT, `${viewport.label}${LARGE_TEXT ? '-large' : ''}${HIGH_CONTRAST ? '-contrast' : ''}${TEXT_SCALE > 1 ? `-x${TEXT_SCALE}` : ''}-${name}.png`);
           writeFileSync(file, Buffer.from(shot.data, 'base64'));
+          if (pendingContrast) {
+            const sampled = await sampleContrast(cdp);
+            issues.push(...sampled.filter((issue) => !noteKinds.has(issue.kind)));
+            stepNotes.push(...sampled.filter((issue) => noteKinds.has(issue.kind)));
+          }
           failures += issues.length;
           notes += stepNotes.length;
           report.push({ viewport: viewport.label, target, screen: name, centring, issues, notes: stepNotes });
