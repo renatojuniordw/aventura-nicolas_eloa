@@ -9,7 +9,7 @@ interface GameOverOptions {
 
 function GameOverScreen({ lesson, onRetry, onMenu }: GameOverOptions) {
   return (
-    <div className="overlay">
+    <div className="overlay screen result-screen">
       <h2>Acabaram os corações</h2>
       <p>Vamos tentar de novo: {lesson?.objective ?? ''}</p>
       <div className="overlay-actions">

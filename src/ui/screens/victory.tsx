@@ -1,7 +1,9 @@
 import { JOURNEY_LENGTH } from '../../content/discoveries.js';
 import { WordPicture } from './word-picture.js';
 import type { WordEntry } from '../../content/word-bank.js';
+import type { ReactNode } from 'react';
 import { buildScreen } from './mount-screen.js';
+import { fitCount, PaginationControls, useArea, usePager } from './layout.js';
 import { MenuButton } from './menu-button.js';
 import { POSE_FRAMES } from '../../content/atlas-meta.js';
 import { formatTime } from '../../content/text-utils.js';
@@ -31,6 +33,20 @@ function CelebrateBadge({ celebrateImage, name }: { celebrateImage: string; name
   );
 }
 
+/**
+ * Results share one composition (docs/22 M09): the picture beside the text
+ * and actions when the screen is low and wide, above them otherwise. The
+ * actions always stay inside the panel.
+ */
+function ResultLayout({ media, children }: { media: ReactNode; children: ReactNode }) {
+  return (
+    <div className={`overlay screen result-screen${media ? ' has-media' : ''}`}>
+      {media ? <div className="result-media">{media}</div> : null}
+      <div className="result-text">{children}</div>
+    </div>
+  );
+}
+
 interface VictoryOptions {
   lesson?: { target?: string } | null;
   character?: Character | null;
@@ -46,12 +62,11 @@ function VictoryScreenView({ lesson, character, stars, mistakes, hasNext, onNext
   const starRow = '★'.repeat(stars) + '☆'.repeat(Math.max(0, 3 - stars));
   const celebrateImage = character?.sprites?.celebrate;
   return (
-    <div className="overlay">
+    <ResultLayout media={celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}>
       <h1>Muito bem!</h1>
-      {celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
       <h2>Você coletou {lesson?.target ?? ''}</h2>
       <p>
-        {starRow}   ({mistakes} erro{mistakes === 1 ? '' : 's'})
+        <span aria-hidden="true">{starRow}</span><span className="sr-only">{stars} de 3 estrelas</span> ({mistakes} erro{mistakes === 1 ? '' : 's'})
       </p>
       <div className="overlay-actions">
         {hasNext ? (
@@ -66,7 +81,7 @@ function VictoryScreenView({ lesson, character, stars, mistakes, hasNext, onNext
           Menu
         </MenuButton>
       </div>
-    </div>
+    </ResultLayout>
   );
 }
 
@@ -103,9 +118,8 @@ function SpeedrunVictoryScreenView({
   const celebrateImage = character?.sprites?.celebrate;
 
   return (
-    <div className="overlay">
+    <ResultLayout media={celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}>
       <h1>{isNewBest ? '🏆 NOVO RECORDE!' : '🏁 Maratona concluída!'}</h1>
-      {celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
       <h2>Tempo da corrida: ⏱️ {timeStr}</h2>
       <p>{isNewBest ? '⭐ Esse foi o seu melhor tempo pessoal!' : `Melhor tempo salvo: ${bestStr}`}</p>
       <p>
@@ -119,7 +133,7 @@ function SpeedrunVictoryScreenView({
           Menu principal
         </MenuButton>
       </div>
-    </div>
+    </ResultLayout>
   );
 }
 
@@ -158,19 +172,29 @@ function ExploreVictoryScreenView({
 }: ExploreVictoryOptions) {
   const starRow = '★'.repeat(stars) + '☆'.repeat(Math.max(0, 3 - stars));
   const celebrateImage = character?.sprites?.celebrate;
+  const area = useArea();
+  // The summary's words sit in one row; a short screen pages them rather than piling them up.
+  const pager = usePager({
+    id: 'journey-words',
+    items: journeyWords,
+    getId: (entry) => entry.id,
+    capacity: area.height < 22 * area.rem ? fitCount(area.width - 20 * area.rem, 6.5 * area.rem, area.rem) : fitCount(area.width - 3 * area.rem, 6.5 * area.rem, area.rem),
+  });
+  const media = journeyComplete ? null : illustration
+    ? <WordPicture word={illustration} />
+    : celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null;
   return (
-    <div className="overlay">
+    <ResultLayout media={media}>
       <h1>{journeyComplete ? 'Jornada concluída!' : 'Muito bem!'}</h1>
-      {!journeyComplete && celebrateImage && character ? <CelebrateBadge celebrateImage={celebrateImage} name={character.name} /> : null}
-      {!journeyComplete && illustration && <WordPicture word={illustration} />}
       {!journeyComplete && <h2>Você montou {word}</h2>}
-      {journeyComplete ? <section aria-label="Resumo da jornada">
+      {journeyComplete ? <section className="journey-summary" aria-label="Resumo da jornada">
         <p>Nesta jornada você montou:</p>
-        <ul className="journey-words">{journeyWords.map(entry => <li key={entry.id}><WordPicture word={entry} /><strong>{entry.label}</strong></li>)}</ul>
+        <ul className="journey-words">{pager.items.map(entry => <li key={entry.id}><WordPicture word={entry} /><strong>{entry.label}</strong></li>)}</ul>
+        <PaginationControls pager={pager} label="Palavras da jornada" itemNoun="Palavra" />
         <p>Seu progresso está salvo. Você pode descansar e voltar depois!</p>
       </section> : <p>{journeyWords.length} de {JOURNEY_LENGTH} palavras da jornada concluídas</p>}
       {!journeyComplete && fact ? <p>{fact}</p> : null}
-      {!journeyComplete && <p>{starRow} ({mistakes} erro{mistakes === 1 ? '' : 's'})</p>}
+      {!journeyComplete && <p><span aria-hidden="true">{starRow}</span><span className="sr-only">{stars} de 3 estrelas</span> ({mistakes} erro{mistakes === 1 ? '' : 's'})</p>}
       <div className="overlay-actions">
         {journeyComplete && <MenuButton className="primary" onClick={onMenu}>Concluir e voltar ao menu</MenuButton>}
         {hasNext ? (
@@ -183,7 +207,7 @@ function ExploreVictoryScreenView({
         </MenuButton>
         {!journeyComplete && <MenuButton onClick={onMenu}>Menu</MenuButton>}
       </div>
-    </div>
+    </ResultLayout>
   );
 }
 

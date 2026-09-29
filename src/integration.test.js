@@ -338,7 +338,9 @@ describe('discovery journey integration', () => {
     expect(game.profiles.getActiveProfile().id).toBe(profile.id);
     const nextPhase = () => game.progress.getNextLesson(profile.id, ['palavra-sol', 'palavra-lua', 'palavra-bau', 'palavra-bola']);
     const pending = nextPhase();
-    document.querySelector('.discovery-card button[aria-label^="Jogar"]').click();
+    // The catalog opens a word's own page (docs/22 M06), which holds Jogar de novo.
+    document.querySelector('.discovery-card').click();
+    document.querySelector('button[aria-label^="Jogar"]').click();
     expect(game.scenes.currentName).toBe('game');
     expect(words).toContain(game.scenes.current.exploreRun.word.id);
     expect(game.scenes.current.exploreRun.journey).toEqual([]);

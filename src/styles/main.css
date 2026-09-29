@@ -189,13 +189,13 @@ body {
   position: absolute;
   top: max(10px, env(safe-area-inset-top));
   right: max(12px, env(safe-area-inset-right));
-  width: clamp(34px, 4.5vh, 42px);
-  height: clamp(34px, 4.5vh, 42px);
+  width: 48px;
+  height: 48px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1rem, 2vh, 1.25rem);
+  font-size: 1.25rem;
   line-height: 1;
   border-radius: 6px;
   border: 2px solid var(--color-gold-border);
@@ -314,6 +314,11 @@ body {
 }
 html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; transform: none; }
 
+@media (max-height: 420px) {
+  .splash-card { gap: 10px; padding: 12px; }
+  .splash-card .pixel-logo-svg { height: clamp(40px, 16vh, 64px); }
+}
+
 .splash-loading-text {
   font-family: var(--font-ui);
   font-size: clamp(0.76rem, 1.6vh, 0.9rem);
@@ -347,16 +352,25 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   image-rendering: crisp-edges;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   box-sizing: border-box;
-  /* The home screen is the one scroll owner of the menu (docs/17 §5). */
+  /*
+   * Fallback only (docs/22 §2): the composition fits the usable area in the
+   * normal matrix; with extreme zoom the home scrolls vertically, never
+   * sideways, instead of cutting actions off.
+   */
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
+/*
+ * Centred as one block of intrinsic height (docs/22 §5). Auto margins centre
+ * it while it fits and fall back to the top when it does not, so it never
+ * gets a negative top.
+ */
 .home-board {
   position: relative;
   z-index: 2;
@@ -366,23 +380,19 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   justify-content: center;
   width: 100%;
   max-width: 920px;
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  margin-block: auto;
 }
 
 /* Main Stage (Hero Showcase + Game Menu) */
+/* Player card and actions keep their own heights, centred on each other (no artificial equal height). */
 .home-main-stage {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   gap: clamp(12px, 3vw, 32px);
   width: 100%;
   max-width: 880px;
-  height: 100%;
-  max-height: clamp(280px, 82vh, 460px);
-  margin: auto 0;
-  flex: 1;
-  min-height: 0;
 }
 
 /* Left: Hero Showcase Panel */
@@ -394,11 +404,12 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   border: 3px solid var(--color-gold-border);
   border-radius: 8px;
   box-shadow: 0 6px 0 var(--color-ink), inset 0 0 16px rgba(0, 0, 0, 0.4);
-  padding: clamp(8px, 1.8vh, 16px) clamp(10px, 1.8vw, 18px);
+  padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   position: relative;
@@ -565,12 +576,12 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   border: 3px solid var(--color-gold-border);
   border-radius: 8px;
   box-shadow: 0 6px 0 var(--color-ink), inset 0 0 16px rgba(0, 0, 0, 0.4);
-  padding: clamp(8px, 1.8vh, 14px) clamp(10px, 1.8vw, 18px);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: stretch;
-  gap: clamp(5px, 1.4vh, 12px);
+  gap: 12px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -608,22 +619,31 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 .menu-buttons-group {
   display: flex;
   flex-direction: column;
-  gap: clamp(5px, 1.4vh, 13px);
+  gap: 10px;
   width: 100%;
 }
 
+/*
+ * Visual variants only (docs/22 §6): colour and weight. Width comes from the
+ * composition (`.overlay-actions`, `.home-pair`, a grid cell), never from the
+ * variant — add `.btn-block` for an explicit full-width button.
+ */
 .btn-retro {
   font-family: var(--font-ui);
   font-weight: 700;
+  line-height: 1.3;
   letter-spacing: 0.3px;
-  padding: clamp(6px, 1.4vh, 10px) clamp(8px, 1.5vw, 14px);
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   text-align: center;
-  border: clamp(2px, 0.3vh, 3px) solid;
+  border: 2px solid;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
-  width: 100%;
   box-sizing: border-box;
+}
+
+.btn-block {
+  width: 100%;
 }
 
 .btn-primary-gold {
@@ -631,9 +651,8 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   color: var(--color-ink);
   border-color: var(--color-gold-border);
   box-shadow: 0 3px 0 var(--color-ink);
-  font-size: clamp(0.92rem, 2vh, 1.12rem);
+  font-size: 1.0625rem;
   font-weight: 700;
-  padding: clamp(7px, 1.6vh, 11px) clamp(10px, 1.8vw, 16px);
 }
 
 .btn-primary-gold:hover {
@@ -652,10 +671,9 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   color: var(--color-cream);
   border-color: var(--color-ink);
   box-shadow: 0 3px 0 var(--color-green-dark);
-  font-size: clamp(0.85rem, 1.8vh, 1.02rem);
+  font-size: 1rem;
   font-weight: 700;
   text-shadow: 0 1px 0 var(--color-green-dark);
-  padding: clamp(6px, 1.3vh, 9px) clamp(8px, 1.5vw, 14px);
 }
 
 .btn-secondary-green:hover {
@@ -682,25 +700,16 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   transform: translateY(-2px);
 }
 
-.menu-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(6px, 1.4vw, 12px);
-  margin-top: clamp(2px, 0.6vh, 4px);
-  padding-top: clamp(3px, 0.8vh, 6px);
-  border-top: 1px dashed rgba(255, 212, 121, 0.22);
-}
-
-.menu-meta-row .btn-util {
+.btn-util {
   padding: clamp(4px, 0.9vh, 6px) clamp(8px, 1.2vw, 12px);
   font-size: clamp(0.72rem, 1.4vh, 0.84rem);
 }
 
 .btn-util {
   font-family: var(--font-ui);
-  font-size: clamp(0.76rem, 1.5vh, 0.88rem);
-  padding: clamp(5px, 1.1vh, 8px) clamp(8px, 1.4vw, 12px);
+  font-size: 1rem;
+  line-height: 1.3;
+  padding: 8px 16px;
   background: var(--color-cream);
   color: var(--color-ink);
   border: 2px solid var(--color-ink);
@@ -729,14 +738,16 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   font-weight: 500;
   color: var(--color-cream);
   text-shadow: 0 1px 0 var(--color-ink);
-  text-align: right;
   opacity: 0.92;
   margin: 0;
 }
 
 /* 4. Footer Help */
 .home-footer-tips {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   z-index: 2;
   font-family: var(--font-ui);
   font-size: clamp(0.72rem, 1.4vh, 0.84rem);
@@ -759,65 +770,10 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   text-overflow: ellipsis;
 }
 
-.footer-tip-touch {
-  display: none;
-}
-
-@media (pointer: coarse) {
-  .footer-tip-keyboard {
-    display: none;
-  }
-  .footer-tip-touch {
-    display: inline;
-  }
-}
-
-@media (max-height: 480px) {
+/* Only a keyboard hint, and only where there is room below the centred board. */
+@media (pointer: coarse), (max-height: 640px) {
   .home-footer-tips {
-    display: none !important;
-  }
-  .home-screen,
-  .overlay.home-screen {
-    padding: max(6px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  }
-  .overlay {
-    padding: 6px 14px;
-    max-height: 96%;
-  }
-  .overlay h2 {
-    margin-bottom: 3px;
-    font-size: 0.9rem;
-  }
-  .overlay p {
-    margin-bottom: 4px;
-    font-size: 0.72rem;
-  }
-  .overlay-actions {
-    margin-top: 5px;
-    gap: 8px;
-  }
-  .character-picker-grid {
-    margin: 4px 0;
-    gap: 8px;
-  }
-  .character-picker-card {
-    width: clamp(80px, 16vw, 108px);
-    min-height: clamp(80px, 18vh, 105px);
-    padding: 3px 5px;
-  }
-  .character-picker-frame {
-    width: 38px;
-    height: 38px;
-  }
-  .character-picker-thumb {
-    width: 32px;
-    height: 32px;
-  }
-  .character-picker-name {
-    font-size: 0.7rem;
-  }
-  .character-picker-status {
-    font-size: 0.58rem;
+    display: none;
   }
 }
 
@@ -868,14 +824,41 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   opacity: 0.95;
 }
 
+/*
+ * Shared action composition (docs/22 §6). Buttons in a row share width and
+ * height; a row wraps only when a 9rem column can no longer hold a label,
+ * which depends on the panel's width and the text size, not on the
+ * orientation. A lone button keeps its intrinsic width.
+ */
 .overlay-actions {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: clamp(8px, 1.5vw, 14px);
+  gap: 10px;
   justify-content: center;
-  align-items: center;
-  margin-top: clamp(6px, 1.2vh, 12px);
+  align-items: stretch;
+  margin-top: 4px;
+}
+
+.overlay-actions > * {
+  flex: 1 1 9rem;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+.overlay-actions > :only-child {
+  flex: 0 1 auto;
+  min-width: min(100%, 10rem);
+}
+
+/* Many actions (pause): a grid of equal cells. */
+.overlay-actions.overlay-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.overlay-actions.overlay-actions-grid > * {
+  max-width: none;
 }
 
 /*
@@ -888,7 +871,11 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   font-family: var(--font-ui);
   font-weight: 700;
   font-size: 1rem;
-  padding: clamp(7px, 1.4vh, 10px) clamp(12px, 2vw, 18px);
+  line-height: 1.3;
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: break-word;
+  padding: 8px 16px;
   border-radius: 4px;
   border: 2px solid var(--color-ink);
   background: var(--color-green);
@@ -939,11 +926,13 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   min-height: 2.6em;
 }
 
+/* Never below ~160px (still readable by a phone camera), never above 220px. */
 .phone-pairing-qr,
 .phone-pairing-qr-placeholder {
-  width: 220px;
-  height: 220px;
-  margin: clamp(8px, 1.5vh, 16px) auto;
+  width: clamp(160px, 34dvh, 220px);
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0 auto;
   border-radius: 8px;
   background: var(--color-cream);
 }
@@ -1127,19 +1116,10 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 .settings-screen {
   position: relative;
   z-index: 2;
-  width: min(480px, 92%);
-  max-width: 480px;
   text-align: center;
   background: rgba(20, 36, 32, 0.94);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-}
-
-.settings-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
 }
 
 .character-picker-subtitle {
@@ -1152,17 +1132,17 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 .character-picker-grid {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: clamp(10px, 2vw, 18px);
-  flex-wrap: nowrap;
-  margin: clamp(6px, 1.4vh, 12px) 0;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0;
   max-width: 100%;
 }
 
 .character-picker-card {
   position: relative;
-  width: clamp(96px, 20vw, 132px);
-  min-height: clamp(110px, 22vh, 142px);
+  width: 8.5rem;
+  min-height: 0;
   background: rgba(251, 244, 223, 0.94);
   border: 3px solid var(--color-ink);
   border-radius: 8px;
@@ -1268,15 +1248,6 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   font-size: clamp(1.4rem, 3.5vh, 1.8rem);
 }
 
-.character-picker-actions {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: clamp(8px, 1.5vw, 14px);
-  margin-top: clamp(6px, 1.2vh, 12px);
-}
-
 .victory-celebrate {
   width: clamp(80px, 18vh, 140px);
   height: clamp(80px, 18vh, 140px);
@@ -1318,20 +1289,6 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 .welcome-notice {
   width: min(600px, 94%);
   text-align: center;
-}
-
-.welcome-highlights {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 12px 0 14px;
-}
-
-@media (max-width: 520px) {
-  .welcome-highlights {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
 }
 
 .welcome-card {
@@ -1378,48 +1335,14 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   margin: 8px 0;
 }
 
-.privacy-details {
-  margin: 10px 0;
-  border-radius: 6px;
-  background: rgba(14, 28, 25, 0.5);
-  border: 1px dashed rgba(255, 212, 121, 0.25);
-  text-align: left;
-}
-
-.privacy-details-summary {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  color: var(--color-gold);
-  cursor: pointer;
-  padding: 6px 10px;
-  font-weight: 600;
-  user-select: none;
-}
-
-.privacy-details-content {
-  padding: 6px 12px 10px;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--color-cream);
-  opacity: 0.88;
-}
-
-.privacy-details-content p {
-  margin: 0;
-  font-size: inherit;
-}
-
 .welcome-actions {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
-.welcome-storage-note {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
+.overlay .welcome-storage-note {
+  font-size: 0.875rem;
   color: #a8d5ba;
-  margin-top: 8px;
-  opacity: 0.92;
+  margin: 0;
 }
 
 @media (max-height: 520px) {
@@ -1436,20 +1359,12 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
     margin-bottom: 6px;
   }
   .overlay p {
-    font-size: 0.85rem;
-    margin-bottom: 8px;
-    line-height: 1.38;
+    font-size: 0.9375rem;
+    margin-bottom: 6px;
+    line-height: 1.35;
   }
   .overlay-actions {
     gap: 8px;
-    margin-top: 6px;
-  }
-  :where(.overlay) button {
-    font-size: 0.9375rem;
-    padding: 7px 14px;
-  }
-  .overlay-scroll {
-    max-height: 38vh;
   }
   .victory-celebrate {
     width: 76px;
@@ -1475,6 +1390,7 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 }
 
 /* PWA update banner (ui/pwa-update.ts) */
+/* Bottom-centre, as narrow as its text; wraps instead of overflowing on small phones. */
 .update-banner {
   position: fixed;
   left: 50%;
@@ -1482,14 +1398,19 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
+  width: max-content;
+  max-width: calc(100% - 32px);
   padding: 8px 12px;
   background: var(--color-panel);
   color: var(--color-cream);
   border: 3px solid var(--color-gold-border);
-  font-family: var(--font-pixel);
-  font-size: 0.875rem;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.3;
 }
 
 .update-banner[hidden] {
@@ -1499,7 +1420,8 @@ html[data-motion="reduced"] .splash-bar-inner { width: 100%; animation: none; tr
 .update-banner button {
   font-family: inherit;
   font-size: inherit;
-  padding: 6px 12px;
+  font-weight: 700;
+  padding: 8px 16px;
   color: var(--color-ink);
   background: var(--color-gold);
   border: 2px solid var(--color-gold-dark);
@@ -1514,8 +1436,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 }
 
 .hud-ctrl-btn, .btn-util, .update-banner button {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 48px;
 }
 
 /* Support screen (docs/18 §10): the one place where text must be selectable. */
@@ -1585,25 +1507,6 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   padding: 4px;
   font: bold clamp(0.75rem, 1.3vw, 0.875rem) 'Trebuchet MS', sans-serif;
 }
-.discoveries-screen { width: min(100%, 1000px); }
-.discoveries-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 16px;
-  list-style: none;
-  padding: 0;
-  width: 100%;
-}
-.discovery-card {
-  border: 2px solid #ffd479;
-  border-radius: 12px;
-  padding: 16px;
-  background: #203632;
-  color: #fbf4df;
-}
-.discovery-card h2 { overflow-wrap: anywhere; }
-.discovery-card .overlay-actions { flex-wrap: wrap; }
-.discovery-card button { min-height: 48px; }
 .journey-words {
   display: flex;
   justify-content: center;
@@ -1637,43 +1540,4 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.world-map-screen { width: min(100%, 900px); }
-.world-list, .lesson-chips {
-  list-style: none;
-  padding: 0;
-  margin: 12px 0 0;
-  width: 100%;
-}
-.world-list { display: grid; gap: 12px; }
-.world-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: 72px;
-  text-align: left;
-  flex-wrap: wrap;
-}
-.world-card.is-current { border-color: var(--color-gold); box-shadow: 0 3px 0 var(--color-gold-border); }
-.world-card-icon { font-size: 2rem; line-height: 1; }
-.world-card-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 12rem; min-width: 0; }
-.world-card-body strong { font-size: 1.125rem; }
-.world-card-body small { font-weight: 400; font-size: 0.875rem; }
-.world-card-progress { font-size: 0.8125rem; font-weight: 400; }
-.world-card-here {
-  background: var(--color-gold);
-  color: var(--color-ink);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.8125rem;
-}
-.world-unit { width: 100%; margin-top: 16px; text-align: left; }
-.world-unit h2 { font-size: 1rem; margin: 0; color: var(--color-gold); }
-.world-unit h2 small { color: var(--color-cream); font-weight: 400; margin-left: 6px; }
-.lesson-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.lesson-chip { min-width: 56px; min-height: 48px; display: inline-flex; align-items: center; gap: 6px; }
-.lesson-chip.is-next { background: var(--color-gold); color: var(--color-ink); border-color: var(--color-gold-border); }
-.lesson-chip.is-locked { background: #3a4a47; color: #d6d0bd; box-shadow: none; }
-.lesson-chip:disabled { cursor: not-allowed; transform: none; }
-.lesson-chip-mark { font-size: 0.875rem; }
-.world-free-practice { margin-top: 20px; }
+/* The world map screens are styled in mobile.css (docs/22 M07). */

@@ -16,7 +16,7 @@ function FullscreenOffer({ onDone }: { onDone: () => void }) {
     if (entered) onDone();
     else { setPending(false); setFailed(true); }
   };
-  return <section className="overlay fullscreen-offer" role="dialog" aria-modal="true"
+  return <section className="overlay screen fullscreen-offer" role="dialog" aria-modal="true"
     aria-labelledby="fullscreen-title" aria-describedby="fullscreen-description">
     <span className="fullscreen-illustration" aria-hidden="true">⛶</span>
     <h2 id="fullscreen-title">Mais espaço para brincar</h2>
@@ -27,7 +27,7 @@ function FullscreenOffer({ onDone }: { onDone: () => void }) {
       <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" disabled={pending} onClick={accept}>
         {pending ? 'Abrindo…' : 'Usar tela cheia'}
       </MenuButton>
-      <MenuButton className="btn-retro" onClick={onDone}>Agora não</MenuButton>
+      <MenuButton onClick={onDone}>Agora não</MenuButton>
     </div>
   </section>;
 }

@@ -65,6 +65,20 @@ describe('MenuScene', () => {
     expect(game.menu.showMainMenu).not.toHaveBeenCalled();
   });
 
+  it('opens the guardian information from the welcome notice and comes back without consent (docs/22 M11)', () => {
+    const game = makeFakeGame();
+    game.menu.showGuardianInfo = vi.fn();
+    const scene = new MenuScene(game);
+    scene.render();
+
+    game.menu.showPrivacyNotice.mock.calls[0][0].onOpenGuardianInfo();
+    game.menu.showGuardianInfo.mock.calls[0][0].onBack();
+
+    expect(game.profiles.recordParentalConsent).not.toHaveBeenCalled();
+    expect(game.menu.showPrivacyNotice).toHaveBeenCalledTimes(2);
+    expect(game.menu.showMainMenu).not.toHaveBeenCalled();
+  });
+
   it('records consent and re-renders when privacy notice is confirmed', () => {
     // Stateful fake: recording consent latches, exactly like the real store.
     let consent = false;
@@ -383,6 +397,8 @@ describe('describeLesson', () => {
     confirm.onCancel();
     expect(resetProgress).not.toHaveBeenCalled();
     expect(game.menu.showSettings).toHaveBeenCalledTimes(2);
+    // Cancelar returns to the screen the reset lives on.
+    expect(game.menu.showSettings.mock.calls[1][0].section).toBe('help');
 
     confirm.onConfirm();
     expect(resetProgress).toHaveBeenCalledWith('p1');
@@ -433,11 +449,11 @@ describe('describeLesson', () => {
   });
 });
 
-describe('MenuScene world map (docs/20 §4 L1)', () => {
-  it('reaches a lesson in three choices: map, world, lesson', async () => {
+describe('MenuScene world map (docs/20 §4 L1, docs/22 M07)', () => {
+  async function worldGame() {
     const curriculum = await import('../content/curriculum.js');
     const profile = { id: 'p1', name: 'Nicolas', characterId: 'char-nicolas', progress: {} };
-    const game = makeFakeGame({
+    return makeFakeGame({
       profiles: { ...makeFakeGame().profiles, getActiveProfile: vi.fn(() => profile) },
       progress: {
         getNextLesson: vi.fn(() => 'silabas-b-ba'),
@@ -446,8 +462,12 @@ describe('MenuScene world map (docs/20 §4 L1)', () => {
         getSpeedrunBestTime: vi.fn(() => null),
       },
       curriculum: { units: curriculum.UNITS, lessons: curriculum.LESSONS, lessonOrder: curriculum.LESSON_ORDER, getLesson: curriculum.getLesson },
-      menu: { ...makeFakeGame().menu, showWorldList: vi.fn(), showWorldDetail: vi.fn() },
+      menu: { ...makeFakeGame().menu, showWorldList: vi.fn(), showWorldDetail: vi.fn(), showUnitLessons: vi.fn() },
     });
+  }
+
+  it('reaches a lesson through world, unit and lesson, and goes back one level at a time', async () => {
+    const game = await worldGame();
     const scene = new MenuScene(game);
 
     scene.openWorldMap();
@@ -455,15 +475,113 @@ describe('MenuScene world map (docs/20 §4 L1)', () => {
     expect(worlds.find((world) => world.current).id).toBe('pomar-das-silabas');
 
     onOpenWorld('pomar-das-silabas');
-    const { world, onPlayLesson, onToggleFreePractice } = game.menu.showWorldDetail.mock.calls[0][0];
+    const { world, onOpenUnit, onBack: backToWorlds } = game.menu.showWorldDetail.mock.calls[0][0];
     expect(world.units[0].lessons[0]).toMatchObject({ id: 'silabas-b-ba', state: 'next' });
 
-    onToggleFreePractice();
-    const freed = game.menu.showWorldDetail.mock.calls[1][0];
-    expect(freed.freePractice).toBe(true);
-    expect(freed.world.units.at(-1).lessons.every((lesson) => lesson.playable)).toBe(true);
+    onOpenUnit('silabas-b');
+    const lessons = game.menu.showUnitLessons.mock.calls[0][0];
+    expect(lessons.unit.id).toBe('silabas-b');
+    expect(lessons.backLabel).toBe('Voltar às partes');
 
-    onPlayLesson('silabas-b-ba');
+    lessons.onToggleFreePractice();
+    const freed = game.menu.showUnitLessons.mock.calls[1][0];
+    expect(freed.freePractice).toBe(true);
+    expect(freed.unit.lessons.every((lesson) => lesson.playable)).toBe(true);
+
+    freed.onBack();
+    expect(game.menu.showWorldDetail).toHaveBeenCalledTimes(2);
+    backToWorlds();
+    expect(game.menu.showWorldList).toHaveBeenCalledTimes(2);
+
+    freed.onPlayLesson('silabas-b-ba');
     expect(game.startLesson).toHaveBeenCalledWith('silabas-b-ba');
+  });
+
+  it('opens a one-unit world (the alphabet) straight on its lessons', async () => {
+    const game = await worldGame();
+    const scene = new MenuScene(game);
+
+    scene.openWorld('jardim-das-letras');
+    expect(game.menu.showWorldDetail).not.toHaveBeenCalled();
+    const lessons = game.menu.showUnitLessons.mock.calls[0][0];
+    expect(lessons.unit.id).toBe('alfabeto');
+    expect(lessons.backLabel).toBe('Voltar aos mundos');
+    lessons.onBack();
+    expect(game.menu.showWorldList).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('MenuScene Configurações tree (docs/22 §4)', () => {
+  function settingsGame(overrides = {}) {
+    const game = makeFakeGame({
+      audio: { musicVolume: 1, sfxVolume: 1, voiceVolume: 1, setCategoryVolume: vi.fn() },
+      experience: { read: () => ({ reducedMotion: false, supportLevel: 'standard' }), update: vi.fn() },
+      ...overrides,
+    });
+    game.profiles.hasParentalConsent = vi.fn(() => true);
+    game.menu.showSettings = vi.fn();
+    game.menu.showGuardianInfo = vi.fn();
+    game.menu.showInstallGuide = vi.fn();
+    return game;
+  }
+  const lastSettings = (game) => game.menu.showSettings.mock.calls.at(-1)[0];
+
+  it('opens the hub, moves to a section and back, and re-shows the same section after a change', () => {
+    const game = settingsGame();
+    const scene = new MenuScene(game);
+    scene.openSettings();
+    expect(lastSettings(game).section).toBeUndefined();
+
+    lastSettings(game).onOpenSection('audio');
+    expect(lastSettings(game).section).toBe('audio');
+
+    lastSettings(game).onAudioChange('music', 0.4);
+    expect(game.audio.setCategoryVolume).toHaveBeenCalledWith('music', 0.4);
+    expect(lastSettings(game).section).toBe('audio');
+
+    lastSettings(game).onOpenSection(null);
+    expect(lastSettings(game).section).toBeUndefined();
+    lastSettings(game).onBack();
+    expect(game.menu.showMainMenu).toHaveBeenCalled();
+  });
+
+  it('returns from the install guide to Aplicativo and from the guardian page to Ajuda e dados', () => {
+    const game = settingsGame();
+    const scene = new MenuScene(game);
+    scene.openSettings('app');
+    lastSettings(game).onOpenInstallGuide();
+    game.menu.showInstallGuide.mock.calls[0][0].onBack();
+    expect(lastSettings(game).section).toBe('app');
+
+    scene.openSettings('help');
+    lastSettings(game).onOpenGuardianInfo();
+    game.menu.showGuardianInfo.mock.calls[0][0].onBack();
+    expect(lastSettings(game).section).toBe('help');
+  });
+
+  it('comes back from the practice opened in Controles to Controles', () => {
+    const game = settingsGame({ device: { isTouch: true }, touchLayout: { read: () => ({ size: 'default', jumpSide: 'right', edgeInset: 'near' }), update: vi.fn(), reset: vi.fn() } });
+    const scene = new MenuScene(game);
+    scene.openSettings('controls');
+    lastSettings(game).touch.onPractice();
+    const { onExit } = game.scenes.switchTo.mock.calls[0][1];
+    onExit();
+    expect(game.scenes.switchTo).toHaveBeenLastCalledWith('menu', { open: 'settings', section: 'controls' });
+
+    new MenuScene(game).enter({ open: 'settings', section: 'controls' });
+    expect(lastSettings(game).section).toBe('controls');
+  });
+
+  it('restores only the touch layout', () => {
+    const touchLayout = { read: () => ({ size: 'large', jumpSide: 'left', edgeInset: 'far' }), update: vi.fn(), reset: vi.fn() };
+    const game = settingsGame({ device: { isTouch: true }, touchLayout });
+    game.progress.resetProgress = vi.fn();
+    const scene = new MenuScene(game);
+    scene.openSettings('touch');
+    lastSettings(game).touch.onReset();
+    expect(touchLayout.reset).toHaveBeenCalled();
+    expect(game.audio.setCategoryVolume).not.toHaveBeenCalled();
+    expect(game.progress.resetProgress).not.toHaveBeenCalled();
+    expect(lastSettings(game).section).toBe('touch');
   });
 });

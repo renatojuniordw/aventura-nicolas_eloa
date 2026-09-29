@@ -30,10 +30,10 @@ function PauseMenuStep({
   // the pause menu always carries the toggle — which also says how to leave.
   const { supported: fullscreenSupported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
   return (
-    <div className="overlay">
+    <div className="overlay screen pause-screen">
       <h2>Pausa</h2>
       <p>Respire fundo e continue quando quiser.</p>
-      <div className="overlay-actions">
+      <div className="overlay-actions overlay-actions-grid">
         <MenuButton className="primary" data-autofocus="" onClick={onResume}>
           Continuar
         </MenuButton>
@@ -79,7 +79,7 @@ function PauseConfirmStep({
     : 'Você vai voltar para o menu e perder o progresso desta fase.';
 
   return (
-    <div className="overlay">
+    <div className="overlay screen">
       <h2>Tem certeza?</h2>
       <p>{message}</p>
       <div className="overlay-actions">

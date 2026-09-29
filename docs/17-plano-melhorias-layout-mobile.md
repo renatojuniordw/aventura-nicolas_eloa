@@ -1,5 +1,7 @@
 # 17 — Revisão e plano de melhorias do layout mobile
 
+> **Atualização (28/09/2026):** a estratégia de rolagem nos menus descrita aqui foi substituída por telas que cabem sem rolagem e coleções paginadas — ver [22](22-auditoria-ux-mobile-e-plano-de-implementacao.md) §12.
+
 Data: 28/09/2026. Status: **entregas 1–4 e 6 implementadas no código; entrega 5
 parcial (HUD continua em Canvas); aceite no iPhone 17 pendente** — ver §12.
 

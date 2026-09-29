@@ -74,6 +74,8 @@ export interface PracticeCoachOptions {
  * Coach for the controls practice (docs/18 §8): one short step at a time at
  * the top of the screen, so it never covers the buttons being taught. Can be
  * skipped at any step; the text is announced politely, never every frame.
+ * Its actions are text buttons with their own geometry — never the 48 × 48
+ * icon class of the HUD (docs/22 M01).
  */
 function PracticeCoach({ stepNumber, totalSteps, title, body, done, onSkip, onRepeat, onFinish }: PracticeCoachOptions) {
   return (
@@ -86,11 +88,11 @@ function PracticeCoach({ stepNumber, totalSteps, title, body, done, onSkip, onRe
       <div className="practice-coach-actions">
         {done ? (
           <>
-            <button className="hud-ctrl-btn practice-coach-btn" type="button" onClick={onRepeat}>↺ Repetir</button>
-            <button className="hud-ctrl-btn practice-coach-btn practice-coach-primary" type="button" onClick={onFinish}>Continuar</button>
+            <button className="practice-coach-btn" type="button" onClick={onRepeat}><span aria-hidden="true">↺ </span>Repetir</button>
+            <button className="practice-coach-btn practice-coach-primary" type="button" onClick={onFinish}>Continuar</button>
           </>
         ) : (
-          <button className="hud-ctrl-btn practice-coach-btn" type="button" onClick={onSkip}>Pular introdução</button>
+          <button className="practice-coach-btn" type="button" onClick={onSkip}>Pular introdução</button>
         )}
       </div>
     </div>

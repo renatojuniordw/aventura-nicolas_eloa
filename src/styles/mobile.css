@@ -1,8 +1,10 @@
 /* ==========================================================================
-   Mobile layout and shared reading rules (docs/17-plano-melhorias-layout-mobile.md)
-   Loaded after main.css and touch-controls.css. Home-screen rules use the same
-   `.overlay.home-screen` specificity as main.css so they are not silently lost.
-   Font sizes are in rem so "Texto ampliado" (html font-size) reaches them.
+   Menu composition, shared controls and responsive rules
+   (docs/17, docs/18, docs/22-auditoria-ux-mobile-e-plano-de-implementacao.md)
+   Loaded after main.css and touch-controls.css. Font sizes are in rem so
+   "Texto ampliado" (html font-size) reaches them. Layout decisions follow
+   the available box and its content, not device names: collections are
+   paginated (ui/screens/layout.tsx) instead of scrolled.
    ========================================================================== */
 
 /* Menus use the available screen; the world retains its landscape canvas. */
@@ -10,64 +12,296 @@ body:not([data-scene="game"]) .game-viewport {
   width: 100%; height: 100%; aspect-ratio: auto;
 }
 
+/* Screen composition (docs/22 §8) ------------------------------------------ */
+
 /*
- * One scroll owner per screen: the mount wrapper only constrains height (a
- * flex column clamped to the root), and the screen inside it scrolls. Full
- * screens (.home-screen, .menu-modal-screen) are absolutely positioned and
- * own their scroll themselves.
+ * The mount wrapper fills the root, so a panel either centres itself
+ * (margin: auto) or fills the usable area (.screen-fill). It never catches
+ * pointer events itself.
  */
-.overlay-root > div { display: flex; flex-direction: column; width: 100%; max-width: 100%; max-height: 100%; min-height: 0; }
-.overlay-root > div > .overlay { flex: 0 1 auto; min-height: 0; }
-.overlay { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+.overlay-root > div { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; pointer-events: none; }
+.overlay-root > div > * { pointer-events: auto; }
+/*
+ * Panels never exceed the usable area. Their overflow-y is the documented
+ * fallback for zoom/text combinations outside the normal matrix — a single
+ * vertical container, never a cut. Normal layouts must not trigger it.
+ */
+.overlay { flex: 0 1 auto; min-height: 0; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
 .menu-modal-screen > .overlay, .character-picker-screen > .overlay { max-height: 100%; }
 .overlay.home-screen { max-height: none; }
+
+/* Header, body sized by what is left, footer in flow (never fixed on top of content). */
+.overlay.screen { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.overlay.screen > *, .screen-head > * { margin-block: 0; }
+.overlay.screen > .overlay-actions { margin-top: 0; }
+.screen-fill, .menu-modal-screen > .overlay.screen-fill { height: 100%; }
+.screen-head { display: flex; flex-direction: column; gap: 2px; }
+/*
+ * The body is the box pagers measure. Normally its page fits; with zoomed
+ * text a single item may not, and then the body — not the page around it —
+ * is the one vertical fallback container, so the list never runs over the
+ * pager. Its padding keeps focus rings inside the clip.
+ */
+.screen-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; padding: 10px; }
+.screen-body > :only-child { margin-block: auto; }
 
 .overlay button, .home-screen button, #orientation-back { min-height: 48px; }
 .overlay button { touch-action: manipulation; }
 .overlay h2 { font-family: var(--font-ui); font-size: clamp(1.25rem, 3vw, 1.65rem); }
-.overlay p, .settings-help { font-family: var(--font-ui); line-height: 1.5; }
-.fullscreen-offer { width: min(520px, 100%); text-align: left; padding: 24px; }
-.fullscreen-illustration { display: block; color: var(--color-gold); font-size: 2.5rem; }
-.fullscreen-exit-help { padding: 12px; border-left: 3px solid var(--color-gold); background: var(--color-green-dark); }
-.fullscreen-offer .overlay-actions { display: grid; grid-template-columns: 1fr 1fr; }
+.overlay p, .settings-help { font-family: var(--font-ui); line-height: 1.45; }
 #orientation-back { border: 2px solid var(--color-gold); background: var(--color-green); color: var(--color-cream); padding: 12px 20px; font: bold 1rem var(--font-ui); border-radius: 6px; }
 
-/* Home menu ---------------------------------------------------------------- */
+/* A destructive action is recognisable without being the gold call to action. */
+:where(.overlay) button.btn-danger { background: #6e1d27; color: var(--color-cream); border-color: #ffb3b3; box-shadow: 0 3px 0 #3b0d13; }
+:where(.overlay) button.btn-danger:hover { background: #8a2733; }
+
+/* Pagination (docs/22 §8): status between the arrows; above them when narrow. */
+.pager { container-type: inline-size; }
+.pager-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.pager-row > .pager-status { grid-column: 2; grid-row: 1; }
+.pager-row > .pager-btn:first-of-type { grid-column: 1; grid-row: 1; }
+.pager-row > .pager-btn:last-of-type { grid-column: 3; grid-row: 1; }
+.overlay .pager-status { margin: 0; font-weight: 700; white-space: nowrap; text-align: center; }
+.overlay .pager-btn { padding: 8px 12px; }
+.overlay .pager-btn[aria-disabled="true"] { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+@container (max-width: 21rem) {
+  .pager-row { grid-template-columns: 1fr 1fr; }
+  .pager-row > .pager-status { grid-column: 1 / -1; }
+  .pager-row > .pager-btn:first-of-type { grid-column: 1; grid-row: 2; }
+  .pager-row > .pager-btn:last-of-type { grid-column: 2; grid-row: 2; }
+}
+
+/* Home (docs/22 §5) ---------------------------------------------------------- */
 .btn-explore { background: var(--color-gold); color: var(--color-ink); border-color: var(--color-gold-border); box-shadow: 0 3px 0 var(--color-ink); }
 .btn-explore:hover { background: var(--color-gold-border); }
-.btn-explore strong, .btn-explore small { display: block; }
-.btn-explore strong { font-size: 1.125rem; }
-.btn-explore small { font-size: 0.8125rem; font-weight: 400; margin-top: 4px; line-height: 1.3; }
+.btn-explore strong, .btn-explore small, .btn-speedrun strong, .btn-speedrun small { display: block; }
+.btn-explore small, .btn-speedrun small { font-size: 0.8125rem; font-weight: 400; margin-top: 2px; line-height: 1.3; }
+.home-btn-group button { font-family: var(--font-ui); font-size: 1rem; line-height: 1.25; letter-spacing: 0; min-height: 52px; padding: 8px 12px; }
 /* Start/continue is the one gold call to action; Explorar is a lighter gold outline. */
 .home-btn-group .btn-primary-gold { font-size: 1.125rem; min-height: 56px; }
 .home-btn-group .btn-explore { background: rgba(255, 212, 121, 0.16); color: var(--color-gold); box-shadow: 0 3px 0 var(--color-ink); }
 .home-btn-group .btn-explore:hover { background: rgba(255, 212, 121, 0.28); }
-.overlay.home-screen { justify-content: flex-start; }
-.home-board { min-height: 460px; margin-block: auto; }
-.home-main-stage { max-height: none; height: auto; }
-.home-menu-panel { justify-content: flex-start; }
-.home-btn-group { gap: 10px; }
-.home-btn-group button, .home-btn-group .menu-meta-row .btn-util, .hero-change-btn { font-family: var(--font-ui); font-size: 1rem; line-height: 1.25; letter-spacing: 0; }
-.home-fullscreen-btn { min-width: 48px; min-height: 48px; }
-.home-footer-tips { flex-shrink: 0; }
+/* Explorar | Corrida and Caderno | Configurações: two columns while a 7rem column holds the labels (two lines at most). */
+.home-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); gap: 10px; }
+.home-pair > button { padding-inline: 8px; hyphens: manual; }
+.hero-showcase-footer .home-substatus { font-size: 0.875rem; }
+.discovery-plaque .discovery-title { text-transform: uppercase; }
 
-/* Settings and secondary screens ------------------------------------------- */
-.settings-screen { width: min(720px, 100%); align-items: stretch; gap: 12px; }
-.settings-section { border: 1px solid rgba(255,212,121,.35); background: rgba(20,36,32,.7); border-radius: 8px; padding: 12px; }
-.settings-section h3 { margin: 0 0 10px; color: var(--color-gold); font: bold 1.0625rem var(--font-ui); }
-.settings-control { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(120px, 2fr) 54px; align-items: center; gap: 10px; min-height: 48px; }
+/* Portrait: the player as a short strip above the actions. */
+@media (orientation: portrait) {
+  /* The corner fullscreen button is a fixed control: its band is taken out of the usable area. */
+  .overlay.home-screen.has-fullscreen { padding-top: calc(max(16px, env(safe-area-inset-top)) + 56px); }
+  .home-main-stage { flex-direction: column; align-items: stretch; gap: 12px; width: min(520px, 100%); }
+  .hero-showcase-panel, .home-menu-panel { max-width: none; width: 100%; flex: none; padding: 12px; }
+  .hero-showcase-panel { flex-direction: row; justify-content: flex-start; gap: 16px; }
+  .hero-showcase-badge, .hero-animation-stage, .hero-flavor-text { display: none; }
+  .hero-visual-stage { width: auto; margin: 0; }
+  .hero-showcase-footer { width: auto; flex: 1; align-items: flex-start; text-align: left; }
+  .hero-name-plate { font-size: 0.875rem; line-height: 1.4; }
+  .hero-change-btn { font-size: 0.875rem; width: 100%; }
+  .home-menu-panel { gap: 10px; }
+}
+
+/* Low landscape (e.g. 667 × 375): compact player column beside the actions, both centred. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .overlay.home-screen { padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  /* Keep the corner fullscreen button clear of the panels only when it exists. */
+  .has-fullscreen .home-board { padding-right: 56px; }
+  .home-main-stage { gap: 12px; }
+  .hero-showcase-panel { flex: 0 0 auto; width: clamp(128px, 22vw, 180px); padding: 10px; gap: 6px; }
+  .hero-showcase-badge, .hero-animation-stage, .hero-flavor-text { display: none; }
+  .hero-visual-stage { width: auto; margin: 0; }
+
+  .hero-name-plate { font-size: 0.8125rem; text-align: center; }
+  .home-menu-panel { flex: 1; max-width: 420px; padding: 12px; gap: 8px; }
+  .home-btn-group { gap: 8px; }
+  .home-pair { gap: 8px; }
+  .discovery-plaque.discovery-plaque-btn { padding: 4px 8px; }
+  .discovery-title { font-size: 0.75rem; }
+  .discovery-target { font-size: 0.875rem; }
+  .overlay { padding: 12px 16px; }
+  .overlay.screen { gap: 8px; }
+}
+
+/* Very low landscape: the secondary lines of Explorar/Corrida stay for screen readers only. */
+@media (orientation: landscape) and (max-height: 400px) {
+  .btn-explore .btn-explore-detail, .btn-speedrun .btn-speedrun-detail {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .discovery-plaque .discovery-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+}
+
+/*
+ * Compact player card (portrait strip, low landscape column): the "Trocar"
+ * label sits under the picture inside the button and the frame grows with
+ * it, so a larger text size can never push it out of its box.
+ */
+@media (orientation: portrait), (orientation: landscape) and (max-height: 540px) {
+  .hero-portrait-frame { width: auto; min-width: 84px; height: auto; padding: 4px 6px; gap: 2px; }
+  .hero-large-portrait { width: 60px; height: 66px; }
+  .hero-portrait-hint { position: static; transform: none; }
+}
+
+@media (max-width: 360px) {
+  .overlay.home-screen { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .hero-name-plate { font-family: var(--font-ui); }
+}
+
+/* Configurações (docs/22 §4) -------------------------------------------------- */
+.settings-screen { width: min(720px, 100%); align-items: stretch; text-align: left; }
+.settings-screen > h2 { text-align: center; }
+/* Hub: at most three columns (a 2 × 3 or 3 × 2 grid), a list when a column is all that fits. */
+.settings-hub { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, max(10rem, (100% - 24px) / 3)), 1fr)); }
+.settings-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); align-content: start; }
+:where(.overlay) button.settings-hub-btn { display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; min-height: 56px; text-align: left; background: rgba(14, 28, 25, 0.8); border-color: var(--color-gold-border); box-shadow: 0 3px 0 var(--color-ink); }
+:where(.overlay) button.settings-hub-btn:hover { background: var(--color-green); }
+.settings-hub-icon { font-size: 1.25rem; flex: none; }
+.settings-section { border: 1px solid rgba(255,212,121,.35); background: rgba(20,36,32,.7); border-radius: 8px; padding: 12px; min-width: 0; }
+.settings-section h3 { margin: 0 0 8px; color: var(--color-gold); font: bold 1.0625rem var(--font-ui); }
+.settings-section > p { margin: 0 0 8px; }
+.settings-section > .btn-util, .settings-section > button { width: 100%; }
+.settings-group { display: grid; gap: 4px; }
+.settings-pages { display: grid; gap: 12px; }
+.settings-pages.is-split { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); align-items: start; }
+.settings-control { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(3.5em, auto); align-items: center; gap: 10px; min-height: 48px; }
 .settings-control input { width: 100%; min-height: 32px; accent-color: var(--color-gold-dark); }
 .settings-control output { text-align: right; font-variant-numeric: tabular-nums; }
 .settings-toggle { display: flex; align-items: center; gap: 12px; min-height: 48px; }
 .settings-toggle input { width: 24px; height: 24px; flex: none; accent-color: var(--color-gold-dark); }
-.settings-select { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; line-height: 1.4; min-width: 0; }
+.settings-select { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; line-height: 1.4; min-width: 0; margin-bottom: 8px; }
 .settings-select select { min-height: 48px; width: 100%; min-width: 0; max-width: 100%; border: 2px solid var(--color-gold-border); border-radius: 6px; background: var(--color-cream); color: var(--color-ink); padding: 8px; font: 1rem var(--font-ui); }
+/* Support level: three short, equal choices; the explanation of the chosen one below. */
+.settings-choice { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
+.settings-radio { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border: 2px solid rgba(255, 212, 121, 0.45); border-radius: 8px; background: rgba(14, 28, 25, 0.8); font-weight: 700; cursor: pointer; }
+.settings-radio input { width: 22px; height: 22px; flex: none; accent-color: var(--color-gold-dark); }
+.settings-radio:has(input:checked) { background: var(--color-gold); color: var(--color-ink); border-color: var(--color-gold-border); }
+.settings-radio:has(input:focus-visible) { outline: 3px solid var(--color-cream); outline-offset: 3px; }
+.settings-explain { padding: 10px 12px; border-left: 3px solid var(--color-gold); background: var(--color-green-dark); margin: 0; }
+.settings-danger { border-color: #ff9d9d; }
+/* Fields share a row when each still gets 10rem; a select's label sits beside it when there is room. */
+.settings-fields { display: grid; gap: 4px 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); align-items: end; }
+.settings-section-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 8px; }
+.settings-section-foot > p { margin: 0; }
+.settings-fields .settings-select { margin-bottom: 0; }
+@media (min-width: 560px) {
+  .settings-select.settings-select-inline { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; }
+}
+/* Page controls and actions share the footer row whenever both fit (every paginated screen). */
+.screen-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.screen-nav > .pager { flex: 1 1 20rem; }
+.screen-nav > .overlay-actions { flex: 1 1 auto; margin: 0; }
+.settings-danger h3 { color: #ffc2c2; }
+/* The touch preview is only drawn when it fits at real size (see TouchPreview). */
+.touch-preview-stage { width: 100%; }
+.touch-preview-stage > p { margin: 0 0 4px; }
 .install-guide { width: min(560px, 100%); text-align: left; }
-.install-guide ol { display: grid; gap: 10px; line-height: 1.5; padding-left: 28px; }
+.install-guide ol { display: grid; gap: 8px; line-height: 1.45; padding-left: 28px; margin: 0; }
 .install-success { color: var(--color-gold); font-weight: bold; }
-.character-picker-grid { flex-wrap: wrap; }
-.phone-pairing-qr, .phone-pairing-qr-placeholder { max-width: 100%; height: auto; }
-.overlay-actions { flex-wrap: wrap; }
+.guardian-info { width: min(760px, 100%); text-align: left; }
+.guardian-info > h2 { text-align: center; }
+.guardian-info .settings-section p { margin: 0; }
+.support-screen { width: min(640px, 100%); text-align: left; }
+.support-screen .support-report { margin: 0; }
+.support-screen p[role="status"]:empty { display: none; }
+/* Low screens: the four support actions share one row. */
+@media (max-height: 400px) { .support-screen .overlay-actions > * { flex-basis: 6rem; } .support-screen .support-report { padding: 6px 10px; } }
+.support-report-body { justify-content: flex-start; }
+/* Documented exception (docs/22 §2): the full report, only after copying failed, scrolls inside its own box. */
+.support-report-full { width: 100%; flex: 1 1 auto; min-height: 4rem; resize: none; color: var(--color-cream); overflow-y: auto; }
+
+/* Welcome notice (docs/22 M11): short summary, details on their own page. */
+.welcome-notice { width: min(600px, 100%); }
+.welcome-notice .welcome-card { align-self: center; }
+
+/* Fullscreen offer ------------------------------------------------------------ */
+.fullscreen-offer { width: min(520px, 100%); text-align: left; padding: 20px; }
+.fullscreen-illustration { display: block; color: var(--color-gold); font-size: 2.5rem; }
+.fullscreen-exit-help { padding: 12px; border-left: 3px solid var(--color-gold); background: var(--color-green-dark); }
+
+/* Caderno de descobertas (docs/22 M02/M06) ----------------------------------- */
+.discoveries-screen { width: min(100%, 1000px); }
+/* Columns follow the same 12.5rem cell the pager uses to size a page. */
+.discoveries-grid { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr)); align-content: center; }
+:where(.overlay) button.discovery-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 8px 12px; border: 2px solid var(--color-gold); border-radius: 12px; background: var(--color-panel); color: var(--color-cream); box-shadow: 0 3px 0 var(--color-ink); }
+:where(.overlay) button.discovery-card:hover { background: var(--color-green); }
+.discovery-card .word-picture { width: 4.25rem; height: 4.25rem; margin: 0; border-radius: 12px; }
+.discovery-card .word-picture-fallback { font-size: 0.75rem; padding: 4px; }
+.discovery-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.discovery-card-text strong { font-size: 1.125rem; overflow-wrap: anywhere; }
+.discovery-card-text small { font-size: 0.875rem; font-weight: 400; }
+.discoveries-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.discovery-detail { width: min(720px, 100%); }
+.discovery-detail-media .word-picture { width: clamp(6rem, 22dvh, 9rem); height: clamp(6rem, 22dvh, 9rem); margin: 0 auto; }
+.discovery-detail-text { display: flex; flex-direction: column; gap: 6px; }
+.discovery-detail-text > * { margin: 0; }
+.discovery-detail-state { color: var(--color-gold); font-weight: 700; }
+@media (orientation: landscape) {
+  .overlay.screen.discovery-detail { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 20px; text-align: left; }
+  .discovery-detail .overlay-actions { justify-content: flex-start; }
+}
+
+/* Escolher aventura (docs/22 M07) ------------------------------------------- */
+.world-map-screen { width: min(100%, 900px); }
+.world-list, .unit-list, .lesson-chips { list-style: none; padding: 0; margin: 0; width: 100%; display: grid; gap: 12px; align-content: center; }
+/* At most two world columns, three unit columns — the same cells the pagers count. */
+.world-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(17rem, (100% - 12px) / 2)), 1fr)); }
+.unit-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(12rem, (100% - 24px) / 3)), 1fr)); }
+.lesson-chips { gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--chip-min, 4.5rem)), 1fr)); }
+:where(.overlay) button.world-card { display: flex; align-items: center; gap: 12px; width: 100%; height: 100%; text-align: left; padding: 8px 12px; }
+.world-card.is-current, .unit-card.is-current { border-color: var(--color-gold); box-shadow: 0 3px 0 var(--color-gold-border); }
+.world-card-icon { font-size: 2rem; line-height: 1; }
+.world-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.world-card-body strong { font-size: 1.0625rem; }
+.world-card-body small { font-weight: 400; font-size: 0.875rem; }
+.world-card-progress { font-size: 0.8125rem; font-weight: 400; }
+.world-card-here { color: var(--color-gold); font-weight: 700; }
+:where(.overlay) button.unit-card { display: flex; flex-direction: column; justify-content: center; gap: 2px; width: 100%; height: 100%; text-align: left; padding: 8px 12px; }
+.unit-card small { font-weight: 400; font-size: 0.875rem; }
+:where(.overlay) button.lesson-chip { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; white-space: nowrap; }
+.lesson-chip.is-next { background: var(--color-gold); color: var(--color-ink); border-color: var(--color-gold-border); }
+.lesson-chip.is-locked { background: #3a4a47; color: #d6d0bd; box-shadow: none; }
+.lesson-chip:disabled { cursor: not-allowed; transform: none; }
+.lesson-chip-mark { font-size: 0.875rem; }
+
+/* Results (docs/22 M09) -------------------------------------------------------- */
+.result-screen { width: min(640px, 100%); }
+.result-text { display: flex; flex-direction: column; gap: 6px; }
+.result-text > * { margin: 0; }
+.result-text > .overlay-actions { margin-top: 4px; }
+.result-media .word-picture { width: clamp(5rem, 20dvh, 7rem); height: clamp(5rem, 20dvh, 7rem); margin: 0 auto; }
+.result-media .victory-celebrate { margin: 0 auto; }
+.journey-summary { display: flex; flex-direction: column; gap: 6px; }
+.journey-summary > * { margin: 0; }
+.journey-words { margin: 0; }
+@media (orientation: landscape) and (max-height: 540px) {
+  .overlay.screen.result-screen.has-media { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 20px; width: min(760px, 100%); }
+  /* Results carry three short actions: one row whenever 7rem columns hold them. */
+  .result-text .overlay-actions > * { flex-basis: 7rem; }
+}
+/* Short screens: the journey's words become compact chips (picture beside the word). */
+@media (max-height: 420px) {
+  .journey-words { gap: 8px 16px; }
+  .journey-words li { display: flex; align-items: center; gap: 8px; }
+  .journey-words .word-picture { width: 3rem; height: 3rem; margin: 0; }
+  .fullscreen-illustration { display: none; }
+  .guardian-info .settings-section { padding: 8px 10px; }
+  .guardian-info .settings-section h3 { margin-bottom: 4px; }
+}
+
+/* Controle por celular (docs/22 M13): QR beside the instructions when wide. */
+.phone-pairing { width: min(720px, 100%); }
+.phone-pairing-layout { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.phone-pairing-text { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.phone-pairing-text > * { margin: 0; }
+@media (orientation: landscape) {
+  .phone-pairing-layout { flex-direction: row; gap: 20px; }
+  .phone-pairing-text { flex: 1; min-width: 0; text-align: left; }
+  .phone-pairing-qr, .phone-pairing-qr-placeholder { width: clamp(160px, calc(100dvh - 10rem), 220px); }
+}
+
+/* Character picker (docs/22 M08) -------------------------------------------- */
+.character-picker-overlay .character-picker-subtitle { margin: 0; }
 
 /* Accessibility preferences ------------------------------------------------- */
 html[data-text-size="large"] { font-size: 118%; }
@@ -87,87 +321,8 @@ html[data-motion="reduced"] *::after { animation-duration: .001ms !important; an
   .hud-fullscreen-btn { display: none; }
 }
 
-/* Portrait: compact character above the actions, one column, vertical scroll. */
+/* Portrait menus: the volume label goes above its slider. */
 @media (orientation: portrait) {
-  .overlay.home-screen { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 16px; }
-  .home-board { flex: none; min-height: 0; margin: 0 auto; }
-  /* Room for the corner fullscreen button only when it exists. */
-  .has-fullscreen .home-board { margin-top: 56px; }
-  .home-main-stage { flex-direction: column; gap: 16px; width: min(520px, 100%); }
-  .hero-showcase-panel, .home-menu-panel { max-width: none; width: 100%; flex: none; padding: 16px; }
-  .hero-showcase-panel { flex-direction: row; justify-content: flex-start; gap: 16px; }
-  .hero-showcase-badge, .hero-animation-stage, .hero-flavor-text { display: none; }
-  .hero-visual-stage { width: auto; margin: 0; }
-  .hero-portrait-frame { width: 88px; height: 96px; }
-  .hero-large-portrait { width: 76px; height: 86px; }
-  .hero-showcase-footer { width: auto; flex: 1; }
-  .hero-name-plate { font-size: 0.875rem; line-height: 1.4; }
-  .hero-change-btn { font-size: 0.875rem; width: 100%; }
-  .home-menu-panel { gap: 14px; }
-  .home-btn-group { gap: 12px; }
-  .home-btn-group button { min-height: 52px; }
-  .home-meta-row { flex-wrap: wrap; justify-content: center; }
-  .home-substatus { font-size: 0.8125rem; text-align: center; }
-  .home-footer-tips { margin: 0; max-width: 100%; }
-  .fullscreen-offer .overlay-actions { grid-template-columns: 1fr; }
-  .overlay-scroll { max-height: 52dvh; }
-  .settings-control { grid-template-columns: 1fr 52px; }
+  .settings-control { grid-template-columns: minmax(0, 1fr) minmax(3.5em, auto); }
   .settings-control span { grid-column: 1 / -1; }
 }
-
-/*
- * Low landscape (e.g. 667 × 375): compact character column, actions in a
- * two-column grid whose visual order equals the DOM/focus order:
- *   Começar/Continuar (full width)
- *   Explorar | Corrida do alfabeto
- *   Caderno  | Configurações
- *   Progresso (full width)
- */
-@media (orientation: landscape) and (max-height: 540px) {
-  .overlay.home-screen { padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 10px; }
-  .home-board { flex: none; min-height: 0; margin: 0 auto; }
-  /* Keep the corner fullscreen button clear of the panels only when it exists. */
-  .has-fullscreen .home-board { padding-right: 56px; }
-  .home-main-stage { align-items: flex-start; gap: 12px; }
-  .hero-showcase-panel { flex: 0 0 auto; width: clamp(128px, 22vw, 180px); padding: 10px; justify-content: flex-start; gap: 8px; }
-  .hero-showcase-badge, .hero-animation-stage, .hero-flavor-text { display: none; }
-  .hero-visual-stage { width: auto; margin: 0; }
-  .hero-portrait-frame { width: 92px; height: 100px; }
-  .hero-large-portrait { width: 80px; height: 88px; }
-  .hero-name-plate { font-size: 0.8125rem; }
-  .home-menu-panel { flex: 1; max-width: none; padding: 12px; gap: 8px; }
-  .discovery-plaque { padding: 4px 8px; }
-  .discovery-title { font-size: 0.75rem; }
-  .discovery-target { font-size: 0.875rem; }
-  .home-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .home-btn-group > .btn-primary-gold { grid-column: 1 / -1; }
-  /* Settings and progress become grid items; progress gets its own row. */
-  .home-btn-group > .home-meta-row { display: contents; }
-  .home-btn-group .home-substatus { grid-column: 1 / -1; text-align: center; }
-  .home-btn-group button, .home-btn-group .menu-meta-row .btn-util { font-size: 0.9375rem; padding: 7px; }
-  .home-footer-tips { display: none; }
-  :where(.overlay) button { font-size: 0.9375rem; }
-  .overlay { padding: 16px; }
-  .overlay-actions { gap: 8px; }
-}
-
-/* Very low landscape: Explorar keeps its detail for screen readers only. */
-@media (orientation: landscape) and (max-height: 400px) {
-  .btn-explore .btn-explore-detail {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-  }
-}
-
-/* Landscape too narrow (or large text) to hold two readable columns: one column. */
-@media (orientation: landscape) and (max-height: 540px) and (max-width: 520px) {
-  .home-btn-group { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 360px) {
-  .overlay.home-screen { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
-  .hero-showcase-panel, .home-menu-panel { padding: 12px; }
-  .hero-name-plate { font-family: var(--font-ui); }
-}
-
-html[data-text-size="large"] .home-btn-group { grid-template-columns: 1fr; }

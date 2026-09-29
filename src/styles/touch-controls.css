@@ -132,15 +132,19 @@
 }
 html[data-motion="reduced"] .touch-btn.is-hinted { animation: none; outline-color: var(--color-cream); }
 
-/* Practice coach: top-centre, clear of every control it teaches. */
+/*
+ * Practice coach: top-centre, clear of every control it teaches. Its height
+ * is bounded (short copy, one step at a time) and its actions sit inside the
+ * panel, never over the D-pad or jump zones at the bottom (docs/22 M16).
+ */
 .practice-coach {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
+  top: max(8px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   width: min(520px, calc(100% - 32px));
   box-sizing: border-box;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border: 2px solid var(--color-gold-border);
   border-radius: 12px;
   background: rgba(20, 36, 32, 0.94);
@@ -151,10 +155,31 @@ html[data-motion="reduced"] .touch-btn.is-hinted { animation: none; outline-colo
 .practice-coach p { margin: 0 0 4px; }
 .practice-coach-step { font-size: 0.8125rem; opacity: 0.85; }
 .practice-coach-title { font-family: var(--font-pixel); font-size: 1rem; }
-.practice-coach-body { font-size: 1rem; line-height: 1.4; }
-.practice-coach-actions { display: flex; justify-content: center; gap: 12px; margin-top: 8px; }
-.practice-coach-btn { padding: 0 16px; min-height: 44px; }
-.practice-coach-primary { background: var(--color-gold-border); color: var(--color-ink); }
+.practice-coach-body { font-size: 1rem; line-height: 1.35; }
+/* Text buttons (docs/22 §6): UI font, auto width and height, equal widths when paired. */
+.practice-coach-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+.practice-coach-btn {
+  flex: 1 1 6rem;
+  max-width: 16rem;
+  min-height: 48px;
+  padding: 8px 16px;
+  font: 700 1rem/1.25 var(--font-ui);
+  white-space: normal;
+  overflow-wrap: break-word;
+  border-radius: 6px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-green);
+  color: var(--color-cream);
+  box-shadow: 0 3px 0 var(--color-green-dark);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.practice-coach-primary { background: var(--color-gold); border-color: var(--color-gold-border); color: var(--color-ink); }
+@media (max-height: 400px) {
+  .practice-coach { padding: 8px 12px; }
+  .practice-coach-body { font-size: 0.9375rem; }
+  .practice-coach-actions { margin-top: 6px; }
+}
 
 /* Settings preview (docs/18 §7): the real controls at real size in a small stage. */
 .touch-preview {

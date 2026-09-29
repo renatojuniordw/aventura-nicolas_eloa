@@ -15,7 +15,7 @@ interface ConfirmOptions {
  */
 export function buildConfirmScreen({ title, message, confirmLabel, onConfirm, onCancel }: ConfirmOptions) {
   return buildScreen(
-    <div className="overlay confirm-screen">
+    <div className="overlay screen confirm-screen">
       <h2>{title}</h2>
       <p>{message}</p>
       <div className="overlay-actions">

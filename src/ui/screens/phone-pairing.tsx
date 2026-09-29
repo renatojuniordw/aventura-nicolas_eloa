@@ -98,36 +98,43 @@ function PhonePairingScreen({
   onSpeedrun,
 }: PhonePairingOptions) {
   return (
-    <div className="overlay phone-pairing">
+    // QR beside the instructions when the screen is wide, above them otherwise (docs/22 M13).
+    <div className="overlay screen phone-pairing">
       <h2>Controle por celular</h2>
-      <p className="phone-pairing-status" aria-live="polite">
-        {status === 'error' && errorMessage ? errorMessage : STATUS_TEXT[status]}
-      </p>
-      {showTimeoutHint ? (
-        <p className="phone-pairing-hint">
-          Ainda não conseguiu parear? Toque em &quot;Voltar&quot; para jogar com teclado ou toque.
-        </p>
-      ) : null}
-      {status !== 'paired' ? <QrCode url={pairingUrl} /> : (
-        <div className="phone-pairing-paired-badge" aria-hidden="true">
-          📱✅
+      <div className="phone-pairing-layout">
+        <div className="phone-pairing-media">
+          {status !== 'paired' ? <QrCode url={pairingUrl} /> : (
+            <div className="phone-pairing-paired-badge" aria-hidden="true">
+              📱✅
+            </div>
+          )}
         </div>
-      )}
-      {measureLatency && status !== 'error' ? <LatencyIndicator measureLatency={measureLatency} /> : null}
-      <div className="overlay-actions">
-        {status === 'paired' ? (
-          <>
-            <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" onClick={onPlay}>
-              Jogar fases
+        <div className="phone-pairing-text">
+          <p className="phone-pairing-status" aria-live="polite">
+            {status === 'error' && errorMessage ? errorMessage : STATUS_TEXT[status]}
+          </p>
+          {showTimeoutHint ? (
+            <p className="phone-pairing-hint">
+              Ainda não conseguiu parear? Toque em &quot;Voltar&quot; para jogar com teclado ou toque.
+            </p>
+          ) : null}
+          {measureLatency && status !== 'error' ? <LatencyIndicator measureLatency={measureLatency} /> : null}
+          <div className="overlay-actions">
+            {status === 'paired' ? (
+              <>
+                <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" onClick={onPlay}>
+                  Jogar fases
+                </MenuButton>
+                <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>
+                  <span aria-hidden="true">⚡ </span>Corrida do alfabeto
+                </MenuButton>
+              </>
+            ) : null}
+            <MenuButton data-nav-id="back" onClick={onBack}>
+              Voltar
             </MenuButton>
-            <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>
-              ⚡ Speed Run
-            </MenuButton>
-          </>
-        ) : null}
-        <MenuButton className="btn-retro btn-secondary-green" onClick={onBack}>
-          Voltar
-        </MenuButton>
+          </div>
+        </div>
       </div>
     </div>
   );

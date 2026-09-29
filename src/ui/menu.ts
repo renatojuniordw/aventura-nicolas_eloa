@@ -1,4 +1,4 @@
-import { buildDiscoveriesScreen } from './screens/discoveries.js';
+import { buildDiscoveriesScreen, buildDiscoveryDetailScreen } from './screens/discoveries.js';
 import { buildFullscreenOffer } from './screens/fullscreen-offer.js';
 import { isFullscreenSupported, isFullscreen } from './fullscreen.js';
 import { isStandalone } from './pwa-install.js';
@@ -8,20 +8,22 @@ import { buildCharacterPickerScreen } from './screens/character-picker.js';
 import { buildPauseScreen, type PauseStep } from './screens/pause.js';
 import { buildGameOverScreen } from './screens/game-over.js';
 import { buildVictoryScreen, buildSpeedrunVictoryScreen, buildExploreVictoryScreen } from './screens/victory.js';
-import { buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
+import { buildGuardianInfoScreen, buildPrivacyNoticeScreen } from './screens/privacy-notice.js';
 import { buildPhonePairingScreen } from './screens/phone-pairing.js';
 import { buildSettingsScreen } from './screens/settings-v2.js';
 import { buildInstallGuide } from './screens/install-guide.js';
 import { buildConfirmScreen } from './screens/confirm.js';
 import { buildSupportInfoScreen } from './screens/support-info.js';
 import { buildPracticeOfferScreen } from './screens/practice-offer.js';
-import { buildWorldDetailScreen, buildWorldListScreen } from './screens/world-map.js';
+import { buildUnitLessonsScreen, buildWorldDetailScreen, buildWorldListScreen } from './screens/world-map.js';
 import {
+  capturePages,
   captureScroll,
   findByNavId,
   focusablesIn,
   initialFocusOf,
   navIdOf,
+  providePageAnchors,
   restoreScroll,
   type NavContext,
 } from './navigation-context.js';
@@ -64,10 +66,11 @@ const MODAL_EXTRAS = '.update-banner';
  * React root leaks and any of its effects (timers, rAF loops) keep running
  * detached from the DOM.
  *
- * Navigation context (docs/18 §5): every screen has a key. Leaving a screen
- * remembers which control was last used and how far it was scrolled; coming
+ * Navigation context (docs/18 §5, docs/22 §8): every screen has a key. Leaving
+ * a screen remembers which control was last used, which page each of its
+ * collections was on and how far a fallback container was scrolled; coming
  * back to a screen still on that trail (Settings → Home, Install → Settings,
- * a screen re-rendering itself) restores both. A screen opened fresh focuses
+ * a screen re-rendering itself) restores them. A screen opened fresh focuses
  * its declared `data-autofocus` control, or its first control. `hide()`
  * (back to the game) forgets the trail.
  */
@@ -145,21 +148,32 @@ export class MenuOverlay {
     this._back?.();
   }
 
+  /**
+   * Remembers the screen being left, then works out whether `key` is a
+   * return (a screen still on the trail) and what to restore for it.
+   */
+  private _leaveFor(key: string): NavContext | null {
+    if (this._current) {
+      const context: NavContext = {
+        focusId: this._lastNavId,
+        scroll: captureScroll(this._root),
+        pages: capturePages(this._root),
+      };
+      this._trail = this._trail.filter((entry) => entry.key !== this._current!.key);
+      this._trail.push({ key: this._current.key, context });
+    }
+    const at = this._trail.findIndex((entry) => entry.key === key);
+    const restore = at === -1 ? null : this._trail[at]!.context;
+    if (at !== -1) this._trail = this._trail.slice(0, at);
+    return restore;
+  }
+
   private _mount(
     node: HTMLElement,
     { primary = null, back = null, cleanup = null }: Omit<ScreenResult, 'node'>,
     kind: ScreenKind,
+    restore: NavContext | null,
   ): void {
-    // Remember the screen being left, then work out whether this is a return.
-    if (this._current) {
-      const context: NavContext = { focusId: this._lastNavId, scroll: captureScroll(this._root) };
-      this._trail = this._trail.filter((entry) => entry.key !== this._current!.key);
-      this._trail.push({ key: this._current.key, context });
-    }
-    const at = this._trail.findIndex((entry) => entry.key === kind.key);
-    const restore = at === -1 ? null : this._trail[at]!.context;
-    if (at !== -1) this._trail = this._trail.slice(0, at);
-
     this._cleanup?.();
     this._cleanup = cleanup ?? null;
     clear(this._root);
@@ -197,8 +211,17 @@ export class MenuOverlay {
     options: Options,
     kind: ScreenKind,
   ): void {
-    const { node, ...actions } = build(options);
-    this._mount(node, actions, kind);
+    const restore = this._leaveFor(kind.key);
+    // A returning screen's pagers start on the remembered page (docs/22 §8).
+    providePageAnchors(restore?.pages);
+    let result: ScreenResult;
+    try {
+      result = build(options);
+    } finally {
+      providePageAnchors(null);
+    }
+    const { node, ...actions } = result;
+    this._mount(node, actions, kind, restore);
   }
 
   offerFullscreen(options: { onDone: () => void }): boolean {
@@ -214,6 +237,11 @@ export class MenuOverlay {
     this._show(buildDiscoveriesScreen, options, { key: 'discoveries', modal: false });
   }
 
+  /** One notebook word; Voltar returns to the catalog page and card it came from. */
+  showDiscoveryDetail(options: Parameters<typeof buildDiscoveryDetailScreen>[0]): void {
+    this._show(buildDiscoveryDetailScreen, options, { key: 'discovery-detail', modal: false });
+  }
+
   showMainMenu(options: Parameters<typeof buildMainMenuScreen>[0]): void {
     this._show(buildMainMenuScreen, options, { key: 'main-menu', modal: false });
   }
@@ -223,9 +251,14 @@ export class MenuOverlay {
     this._show(buildWorldListScreen, options, { key: 'world-list', modal: false });
   }
 
-  /** One world's units and lessons. */
+  /** One world's units (docs/22 M07). */
   showWorldDetail(options: Parameters<typeof buildWorldDetailScreen>[0]): void {
     this._show(buildWorldDetailScreen, options, { key: 'world-detail', modal: false });
+  }
+
+  /** One unit's lessons. */
+  showUnitLessons(options: Parameters<typeof buildUnitLessonsScreen>[0]): void {
+    this._show(buildUnitLessonsScreen, options, { key: 'unit-lessons', modal: false });
   }
 
   showCharacterPicker(options: Parameters<typeof buildCharacterPickerScreen>[0]): void {
@@ -268,8 +301,14 @@ export class MenuOverlay {
     this._show(buildPhonePairingScreen, options, { key: 'phone-pairing', modal: true });
   }
 
+  /** Configurações: the hub or one of its screens, each with its own place on the trail. */
   showSettings(options: Parameters<typeof buildSettingsScreen>[0]): void {
-    this._show(buildSettingsScreen, options, { key: 'settings', modal: true });
+    this._show(buildSettingsScreen, options, { key: options.section ? `settings:${options.section}` : 'settings', modal: true });
+  }
+
+  /** "Informações aos responsáveis": reached from the welcome notice and from Ajuda e dados. */
+  showGuardianInfo(options: Parameters<typeof buildGuardianInfoScreen>[0]): void {
+    this._show(buildGuardianInfoScreen, options, { key: 'guardian-info', modal: true });
   }
 
   showInstallGuide(options: Parameters<typeof buildInstallGuide>[0]): void {

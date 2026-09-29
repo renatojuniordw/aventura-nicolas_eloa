@@ -9,10 +9,13 @@ import { pumpMenuKeys } from '../ui/overlay-input.js';
 import { DEFAULT_PLAYER_NAME, resolveActiveProfile } from '../persistence/active-profile.js';
 import type { CanvasRenderer } from '../render/canvas-renderer.js';
 import { formatSupportReport, readSupportEnvironment } from '../ui/support-info.js';
+import type { SettingsSection } from '../ui/screens/settings-v2.js';
 
 interface MenuParams {
   /** Screen to open instead of the home (e.g. coming back from the controls practice). */
   open?: 'settings';
+  /** Which Configurações screen to open with `open: 'settings'` (the hub when absent). */
+  section?: SettingsSection;
 }
 
 /** How long the QR pairing screen waits before nudging toward "Voltar" (docs/12 §10). */
@@ -53,7 +56,7 @@ export class MenuScene extends Scene {
     // ever restored it. Re-pairing for the next lesson is one QR scan away;
     // a menu with a dead keyboard is not an acceptable trade for skipping it.
     if (this.game.phoneControl.isActive) this.game.phoneControl.stop();
-    if (params.open === 'settings') this.openSettings();
+    if (params.open === 'settings') this.openSettings(params.section);
     else this.render();
   }
 
@@ -74,6 +77,8 @@ export class MenuScene extends Scene {
           profiles.recordParentalConsent();
           this.render();
         },
+        // Reading the details and coming back is not consent: render() shows the notice again.
+        onOpenGuardianInfo: () => menu.showGuardianInfo({ onBack: () => this.render() }),
       });
       return;
     }
@@ -130,7 +135,7 @@ export class MenuScene extends Scene {
     });
   }
 
-  /** "Escolher aventura": worlds, then a world's lessons — a lesson is three choices from the home. */
+  /** "Escolher aventura": worlds, then a world's units, then a unit's lessons (docs/22 M07). */
   openWorldMap(): void {
     this.game.menu.showWorldList({
       worlds: this._worldMap(),
@@ -145,15 +150,37 @@ export class MenuScene extends Scene {
       this.openWorldMap();
       return;
     }
+    // A one-unit world (the alphabet) goes straight to its lessons.
+    if (world.units.length === 1) {
+      this.openUnit(worldId, world.units[0]!.id);
+      return;
+    }
     this.game.menu.showWorldDetail({
       world,
+      onOpenUnit: (unitId) => this.openUnit(worldId, unitId),
+      onBack: () => this.openWorldMap(),
+    });
+  }
+
+  openUnit(worldId: string, unitId: string): void {
+    const world = this._worldMap().find((entry) => entry.id === worldId);
+    const unit = world?.units.find((entry) => entry.id === unitId);
+    if (!world || !unit) {
+      this.openWorldMap();
+      return;
+    }
+    const single = world.units.length === 1;
+    this.game.menu.showUnitLessons({
+      world,
+      unit,
       freePractice: this._freePractice,
       onPlayLesson: (lessonId) => this.playLesson(lessonId),
       onToggleFreePractice: () => {
         this._freePractice = !this._freePractice;
-        this.openWorld(worldId);
+        this.openUnit(worldId, unitId);
       },
-      onBack: () => this.openWorldMap(),
+      backLabel: single ? 'Voltar aos mundos' : 'Voltar às partes',
+      onBack: () => (single ? this.openWorldMap() : this.openWorld(worldId)),
     });
   }
 
@@ -168,15 +195,21 @@ export class MenuScene extends Scene {
 
   openDiscoveries(): void {
     const profile = this.game.profiles.getActiveProfile();
+    const stop = () => this.game.narrator?.stop();
     this.game.menu.showDiscoveries({
       playerName: profile?.name ?? DEFAULT_PLAYER_NAME,
       words: discoveredWords(profile).map(word => ({
         word, completed: Boolean(profile?.progress[wordPhaseId(word.id)]?.completed),
       })),
-      onListen: word => this.game.narrator?.speak(`${word.label.toLowerCase()}. ${word.fact}`),
-      onReplay: word => { this.game.narrator?.stop(); this.game.startExploration(word.id); },
+      onOpenWord: ({ word, completed }) => this.game.menu.showDiscoveryDetail({
+        word,
+        completed,
+        onListen: entry => this.game.narrator?.speak(`${entry.label.toLowerCase()}. ${entry.fact}`),
+        onReplay: entry => { stop(); this.game.startExploration(entry.id); },
+        onBack: () => { stop(); this.openDiscoveries(); },
+      }),
       onExplore: () => this.startExplore(),
-      onBack: () => { this.game.narrator?.stop(); this.render(); },
+      onBack: () => { stop(); this.render(); },
     });
   }
 
@@ -204,7 +237,7 @@ export class MenuScene extends Scene {
   }
 
   /** "Experimentar controles": the safe practice arena, then `onExit`. */
-  openPractice(onExit: () => void = () => this.game.scenes.switchTo('menu', { open: 'settings' })): void {
+  openPractice(onExit: () => void = () => this.game.scenes.switchTo('menu', { open: 'settings', section: 'controls' })): void {
     this.game.scenes.switchTo('practice', { onExit });
   }
 
@@ -273,11 +306,17 @@ export class MenuScene extends Scene {
     open();
   }
 
-  /** Settings screen: houses the phone-pairing entry point and progress reset,
-   * so future config options have a home without crowding the main menu. */
-  openSettings(): void {
+  /**
+   * Configurações (docs/22 §4): the hub or one of its screens. Every change
+   * is applied and stored at once, then the same screen is shown again (the
+   * navigation context keeps focus and page).
+   */
+  openSettings(section?: SettingsSection | null): void {
     const { profiles, progress } = this.game;
+    const reopen = () => this.openSettings(section);
     this.game.menu.showSettings({
+      section: section ?? undefined,
+      onOpenSection: (next) => this.openSettings(next),
       audio: {
         musicVolume: this.game.audio.musicVolume,
         sfxVolume: this.game.audio.sfxVolume,
@@ -287,40 +326,43 @@ export class MenuScene extends Scene {
       systemReducedMotion: Boolean(this.game.motion?.reduced()) && !this.game.experience.read().reducedMotion,
       onAudioChange: (category, value) => {
         this.game.audio.setCategoryVolume(category, value);
-        this.openSettings();
+        reopen();
       },
       onExperienceChange: (patch) => {
         this.game.experience.update(patch);
-        this.openSettings();
+        reopen();
       },
-      onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings() }),
+      onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings('app') }),
       touch: this.game.device?.isTouch && this.game.touchLayout
         ? {
             layout: this.game.touchLayout.read(),
             onChange: (patch) => {
               this.game.touchLayout.update(patch);
-              this.openSettings();
+              reopen();
             },
+            // Restores only the touch layout: audio, preferences and progress are untouched.
             onReset: () => {
               this.game.touchLayout.reset();
-              this.openSettings();
+              reopen();
             },
             onPractice: () => this.openPractice(),
           }
         : undefined,
       onOpenSupport: () => this.openSupportInfo(),
-      onOpenPhonePairing: () => this.openPhonePairing(),
+      onOpenGuardianInfo: () => this.game.menu.showGuardianInfo({ onBack: () => this.openSettings('help') }),
+      onOpenPhonePairing: () => this.openPhonePairing(() => this.openSettings('controls')),
       onResetProgress: () =>
         this.game.menu.showConfirm({
           title: 'Zerar progresso?',
-          message: 'As fases, o caderno de descobertas e os recordes deste jogador serão apagados deste aparelho. Isso não pode ser desfeito.',
+          // Exactly what ProgressStore.resetProgress clears; the name and the settings stay.
+          message: 'As fases, o caderno de descobertas, o histórico de respostas e o recorde da corrida deste jogador serão apagados deste aparelho. O nome e as configurações continuam. Isso não pode ser desfeito.',
           confirmLabel: 'Sim, zerar',
           onConfirm: () => {
             const profile = profiles.getActiveProfile();
             if (profile) progress.resetProgress(profile.id);
             this.render();
           },
-          onCancel: () => this.openSettings(),
+          onCancel: () => this.openSettings('help'),
         }),
       onBack: () => this.render(),
     });
@@ -345,7 +387,7 @@ export class MenuScene extends Scene {
         this.openSupportInfo();
       },
       onRefresh: () => this.openSupportInfo(),
-      onBack: () => this.openSettings(),
+      onBack: () => this.openSettings('help'),
       copy: async (text) => {
         try {
           await navigator.clipboard.writeText(text);
@@ -359,7 +401,7 @@ export class MenuScene extends Scene {
 
   /** Controle por celular (docs/12-controle-por-celular.md §6): shows the QR
    * pairing screen and re-renders it as the phone joins/drops. */
-  openPhonePairing(): void {
+  openPhonePairing(onLeave: () => void = () => this.render()): void {
     let status: 'waiting' | 'paired' | 'disconnected' | 'error' = 'waiting';
     let errorMessage: string | null = null;
     let pairingUrl = '';
@@ -387,7 +429,7 @@ export class MenuScene extends Scene {
         onBack: () => {
           clearTimeout(timeoutId);
           this.game.phoneControl.stop();
-          this.render();
+          onLeave();
         },
         // The phone is the controller here: no on-screen controls practice offer.
         onPlay: () => {

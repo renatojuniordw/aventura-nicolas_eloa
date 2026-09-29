@@ -7,8 +7,39 @@
 export interface NavContext {
   /** Stable id of the control last focused/activated (see `navIdOf`). */
   focusId: string | null;
-  /** Scroll offsets keyed by `scrollKeyOf`. */
+  /** Scroll offsets keyed by `scrollKeyOf` (only the exceptional fallback containers scroll). */
   scroll: Array<[string, number]>;
+  /** Each pager's first visible item id, keyed by pager id (docs/22 §8). */
+  pages: Array<[string, string]>;
+}
+
+/** What paginated collections render so their page can be found again (see `usePager`). */
+export const PAGER_ATTR = 'data-pager-id';
+export const PAGER_ANCHOR_ATTR = 'data-pager-anchor';
+
+/** Every pager on screen with the stable id of its first visible item. */
+export function capturePages(root: ParentNode): Array<[string, string]> {
+  const entries: Array<[string, string]> = [];
+  for (const element of root.querySelectorAll(`[${PAGER_ATTR}][${PAGER_ANCHOR_ATTR}]`)) {
+    entries.push([element.getAttribute(PAGER_ATTR)!, element.getAttribute(PAGER_ANCHOR_ATTR)!]);
+  }
+  return entries;
+}
+
+/*
+ * Page anchors handed to the screen being built. `MenuOverlay` sets them just
+ * before a returning screen renders (synchronously, see mount-screen.ts) and
+ * clears them right after, so a pager's first render already starts on the
+ * remembered page — no second render, no focus jump.
+ */
+let pendingAnchors: Map<string, string> | null = null;
+
+export function providePageAnchors(entries: Array<[string, string]> | null | undefined): void {
+  pendingAnchors = entries?.length ? new Map(entries) : null;
+}
+
+export function consumePageAnchor(pagerId: string): string | null {
+  return pendingAnchors?.get(pagerId) ?? null;
 }
 
 const CONTROL = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -36,7 +67,8 @@ export function navIdOf(target: Element | null): string | null {
 export function findByNavId(root: ParentNode, id: string | null): HTMLElement | null {
   if (!id) return null;
   for (const element of root.querySelectorAll<HTMLElement>(`[data-nav-id], ${CONTROL}`)) {
-    if (navIdOf(element) === id && isFocusable(element)) return element;
+    // A pager arrow at its limit stays focusable but is not a useful place to land.
+    if (navIdOf(element) === id && isFocusable(element) && element.getAttribute('aria-disabled') !== 'true') return element;
   }
   return null;
 }

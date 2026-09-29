@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync } from 'react-dom';
 import { MenuOverlay } from './menu.js';
 import { WORD_BANK } from '../content/word-bank.js';
 
@@ -20,6 +21,7 @@ function settingsOptions(overrides = {}) {
     experience: { supportLevel: 'standard', highContrast: false, reducedMotion: false, largeText: false, colorVision: 'default' },
     onAudioChange: vi.fn(),
     onExperienceChange: vi.fn(),
+    onOpenSection: vi.fn(),
     onOpenInstallGuide: vi.fn(),
     onOpenPhonePairing: vi.fn(),
     onResetProgress: vi.fn(),
@@ -28,10 +30,30 @@ function settingsOptions(overrides = {}) {
   };
 }
 
-const button = (root, text) => [...root.querySelectorAll('button')].find((b) => b.textContent.includes(text));
+const button = (root, text) => [...root.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent).includes(text));
 
 let root;
 let menu;
+
+/** A small overlay area, so collections split into pages (jsdom has no layout). */
+function withViewport(width, height) {
+  const saved = { width: window.innerWidth, height: window.innerHeight };
+  Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
+  Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
+  return () => {
+    Object.defineProperty(window, 'innerWidth', { value: saved.width, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: saved.height, configurable: true });
+  };
+}
+
+const notebook = (count) => ({
+  playerName: 'Eloá',
+  words: WORD_BANK.slice(0, count).map((word) => ({ word, completed: true })),
+  onOpenWord: vi.fn(),
+  onExplore: vi.fn(),
+  onBack: vi.fn(),
+});
+const cards = () => [...root.querySelectorAll('.discovery-card')].map((card) => card.dataset.navId);
 
 beforeEach(() => {
   root = document.createElement('div');
@@ -60,51 +82,69 @@ describe('MenuOverlay navigation context (docs/18 §5)', () => {
     expect(document.activeElement?.textContent).toBe('Voltar');
 
     menu.showMainMenu(mainMenuOptions());
-    expect(document.activeElement?.textContent).toContain('Configurações');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Configurações');
   });
 
   it('counts a tap without focus (iOS) as the origin', () => {
     menu.showMainMenu(mainMenuOptions());
     button(root, 'Caderno').click();
     document.body.focus();
-    menu.showDiscoveries({ playerName: 'Eloá', words: [], onListen: vi.fn(), onReplay: vi.fn(), onExplore: vi.fn(), onBack: vi.fn() });
+    menu.showDiscoveries(notebook(0));
     menu.showMainMenu(mainMenuOptions());
     expect(document.activeElement?.textContent).toContain('Caderno');
   });
 
-  it('restores the scroll of a screen that re-renders itself (a settings toggle)', () => {
-    menu.showSettings(settingsOptions());
-    const panel = root.querySelector('.settings-screen');
-    panel.scrollTop = 240;
+  it('keeps the focused control when a settings screen re-renders itself (a toggle)', () => {
+    menu.showSettings(settingsOptions({ section: 'access' }));
     const toggle = [...root.querySelectorAll('input[type="checkbox"]')][1];
     toggle.focus();
 
-    menu.showSettings(settingsOptions());
-    expect(root.querySelector('.settings-screen').scrollTop).toBe(240);
+    menu.showSettings(settingsOptions({ section: 'access' }));
     expect(document.activeElement).toBe([...root.querySelectorAll('input[type="checkbox"]')][1]);
   });
 
-  it('keeps the notebook position across a nested screen and back', () => {
-    const words = WORD_BANK.slice(0, 6).map((word) => ({ word, completed: true }));
-    const discoveries = { playerName: 'Eloá', words, onListen: vi.fn(), onReplay: vi.fn(), onExplore: vi.fn(), onBack: vi.fn() };
-    menu.showDiscoveries(discoveries);
-    root.querySelector('.discoveries-screen').scrollTop = 500;
-    root.querySelector(`[aria-label="Ouvir ${words[4].word.label}"]`).focus();
+  it('returns from a settings section to the hub entry that opened it', () => {
     menu.showSettings(settingsOptions());
-    menu.showDiscoveries(discoveries);
-    expect(root.querySelector('.discoveries-screen').scrollTop).toBe(500);
-    expect(document.activeElement?.getAttribute('aria-label')).toBe(`Ouvir ${words[4].word.label}`);
+    root.querySelector('[data-nav-id="settings-audio"]').click();
+    menu.showSettings(settingsOptions({ section: 'audio' }));
+    menu.showSettings(settingsOptions());
+    expect(document.activeElement?.dataset.navId).toBe('settings-audio');
   });
 
-  it('opens a screen fresh when it is not on the way back', () => {
-    const words = WORD_BANK.slice(0, 3).map((word) => ({ word, completed: true }));
-    const discoveries = { playerName: 'Eloá', words, onListen: vi.fn(), onReplay: vi.fn(), onExplore: vi.fn(), onBack: vi.fn() };
-    menu.showMainMenu(mainMenuOptions());
-    menu.showDiscoveries(discoveries);
-    root.querySelector('.discoveries-screen').scrollTop = 300;
-    menu.showMainMenu(mainMenuOptions());
-    menu.showDiscoveries(discoveries);
-    expect(root.querySelector('.discoveries-screen').scrollTop).toBe(0);
+  it('keeps the notebook page and card across the word page and back (docs/22 M21)', () => {
+    const restore = withViewport(400, 520);
+    try {
+      menu.showDiscoveries(notebook(9));
+      const firstPage = cards();
+      expect(firstPage.length).toBeLessThan(9);
+      flushSync(() => button(root, 'Próxima').click());
+      const secondPage = cards();
+      expect(secondPage).not.toEqual(firstPage);
+      root.querySelector(`[data-nav-id="${secondPage[0]}"]`).click();
+
+      menu.showDiscoveryDetail({ ...notebook(1).words[0], onListen: vi.fn(), onReplay: vi.fn(), onBack: vi.fn() });
+      expect(document.activeElement?.textContent).toContain('Ouvir');
+      menu.showDiscoveries(notebook(9));
+      expect(cards()).toEqual(secondPage);
+      expect(document.activeElement?.dataset.navId).toBe(secondPage[0]);
+    } finally {
+      restore();
+    }
+  });
+
+  it('opens a collection on its first page when it is not on the way back', () => {
+    const restore = withViewport(400, 520);
+    try {
+      menu.showMainMenu(mainMenuOptions());
+      menu.showDiscoveries(notebook(9));
+      const firstPage = cards();
+      flushSync(() => button(root, 'Próxima').click());
+      menu.showMainMenu(mainMenuOptions());
+      menu.showDiscoveries(notebook(9));
+      expect(cards()).toEqual(firstPage);
+    } finally {
+      restore();
+    }
   });
 
   it('falls back to the start control when the origin no longer exists', () => {
@@ -206,10 +246,23 @@ describe('Escolher aventura (docs/20 §4 L1)', () => {
     expect(onOpenWorld).toHaveBeenCalledWith('pomar');
   });
 
+  it("lists a world's units and focuses the one holding the next lesson", () => {
+    const onOpenUnit = vi.fn();
+    const units = [
+      { id: 'silabas-b', title: 'Família do B', done: 5, lessons: lessons(['done', 'done', 'done', 'done', 'done']) },
+      { id: 'silabas-c', title: 'Família do C', done: 1, lessons: lessons(['done', 'next', 'locked']) },
+    ];
+    menu.showWorldDetail({ world: world({ units }), onOpenUnit, onBack: vi.fn() });
+    expect(document.activeElement.getAttribute('aria-label')).toBe('Família do C, 1 de 3 fases, próxima descoberta aqui');
+    menu.triggerPrimary();
+    expect(onOpenUnit).toHaveBeenCalledWith('silabas-c');
+  });
+
   it('plays done and next lessons, keeps the rest locked unless free practice is on', () => {
     const onPlayLesson = vi.fn();
     const onToggleFreePractice = vi.fn();
-    menu.showWorldDetail({ world: world(), freePractice: false, onPlayLesson, onToggleFreePractice, onBack: vi.fn() });
+    const w = world();
+    menu.showUnitLessons({ world: w, unit: w.units[0], freePractice: false, onPlayLesson, onToggleFreePractice, onBack: vi.fn() });
     const chips = [...root.querySelectorAll('.lesson-chip')];
     expect(chips.map((chip) => chip.disabled)).toEqual([false, false, true]);
     expect(chips[2].getAttribute('aria-label')).toBe('T2, ainda não liberada');
@@ -218,5 +271,20 @@ describe('Escolher aventura (docs/20 §4 L1)', () => {
     expect(onPlayLesson).toHaveBeenCalledWith('l0');
     button(root, 'Liberar todas').click();
     expect(onToggleFreePractice).toHaveBeenCalled();
+  });
+
+  it('opens a long unit on the page of the next lesson', () => {
+    const restore = withViewport(400, 420);
+    try {
+      const states = Array.from({ length: 26 }, (_, i) => (i < 20 ? 'done' : i === 20 ? 'next' : 'locked'));
+      const unit = { id: 'alfabeto', title: 'Alfabeto', done: 20, lessons: lessons(states) };
+      menu.showUnitLessons({ world: world({ units: [unit] }), unit, freePractice: false, onPlayLesson: vi.fn(), onToggleFreePractice: vi.fn(), onBack: vi.fn() });
+      const shown = [...root.querySelectorAll('.lesson-chip')];
+      expect(shown.length).toBeLessThan(26);
+      expect(document.activeElement.getAttribute('aria-label')).toBe('T20, próxima descoberta');
+      expect(root.querySelector('.pager-status').textContent).toMatch(/^Página \d+ de \d+$/);
+    } finally {
+      restore();
+    }
   });
 });

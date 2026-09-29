@@ -50,7 +50,7 @@ Invariantes do mundo contínuo (cobertos por `world-stream.test.ts`):
 | Corrida do alfabeto | A a Z em sequência, cronometrado | Portal após o Z; o tempo para ao entrar no portal |
 | Explorar | Montar uma palavra, letra por letra (quadro de letras no topo) | Portal após a última letra |
 
-### Nível de apoio (Configurações)
+### Nível de apoio (Configurações → Apoio para jogar)
 
 Lido ao entrar na fase (`src/gameplay/support-policy.ts`). Ajuda pedagógica fica separada da
 dificuldade motora: espinhos e quedas se comportam igual em todos os níveis.

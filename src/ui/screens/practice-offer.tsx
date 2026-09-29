@@ -13,7 +13,7 @@ interface PracticeOfferOptions {
  */
 export function buildPracticeOfferScreen({ onPractice, onSkip }: PracticeOfferOptions) {
   return buildScreen(
-    <div className="overlay practice-offer">
+    <div className="overlay screen practice-offer">
       <h2>Quer treinar os controles?</h2>
       <p>Um minutinho para andar e pular, sem perder corações. Dá para repetir depois em Configurações.</p>
       <div className="overlay-actions">

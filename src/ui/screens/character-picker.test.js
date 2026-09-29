@@ -18,7 +18,7 @@ describe('buildCharacterPickerScreen', () => {
     const overlay = node.querySelector('.overlay');
     expect(overlay).not.toBeNull();
     expect(overlay.classList.contains('character-picker-overlay')).toBe(true);
-    expect(node.querySelector('h2').textContent).toContain('Escolha seu Personagem');
+    expect(node.querySelector('h2').textContent).toContain('Escolha seu personagem');
 
     // Cards exist: Nicolas and Eloá
     const cards = node.querySelectorAll('.character-picker-card');

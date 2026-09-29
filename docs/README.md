@@ -38,6 +38,7 @@ Se é a primeira vez no projeto, leia nesta ordem:
 | 19  | [Estabilidade do controle por celular](19-plano-estabilidade-controle-celular.md) | Diagnóstico de desconexões, modo bolsinha, retomada de sessão e plano de testes |
 | 20  | [Melhorias inspiradas em Aventura das Letras](20-plano-melhorias-referencia-aventura-das-letras.md) | Comparação com a referência e propostas sem ESP32; mapa de mundos, palavras por tema e dica progressiva implementados na §12 |
 | 21  | [Importação de recursos de Aventura das Letras](21-plano-importacao-recursos-aventura-das-letras.md) | Inventário de arquivos aproveitáveis; sons, créditos, 10 palavras, textura do chão e fundo por mundo implementados nas §9–10 |
+| 22  | [Auditoria de UX mobile e plano de implementação](22-auditoria-ux-mobile-e-plano-de-implementacao.md) | Diagnóstico das telas, Configurações em hub, home centralizada, botões, paginação e critérios de acessibilidade; P0/P1 implementados e validados em navegador na §12 (aparelho real e app de controle pendentes) |
 
 ## Mapa rápido: onde está cada coisa
 

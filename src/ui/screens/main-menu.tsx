@@ -79,7 +79,6 @@ function MainMenuScreen({
   const selectedChar = CHARACTERS.find((c) => c.id === currentCharacterId) ?? CHARACTERS[0];
 
   const bestTimeStr = speedrunBestTime != null ? formatTime(speedrunBestTime) : null;
-  const speedrunText = bestTimeStr ? `⚡ Corrida do alfabeto (${bestTimeStr})` : '⚡ Corrida do alfabeto';
 
   const { supported, fullscreen, toggle: toggleFullscreen } = useFullscreen();
 
@@ -89,21 +88,23 @@ function MainMenuScreen({
         <MenuButton
           className="home-fullscreen-btn"
           data-nav-id="fullscreen"
-
           aria-label={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
           title={fullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
           onClick={toggleFullscreen}
         >
-          {fullscreen ? '🗗' : '⛶'}
+          <span aria-hidden="true">{fullscreen ? '🗗' : '⛶'}</span>
         </MenuButton>
       )}
       <h1 className="sr-only">Aventura do Nicolas&amp;Eloá</h1>
+      {/*
+        Centred as one block in the usable area (docs/22 §5): current player,
+        then next discovery, start/continue and the two pairs. DOM order =
+        visual order = focus order.
+      */}
       <div className="home-board">
-        {/* Main Stage */}
         <div className="home-main-stage">
-          {/* Left Wing: Hero Showcase Panel */}
           <div className="hero-showcase-panel">
-            <div className="hero-showcase-badge">JOGADOR PRONTO</div>
+            <div className="hero-showcase-badge" aria-hidden="true">JOGADOR PRONTO</div>
             <div className="hero-visual-stage">
               {selectedChar?.portrait ? (
                 // The single "change character" action: portrait plus its visible label.
@@ -118,7 +119,7 @@ function MainMenuScreen({
                     src={selectedChar.portrait}
                     alt={selectedChar.name}
                   />
-                  <span className="hero-portrait-hint">Trocar 🔄</span>
+                  <span className="hero-portrait-hint" aria-hidden="true">Trocar 🔄</span>
                 </MenuButton>
               ) : null}
               {selectedChar?.sprites?.celebrate ? (
@@ -129,7 +130,8 @@ function MainMenuScreen({
               ) : null}
             </div>
             <div className="hero-showcase-footer">
-              <div className="hero-name-plate">⭐ {selectedChar?.name ?? 'Nicolas Gomes'}</div>
+              <div className="hero-name-plate"><span aria-hidden="true">⭐ </span>{selectedChar?.name ?? 'Nicolas Gomes'}</div>
+              <div className="home-substatus">{completedCount} de {totalLessons} fases</div>
               <div className="hero-flavor-text">Pronto para pular, descobrir e brincar!</div>
               {/* Fallback only when there is no portrait to tap. */}
               {onOpenCharacterPicker && !selectedChar?.portrait && (
@@ -144,7 +146,6 @@ function MainMenuScreen({
             </div>
           </div>
 
-          {/* Right Wing: Action Menu Panel */}
           <div className="home-menu-panel">
             {/* The plaque doubles as the map entry, so the home gains no extra button. */}
             {onOpenWorldMap ? (
@@ -154,45 +155,44 @@ function MainMenuScreen({
                 aria-label={`Escolher aventura. Sua próxima descoberta: ${currentLessonTitle}`}
                 onClick={onOpenWorldMap}
               >
-                <span className="discovery-title">SUA PRÓXIMA DESCOBERTA</span>
+                <span className="discovery-title">Próxima descoberta</span>
                 <span className="discovery-target">{currentLessonTitle}</span>
-                <span className="discovery-plaque-action">🗺️ Escolher aventura</span>
+                <span className="discovery-plaque-action"><span aria-hidden="true">🗺️ </span>Escolher aventura</span>
               </MenuButton>
             ) : (
               <div className="discovery-plaque">
-                <div className="discovery-title">SUA PRÓXIMA DESCOBERTA</div>
+                <div className="discovery-title">Próxima descoberta</div>
                 <div className="discovery-target">{currentLessonTitle}</div>
               </div>
             )}
-            {/* DOM order = visual order = focus order (the compact grid pairs them two by two). */}
             <div className="menu-buttons-group home-btn-group">
               <MenuButton className="btn-retro btn-primary-gold" data-autofocus="" data-nav-id="play" onClick={onPlay}>
                 {active && completedCount > 0 ? 'Continuar aventura' : 'Começar aventura'}
               </MenuButton>
-              {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
-                <strong>Explorar</strong><small className="btn-explore-detail">Jornadas de até {JOURNEY_LENGTH} palavras</small>
-              </MenuButton>}
-              <MenuButton className="btn-retro btn-secondary-green" onClick={onSpeedrun}>
-                {speedrunText}
-              </MenuButton>
-              {onOpenDiscoveries && <MenuButton className="btn-util" onClick={onOpenDiscoveries}>Caderno de descobertas</MenuButton>}
-              <div className="menu-meta-row home-meta-row">
-                <MenuButton className="btn-util" onClick={onOpenSettings}>
-                  ⚙️ Configurações
+              {/* Pairs sit side by side whenever both labels fit (decided by the panel's width, not the orientation). */}
+              <div className="home-pair">
+                {onExplore && <MenuButton className="btn-retro btn-explore" onClick={onExplore}>
+                  <strong>Explorar</strong><small className="btn-explore-detail">Jornadas de até {JOURNEY_LENGTH} palavras</small>
+                </MenuButton>}
+                <MenuButton className="btn-retro btn-secondary-green btn-speedrun" onClick={onSpeedrun}>
+                  <strong><span aria-hidden="true">⚡ </span>Corrida do alfabeto</strong>
+                  {bestTimeStr && <small className="btn-speedrun-detail">Recorde {bestTimeStr}</small>}
                 </MenuButton>
-                <div className="home-substatus">
-                  A aventura continua · {completedCount} de {totalLessons} fases
-                </div>
+              </div>
+              <div className="home-pair">
+                {onOpenDiscoveries && <MenuButton className="btn-util" onClick={onOpenDiscoveries}>Caderno de descobertas</MenuButton>}
+                {/* Soft hyphen: on the narrowest phones the word breaks at a syllable, never at a random letter. */}
+                <MenuButton className="btn-util" aria-label="Configurações" onClick={onOpenSettings}>
+                  <span aria-hidden="true">⚙️ </span>Configu{'\u00AD'}rações
+                </MenuButton>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- 4. Footer Tips --- */}
-      <div className="home-footer-tips">
+      <div className="home-footer-tips" aria-hidden="true">
         <span className="footer-tip-keyboard">Tab para escolher · Enter para brincar</span>
-        <span className="footer-tip-touch">Toque para escolher · Toque para brincar</span>
       </div>
     </div>
   );

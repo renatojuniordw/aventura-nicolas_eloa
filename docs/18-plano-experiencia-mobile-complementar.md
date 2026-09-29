@@ -1,5 +1,7 @@
 # 18 — Plano complementar de experiência mobile
 
+> **Atualização (28/09/2026):** a navegação agora também guarda a página de cada coleção, e Configurações virou um hub com telas próprias — ver [22](22-auditoria-ux-mobile-e-plano-de-implementacao.md) §12.
+
 Data: 28/09/2026. Status: **implementado em código e testes automatizados (§13); validação em aparelho pendente**.
 
 ## 1. Objetivo e relação com o plano anterior

@@ -3,6 +3,7 @@ import { MenuButton } from './menu-button.js';
 import { CHARACTERS, type Character } from '../../content/characters.js';
 import { speakText } from '../../audio/speech-narrator.js';
 import { vibrateTap, vibrateSuccess } from '../../input/haptics.js';
+import { gridCapacity, PaginationControls, useArea, usePager } from './layout.js';
 
 interface CharacterPickerOptions {
   selectedId: string | null;
@@ -35,7 +36,7 @@ function CharacterCard({
       data-nav-id={`character-${character.id}`}
       onClick={handleClick}
     >
-      {selected ? <div className="character-picker-tag">1P Ativo</div> : null}
+      {selected ? <div className="character-picker-tag" aria-hidden="true">Ativo</div> : null}
       {character.portrait ? (
         <div className="character-picker-frame">
           <img className="companion-avatar character-picker-thumb" src={character.portrait} alt={character.name} />
@@ -51,16 +52,26 @@ function CharacterCard({
   );
 }
 
+/** Card width and height in rem, for how many characters fit side by side. */
+const CARD_REM = { width: 8.5, height: 9 };
+
 function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: CharacterPickerOptions) {
+  const area = useArea();
+  // Two compact cards side by side; more characters later go to other pages, never smaller cards.
+  const pager = usePager({
+    id: 'characters',
+    items: CHARACTERS,
+    getId: (character) => character.id,
+    capacity: gridCapacity({ width: Math.min(area.width, 560) - 3 * area.rem, height: area.height - 10 * area.rem }, area.rem, { ...CARD_REM, maxColumns: 4 }),
+    start: selectedId,
+  });
   return (
     <div className="character-picker-screen">
-      <div className="overlay character-picker-overlay">
-        <h2>Escolha seu Personagem</h2>
-        <p className="character-picker-subtitle">
-          Selecione quem vai pular, descobrir e brincar com você nesta aventura!
-        </p>
+      <div className="overlay screen character-picker-overlay">
+        <h2>Escolha seu personagem</h2>
+        <p className="character-picker-subtitle">Quem vai brincar com você?</p>
         <div className="character-grid character-picker-grid">
-          {CHARACTERS.map((character) => (
+          {pager.items.map((character) => (
             <CharacterCard
               key={character.id}
               character={character}
@@ -69,19 +80,19 @@ function CharacterPickerScreen({ selectedId, onSelect, onConfirm, onBack }: Char
             />
           ))}
         </div>
+        <PaginationControls pager={pager} label="Páginas de personagens" itemNoun="Personagem" />
         <div className="overlay-actions character-picker-actions">
           <MenuButton
-
             className="btn-retro btn-primary-gold" data-autofocus=""
             onClick={() => {
               vibrateSuccess();
               onConfirm();
             }}
           >
-            Confirmar Escolha
+            Confirmar escolha
           </MenuButton>
-          <MenuButton className="btn-util" onClick={onBack}>
-            Voltar ao Menu
+          <MenuButton data-nav-id="back" onClick={onBack}>
+            Voltar ao menu
           </MenuButton>
         </div>
       </div>
