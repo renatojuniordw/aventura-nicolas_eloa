@@ -261,8 +261,9 @@ export function createGame({
     controlsPractice,
     announcer,
     device: {
+      // The manual "Sempre mostrar" wins over detection for hybrids (docs/17 §6).
       get isTouch() {
-        return isTouchDevice();
+        return isTouchDevice() || touchLayout.read().visibility === 'always';
       },
     },
     curriculum: {

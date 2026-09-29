@@ -101,8 +101,26 @@ describe('RoomManager: pairing', () => {
 
   it('is idempotent for the same socket joining again (lost confirmation)', () => {
     const { manager } = makeManager();
-    const { phone } = pair(manager);
-    expect(manager.join(phone, controller())).toMatchObject({ ok: true });
+    const { tv, phone } = pair(manager);
+    const first = manager.join(phone, controller());
+    // Retrying without the token it never saw keeps identity, generation and credential.
+    const again = manager.join(phone, controller());
+    expect(again).toEqual(first);
+    expect(again).toMatchObject({ ok: true, snapshot: { generation: 1 } });
+    const viewerAgain = manager.join(tv, viewer());
+    expect(viewerAgain).toMatchObject({ ok: true, snapshot: { generation: 1 } });
+    // Commands in flight from before the retry still carry the current generation.
+    manager.action(phone, { button: 'jump', pressed: true, seq: 1 });
+    expect(tv.emit).toHaveBeenCalledWith('action', expect.objectContaining({ seq: 1, generation: 1 }));
+  });
+
+  it('a repeated resumed join keeps reporting it was resumed', () => {
+    const { manager } = makeManager();
+    const { phone, phoneToken } = pair(manager);
+    const phoneAgain = makePeer('phone-2');
+    expect(manager.join(phoneAgain, controller({ token: phoneToken }))).toMatchObject({ snapshot: { resumed: true, generation: 2 } });
+    expect(manager.join(phoneAgain, controller({ token: phoneToken }))).toMatchObject({ token: phoneToken, snapshot: { resumed: true, generation: 2 } });
+    expect(phone.emit).toHaveBeenCalledWith('session-replaced', expect.anything());
   });
 
   it('refuses a socket that tries to switch session or role', () => {
@@ -158,7 +176,7 @@ describe('RoomManager: authenticated resume', () => {
     expect(phone.emit).toHaveBeenCalledWith('session-replaced', { reason: 'replaced' });
 
     manager.action(phoneAgain, { button: 'jump', pressed: true, seq: 1 });
-    expect(tv.emit).toHaveBeenCalledWith('action', { button: 'jump', pressed: true, seq: 1, generation: 2 });
+    expect(tv.emit).toHaveBeenCalledWith('action', { button: 'jump', pressed: true, seq: 1, sentAt: null, generation: 2 });
   });
 
   it('the replaced socket can no longer send actions', () => {
@@ -255,7 +273,18 @@ describe('RoomManager: action forwarding', () => {
     const { tv, phone } = pair(manager);
 
     expect(manager.action(phone, { button: 'jump', pressed: true, seq: 7 })).toEqual({ ok: true });
-    expect(tv.emit).toHaveBeenCalledWith('action', { button: 'jump', pressed: true, seq: 7, generation: 1 });
+    expect(tv.emit).toHaveBeenCalledWith('action', { button: 'jump', pressed: true, seq: 7, sentAt: null, generation: 1 });
+  });
+
+  it("relays the phone's own send time untouched, and only a valid one", () => {
+    const { manager } = makeManager();
+    const { tv, phone } = pair(manager);
+    manager.action(phone, { button: 'jump', pressed: true, seq: 1, sentAt: 1234.5 });
+    expect(tv.emit).toHaveBeenLastCalledWith('action', expect.objectContaining({ sentAt: 1234.5 }));
+    manager.action(phone, { button: 'jump', pressed: true, seq: 2, sentAt: 'soon' });
+    expect(tv.emit).toHaveBeenLastCalledWith('action', expect.objectContaining({ sentAt: null }));
+    manager.health(phone, { sensor: 'ok', visible: true, sentAt: 99 });
+    expect(tv.emit).toHaveBeenLastCalledWith('peer-health', { sensor: 'ok', visible: true, sentAt: 99, generation: 1 });
   });
 
   it('never lets a viewer emit an action (transport never decides game rules)', () => {
@@ -288,7 +317,7 @@ describe('RoomManager: action forwarding', () => {
     const { manager } = makeManager();
     const { tv, phone } = pair(manager);
     expect(manager.health(phone, { sensor: 'ok', visible: true })).toEqual({ ok: true });
-    expect(tv.emit).toHaveBeenCalledWith('peer-health', { sensor: 'ok', visible: true, generation: 1 });
+    expect(tv.emit).toHaveBeenCalledWith('peer-health', { sensor: 'ok', visible: true, sentAt: null, generation: 1 });
     expect(manager.health(phone, { sensor: 'weird', visible: true })).toEqual({ ok: false, error: 'invalid-payload' });
     expect(manager.health(tv, { sensor: 'ok', visible: true })).toEqual({ ok: false, error: 'not-a-controller' });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { SignalingSocket, PROTOCOL_VERSION } from './signaling-socket.js';
+import { SignalingSocket, PROTOCOL_VERSION, sessionTokenStore, TOKEN_TTL_MS } from './signaling-socket.js';
 
 /** Minimal fake standing in for the socket.io-client Socket this wrapper uses. */
 function makeFakeIoSocket() {
@@ -68,6 +68,7 @@ function makeSocket(options = {}) {
       if (timer) timer.done = true;
     },
     now: () => now,
+    monotonicNow: () => now,
     random: () => 0.5,
     ...options,
   });
@@ -224,9 +225,21 @@ describe('SignalingSocket: ephemeral commands', () => {
     expect(socket.sendAction({ button: 'jump', pressed: true })).toBe(true);
     expect(socket.sendAction({ button: 'jump', pressed: true })).toBe(true);
     expect(fake.emit.mock.calls.filter(([event]) => event === 'action')).toEqual([
-      ['action', { button: 'jump', pressed: true, seq: 1 }],
-      ['action', { button: 'jump', pressed: true, seq: 2 }],
+      ['action', { button: 'jump', pressed: true, seq: 1, sentAt: 0 }],
+      ['action', { button: 'jump', pressed: true, seq: 2, sentAt: 0 }],
     ]);
+  });
+
+  it("stamps each command and beacon with this device's monotonic clock", () => {
+    let mono = 1000;
+    const { socket, fake, confirm } = makeSocket({ monotonicNow: () => mono });
+    socket.connect();
+    confirm();
+    socket.sendAction({ button: 'jump', pressed: true });
+    mono = 1250;
+    socket.sendHealth({ sensor: 'ok', visible: true });
+    expect(fake.emit).toHaveBeenCalledWith('action', expect.objectContaining({ sentAt: 1000 }));
+    expect(fake.emit).toHaveBeenCalledWith('health', { sensor: 'ok', visible: true, sentAt: 1250 });
   });
 
   it('never queues jumps made while offline: nothing is sent on reconnect', () => {
@@ -257,7 +270,7 @@ describe('SignalingSocket: ephemeral commands', () => {
     expect(socket.sendHealth({ sensor: 'ok', visible: true })).toBe(false);
     confirm();
     expect(socket.sendHealth({ sensor: 'ok', visible: true })).toBe(true);
-    expect(fake.emit).toHaveBeenCalledWith('health', { sensor: 'ok', visible: true });
+    expect(fake.emit).toHaveBeenCalledWith('health', { sensor: 'ok', visible: true, sentAt: 0 });
   });
 
   it('delivers actions and health to listeners only while joined', () => {
@@ -366,5 +379,69 @@ describe('SignalingSocket: measureLatency', () => {
     const promise = socket.measureLatency(1000);
     vi.advanceTimersByTime(1000);
     expect(await promise).toBeNull();
+  });
+});
+
+describe('resume token validity (docs/19 §4 P0.4)', () => {
+  function fakeStorage() {
+    const data = new Map();
+    return {
+      getItem: (key) => (data.has(key) ? data.get(key) : null),
+      setItem: (key, value) => data.set(key, String(value)),
+      removeItem: (key) => data.delete(key),
+    };
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('expires a token only after the TTL without use, counted from the last renewal', () => {
+    vi.stubGlobal('sessionStorage', fakeStorage());
+    let clock = 0;
+    const store = sessionTokenStore('controller', 'AB23CD45', () => clock);
+    store.write('tok');
+    clock = TOKEN_TTL_MS - 1;
+    store.touch();
+    // A fresh reload (new store instance) far beyond the first TTL still finds it.
+    clock = 2 * TOKEN_TTL_MS - 2;
+    expect(sessionTokenStore('controller', 'AB23CD45', () => clock).read()).toBe('tok');
+    clock = 2 * TOKEN_TTL_MS;
+    expect(sessionTokenStore('controller', 'AB23CD45', () => clock).read()).toBeNull();
+  });
+
+  it('a 30-minute session keeps its token: every beacon renews it (rate-limited)', () => {
+    const storage = fakeStorage();
+    const setItem = vi.spyOn(storage, 'setItem');
+    vi.stubGlobal('sessionStorage', storage);
+    let clock = 0;
+    const tokenStore = sessionTokenStore('controller', 'AB23CD45', () => clock);
+    const { socket, confirm } = makeSocket({ tokenStore, now: () => clock });
+    socket.connect();
+    confirm();
+    for (clock = 0; clock <= 30 * 60 * 1000; clock += 1000) socket.sendHealth({ sensor: 'ok', visible: true });
+    // Reload right after: the token is still valid.
+    expect(sessionTokenStore('controller', 'AB23CD45', () => clock).read()).toBe('tok-1');
+    expect(setItem.mock.calls.length).toBeLessThan(400);
+  });
+
+  it('the viewer renews on incoming traffic and on pagehide, but not once the session ended', () => {
+    const listeners = new Map();
+    vi.stubGlobal('window', {
+      addEventListener: (type, fn) => listeners.set(type, fn),
+      removeEventListener: (type) => listeners.delete(type),
+    });
+    const touch = vi.fn();
+    const tokenStore = { read: () => null, write: vi.fn(), touch };
+    const { socket, fake, confirm } = makeSocket({ role: 'viewer', tokenStore });
+    socket.connect();
+    listeners.get('pagehide')();
+    confirm({ role: 'viewer' });
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 1 });
+    listeners.get('pagehide')();
+    expect(touch).toHaveBeenCalledTimes(3);
+    socket.leave();
+    listeners.get('pagehide')();
+    expect(touch).toHaveBeenCalledTimes(3);
+    socket.dispose();
+    expect(listeners.has('pagehide')).toBe(false);
   });
 });

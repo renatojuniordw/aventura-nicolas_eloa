@@ -11,6 +11,7 @@ import {
   type JumpSide,
   type TouchLayout,
   type TouchSize,
+  type TouchVisibility,
 } from '../../persistence/touch-layout-store.js';
 
 /*
@@ -45,8 +46,10 @@ export interface SettingsOptions {
   systemReducedMotion?: boolean;
   onAudioChange: (category: 'music' | 'sfx' | 'voice', value: number) => void;
   onExperienceChange: (patch: Partial<ExperienceSettings>) => void;
-  /** Present on touch devices only. */
+  /** Present on touch devices only (or wherever the buttons were set to always show). */
   touch?: TouchSettingsOptions;
+  /** "Botões de toque na tela", offered on every device so a hybrid can turn them on (docs/17 §6). */
+  touchVisibility?: { value: TouchVisibility; onChange: (value: TouchVisibility) => void };
   /** "Informações para suporte" (docs/18 §10). */
   onOpenSupport?: () => void;
   /** "Informações aos responsáveis" (docs/22 M11). */
@@ -220,9 +223,15 @@ function AccessSettings({ experience, systemReducedMotion, onExperienceChange, b
   );
 }
 
-function ControlsSettings({ touch, onOpenSection, onOpenPhonePairing, back }: SettingsOptions & { back: () => void }) {
+function ControlsSettings({ touch, touchVisibility, onOpenSection, onOpenPhonePairing, back }: SettingsOptions & { back: () => void }) {
   return (
     <SettingsFrame title="Controles" onBack={back}>
+      {touchVisibility && (
+        <label className="settings-select">Botões de toque na tela<select data-nav-id="touch-visibility" value={touchVisibility.value}
+          onChange={(e) => touchVisibility.onChange(e.currentTarget.value as TouchVisibility)}>
+          <option value="auto">Automático</option><option value="always">Sempre mostrar</option>
+        </select></label>
+      )}
       <ul className="settings-hub settings-list">
         {touch && (
           <li><MenuButton className="settings-hub-btn" data-nav-id="settings-touch" onClick={() => onOpenSection('touch')}>
@@ -238,7 +247,7 @@ function ControlsSettings({ touch, onOpenSection, onOpenPhonePairing, back }: Se
           <span className="settings-hub-icon" aria-hidden="true">📱</span>Usar outro celular como controle
         </MenuButton></li>
       </ul>
-      {!touch && <p className="settings-help">Os ajustes dos botões de toque aparecem quando o jogo é usado numa tela de toque.</p>}
+      {!touch && <p className="settings-help">Os ajustes dos botões de toque aparecem numa tela de toque ou com "Sempre mostrar" (computador com tela de toque, tablet com teclado).</p>}
     </SettingsFrame>
   );
 }
@@ -257,7 +266,7 @@ const TOUCH_EDGES: Record<EdgeInset, number> = { near: 16, medium: 32, far: 48 }
 const PREVIEW_MIN_SPACE = 24;
 
 /** Width the preview needs to show `layout` at real size, borders included. */
-export function touchPreviewWidth(layout: TouchLayout): number {
+export function touchPreviewWidth(layout: Pick<TouchLayout, 'size' | 'jumpSide' | 'edgeInset'>): number {
   const size = TOUCH_SIZES[layout.size] ?? TOUCH_SIZES.default;
   const edge = TOUCH_EDGES[layout.edgeInset] ?? TOUCH_EDGES.near;
   return 2 * size.dir + size.gap + size.jump + 2 * edge + PREVIEW_MIN_SPACE + 4;

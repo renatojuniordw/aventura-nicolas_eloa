@@ -214,7 +214,16 @@ Contrato consolidado em [12 — Controle por celular, §11](12-controle-por-celu
 
 **Testes automatizados** (todos os cenários da §5 “sem navegador”): `npm test` 1022 testes/100 arquivos, `npm --prefix signaling test` 39 testes, `npm run typecheck` e `npm run build` passam. Inclui integração com servidor e clientes socket.io reais (`src/net/signaling-integration.test.js`): pareamento, `room-full`, recarga com token com o socket antigo vivo, 10 pulos durante queda não entregues após reconectar (inclusive pacote que ficou no buffer), volta da TV e encerramento. O `npm --prefix signaling test` exige `npm --prefix signaling ci` antes (a pasta estava sem dependências).
 
-Ensaio ponta a ponta em Chrome headless (jogo e controle em abas separadas, servidor de sinalização real, `devicemotion` sintético; script descartável, não versionado): 19/19 verificações — pareamento com protocolo 2, "Pronto" só após sensor, partida sem pausa, modo bolsinha, pulo entregue com `seq`/`generation`, sensor parado pausando com motivo e "Continuar" travado, liberação ao voltar, menu sem desconectar, pareamento reaberto sem novo QR, recarga do celular retomando a sessão com diagnóstico preservado e "Desconectar celular" encerrando no celular. Não substitui aparelho real: não há sensor físico, bloqueio de tela nem rede móvel.
+Ensaio ponta a ponta em Chrome headless (jogo e controle em abas separadas, servidor de sinalização real, `devicemotion` sintético; script descartável, não versionado): 19/19 verificações — pareamento com protocolo 2 (hoje 3), "Pronto" só após sensor, partida sem pausa, modo bolsinha, pulo entregue com `seq`/`generation`, sensor parado pausando com motivo e "Continuar" travado, liberação ao voltar, menu sem desconectar, pareamento reaberto sem novo QR, recarga do celular retomando a sessão com diagnóstico preservado e "Desconectar celular" encerrando no celular. Não substitui aparelho real: não há sensor físico, bloqueio de tela nem rede móvel.
+
+**Correções após a revalidação (docs/23 §7–8, 29/09/2026):** protocolo 3.
+
+- P0.2/P0.3 — saúde vale só para a geração vigente: substituição autenticada sem `peer-left` apaga o sinal anterior e volta a `checking`; sinal atrasado da conexão substituída é ignorado.
+- P0.4 — token válido por 20 min desde o último uso (renovado por tráfego da sessão e `pagehide`), não desde a emissão; retomada após mais de 10 min de partida coberta por teste.
+- P0.2/P0.4 — `join` repetido no mesmo socket devolve a mesma geração, token e snapshot, sem recriar contadores.
+- P0.5 — `sentAt` monotônico do celular; o jogo estima diferença de relógios + trânsito mínimo pela menor amostra recente da geração (sinais de vida e comandos) e descarta pulo com atraso extra acima de 1 s; armamento (`armAt`) ao entrar, ao recuperar saúde e ao "Continuar" descarta pulos enviados antes.
+
+Testes: `npm test` 1037 testes/100 arquivos, `npm --prefix signaling test` 41 testes, incluindo integração socket.io real para join repetido e pulo anterior ao armamento.
 
 **Decisões desta implementação:** o critério de parada da §4 P0.2 usa 3 s sem sinal; a janela de retenção da TV subiu de 15 s para 2 min, como proposto; as sessões não são persistidas no servidor (reinício → espera de 60 s e depois novo QR). Todos os tempos seguem provisórios até a matriz real.
 

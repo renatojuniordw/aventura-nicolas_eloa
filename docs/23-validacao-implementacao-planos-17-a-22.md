@@ -1,5 +1,7 @@
 # 23 — Validação da implementação dos planos 17–22
 
+> **Revalidação atual:** veja a §7, baseada em `c815ab3`. As §§1–5 são o diagnóstico histórico de `5cda30d`; a §6 registra as correções posteriores. Não usar a tabela da §1 como estado atual: o plano 19 recebeu implementação e M20 foi auditado, mas a revalidação encontrou lacunas adicionais.
+
 Data: 29/09/2026. Base inspecionada: `5cda30d`, workspace inicialmente limpo.
 
 **Conclusão: os seis planos não estão integralmente implementados nem aceitos.** Há entregas consistentes com testes, escopos explicitamente adiados e falhas ainda presentes. Testes passando não encerram os critérios de aparelho real.
@@ -132,3 +134,47 @@ Duas descobertas durante a implementação, verificadas na versão instalada (so
 `npm test` (1022 testes, 100 arquivos), `npm --prefix signaling test` (39 testes, após `npm --prefix signaling ci`), `npm run typecheck` e `npm run build` passaram. Auditorias com `npm run dev` local, relatórios em pasta temporária (não versionados).
 
 Ensaio ponta a ponta em Chrome headless (jogo e controle em abas separadas, servidor de sinalização real, `devicemotion` sintético; script descartável, não versionado): 19/19 verificações — pareamento com protocolo 2, "Pronto" só após sensor, partida sem pausa, modo bolsinha, pulo entregue com `seq`/`generation`, sensor parado pausando com motivo e "Continuar" travado, liberação ao voltar, menu sem desconectar, pareamento reaberto sem novo QR, recarga do celular retomando a sessão com diagnóstico preservado e "Desconectar celular" encerrando no celular. Não substitui aparelho real: não há sensor físico, bloqueio de tela nem rede móvel.
+
+## 7. Revalidação do estado atual (29/09/2026)
+
+Base: `c815ab3`, workspace inicialmente limpo. Revisão de implementação, contratos e testes; sem alteração funcional, de saves ou do vault. Esta seção substitui as conclusões de estado das §§1–6 quando houver divergência.
+
+**Conclusão: não é correto declarar os seis planos integralmente implementados da forma prevista.** Há entregas funcionais extensas, escopos adiados e quatro lacunas reproduzíveis no plano 19. A aprovação automatizada não substitui os aceites físicos.
+
+### Situação por plano
+
+| Plano | Situação atual | O que impede o encerramento |
+| --- | --- | --- |
+| 17 | Parcial | Gestos por ponteiro, liberação de input, proporção do Canvas, safe areas e reorganização dos menus presentes. HUD informativo ainda em Canvas; opção manual de toque em híbridos ausente; contraste medido e roteiro do zoom no iPhone/Safari/PWA pendentes. |
+| 18 | M1–M8 presentes; aceite pendente | Animação suspensa, política de movimento, contexto de navegação, fallback de imagens, presets, prática, feedback e suporte conferidos em código/testes. Faltam ergonomia, leitor de tela, desempenho e compreensão da prática em aparelho/crianças. |
+| 19 | Implementação ampla, porém incompleta/incorreta em casos de retomada | Saúde operacional, diagnóstico, sensor único, Wake Lock, retomada, modo bolsinha e continuidade existem. Corrigir os quatro achados abaixo e executar as três sessões reais de 30 minutos antes de aceitar. |
+| 20 | Primeiro recorte entregue | Mundos, palavras temáticas e dicas presentes; L2/L3 parciais. Monta-sílabas, terrenos novos, duração configurável, revisão de erros, outras modalidades, poderes e recompensas continuam propostos. O mapa de mundo com várias unidades exige quatro ativações desde a home, divergindo do limite original de três; fluxo definido pelo plano 22. |
+| 21 | Recorte das §§9–10 entregue | WAV, catálogo/ganhos, dez palavras, segmentações, textura e fundos conferidos. Hashes locais coincidem com os créditos. Faltam audição, pronúncia, offline de produção e desempenho/aparência em aparelho. Lava/poderes e testes correspondentes dependem das expansões do plano 20. |
+| 22 | Implementação ampla; aceite parcial | Configurações divididas, paginação, coach, ações, resultados, navegação e M20 presentes. Fallbacks de texto ampliado documentados; Canvas, presets durante gameplay, rotação física e leitores de tela não estão integralmente cobertos pela auditoria. |
+
+### Achados atuais do plano 19
+
+**Alta — saúde da conexão anterior é reaproveitada após substituição (P0.2/P0.3).** Em `src/net/phone-viewer-transport.ts`, `applySnapshot` atualiza a geração do filtro, mas `_setController(true)` retorna cedo se a presença já era verdadeira. Assim, `_lastHealth` da geração anterior permanece. `evaluatePhoneLink` não confere a geração desse sinal. Reprodução com o transporte real e socket simulado: snapshot da geração 1 → saúde `ok` da geração 1 → snapshot da geração 2 com controller presente, sem nova saúde → resultado `operational: true`. Na substituição autenticada de um socket ainda vivo, o jogo pode continuar ou permitir continuar usando o sensor anterior como evidência, até novo sinal/timeout. Invalidar saúde ao mudar geração e exigir sinal da geração vigente; cobrir substituição sem `peer-left` intermediário.
+
+**Alta — token expira durante sessão ativa (P0.4).** `src/net/signaling-socket.ts:100–134` usa dez minutos desde `savedAt`; o timestamp só é atualizado quando um `joined` entrega token. Saúde e atividade não o renovam. Reprodução com relógio e sessionStorage controlados: escrever token em t=0 e ler em t=600001 ms retorna `null`, embora a sala possa continuar ativa no servidor. Se ocorrer reload/reconexão sobreposta ao socket anterior após esse período, a retomada perde a credencial e `RoomManager.join` retorna `room-full`. Isso compromete justamente as sessões de 30 minutos previstas no aceite. Alinhar validade local à sessão ativa/janela de recuperação e testar retomada após mais de dez minutos. Não foi necessário esperar dez minutos de relógio real para reproduzir a expiração.
+
+**Média — join repetido não é idempotente (P0.2/P0.4).** `signaling/src/room-manager.js:148–156` incrementa a geração em todo join do controller, recria seus contadores e troca o token se a repetição não o inclui. Reprodução com `RoomManager`: mesmo socket/sala/payload duas vezes sem token → geração 1/token A e depois geração 2/token B. O teste existente chamado “is idempotent” verifica apenas `{ ok: true }`, sem comparar geração/credencial. Um retry por confirmação perdida pode invalidar mensagens ainda em trânsito; confirmar idempotência preservando identidade, geração e credencial do socket já associado.
+
+**Média — não há expiração de comandos atrasados na mesma conexão (P0.5).** `src/net/action-filter.ts:30–36` verifica geração e ordem, mas não idade nem geração de armamento. `StampedAction` não carrega prazo/época de armamento; `RoomManager.action` apenas carimba a geração atual. A purga de `sendBuffer` resolve um caminho de reconexão, não atraso em trânsito sem troca de conexão. Um comando ainda não visto, de geração atual e sequência crescente, é aceito independentemente do tempo decorrido. Se chegar depois de retomar/entrar em outra partida, pode virar pulo antigo. Falta a política testável de expiração pedida no plano, sem presumir relógios sincronizados. Inspeção e reprodução do filtro confirmam a ausência; não foi feito ensaio de latência real entre aparelhos.
+
+As reproduções acima executaram os módulos locais via `node --import ./tools/register-ts-hook.mjs --input-type=module`, com peers/socket, armazenamento e relógio controlados. Não comprovam frequência de ocorrência em produção. Não foram corrigidas nesta tarefa de validação.
+
+### Verificações desta revalidação
+
+- `npm test`: **1022 testes em 100 arquivos passaram**, incluindo integração com sockets locais; execução com permissão de rede local. A primeira tentativa no sandbox não foi usada como resultado de aprovação.
+- `npm --prefix signaling test`: **39 testes em 2 arquivos passaram**.
+- `npm run typecheck`: passou.
+- `npm run build`: passou; **71 entradas no precache**, aviso de chunk acima de 500 kB.
+- SHA-256 dos dois WAV e da textura: idênticos a `THIRD_PARTY_NOTICES.md`.
+- Texto ampliado em 320×568 e 568×320: **160 estados, 42 alertas `scroll-y`, 27 notas `offscreen-reachable` e 2 notas `scroll-exception`**. Nenhum `offscreen` inalcançável reportado. São ocorrências por estado/contêiner, não 42 defeitos independentes. Captura do Caderno em 568×320 inspecionada: o cartão não cabe inteiro na vista inicial. Resultado reproduz a necessidade de fallback, com contagem ligeiramente diferente da execução histórica (44 alertas). Relatório e capturas: `/tmp/aventura-revalidation-large/`.
+- Texto a 200% em 1280×720, 768×1024, 390×844 e 844×390: **320 estados, 2 problemas `covered`, 159 notas**. Reproduz os casos históricos do coach (`coach-step` e `coach-done`) em 390×844: “Pular introdução” e “Continuar” cobertos. Captura do segundo inspecionada. É montagem isolada em retrato; no fluxo real de toque a prática exige paisagem. Não foi classificado como falha nova de gameplay mobile, mas permanece limitação do layout. Relatório e capturas: `/tmp/aventura-revalidation-200/`.
+- Matriz normal completa, 13 viewports e alvos `menus,controle,flow`: **1041 estados, 0 problemas, 13 notas `scroll-exception`** do relatório do controle após falha de cópia. Relatório e capturas: `/tmp/aventura-revalidation-normal/`.
+
+Limites: auditoria em Chrome headless/Vite local, sem acesso a aparelhos físicos ou produção. Os testes de telas isoladas usam dados de exemplo, e o fluxo real cobre um subconjunto de estados. `elementFromPoint` no centro do alvo e medidas de overflow não comprovam, sozinhos, visibilidade integral de todo conteúdo/foco; tampouco medem texto desenhado no Canvas. Não houve nova validação de offline, audição, VoiceOver/TalkBack, zoom físico do iPhone ou rede móvel. As referências externas e sua procedência remota não foram reavaliadas; os hashes foram comparados ao registro local.
+
+Prioridade: corrigir os casos de saúde/retomada/comandos do plano 19, concluir as pendências funcionais assumidas do plano 17 e executar os roteiros físicos. As expansões do plano 20 continuam backlog, sem confundi-las com o recorte já entregue.

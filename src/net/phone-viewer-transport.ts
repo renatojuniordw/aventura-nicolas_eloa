@@ -14,11 +14,13 @@ export interface ViewerLink {
   /** The TV's own socket is connected AND its room confirmed. */
   joined: boolean;
   controllerPresent: boolean;
+  /** The current phone connection, as numbered by the server. Health from any other one is ignored. */
+  generation: number;
   /** A phone joined this session at least once. */
   everPaired: boolean;
   /** Last beacon from the phone, timed with this device's clock. */
   lastHealth: (PeerHealth & { receivedAt: number }) | null;
-  /** When the current phone presence began (this device's clock), to give it time for its first beacon. */
+  /** When the current phone connection began (this device's clock), to give it time for its first beacon. */
   controllerSince: number | null;
   closeReason: string | null;
   lastError: string | null;
@@ -39,6 +41,7 @@ interface ViewerTransportOptions {
 export class PhoneViewerTransport implements PhoneTransport {
   private _socket: SignalingSocket;
   private _now: () => number;
+  private _onDiagnostic: DiagnosticSink | undefined;
   private _filter = new ActionFilter();
   private _controllerPresent = false;
   private _everPaired = false;
@@ -49,9 +52,10 @@ export class PhoneViewerTransport implements PhoneTransport {
   constructor(session: string, { url, socket, now = () => performance.now(), onDiagnostic }: ViewerTransportOptions = {}) {
     this._socket = socket ?? new SignalingSocket({ url, role: 'viewer', session, onDiagnostic });
     this._now = now;
+    this._onDiagnostic = onDiagnostic;
 
     const applySnapshot = (snapshot: RoomSnapshot) => {
-      this._filter.observeGeneration(snapshot.generation);
+      this._observeGeneration(snapshot.generation);
       this._setController(snapshot.peers.controller);
       this._changed();
     };
@@ -63,8 +67,12 @@ export class PhoneViewerTransport implements PhoneTransport {
       this._changed();
     });
     this._socket.onPeerHealth((health) => {
-      if (health.generation < this._filter.generation) return;
-      this._lastHealth = { ...health, receivedAt: this._now() };
+      if (!Number.isSafeInteger(health.generation) || health.generation < this._filter.generation) return;
+      // A beacon can overtake the presence snapshot announcing its connection.
+      this._observeGeneration(health.generation);
+      const receivedAt = this._now();
+      this._filter.observeClock(health.generation, health.sentAt, receivedAt);
+      this._lastHealth = { ...health, receivedAt };
       this._changed();
     });
     this._socket.onStateChange((state) => {
@@ -80,6 +88,7 @@ export class PhoneViewerTransport implements PhoneTransport {
       state: this._socket.state,
       joined: this._socket.joined,
       controllerPresent: this._controllerPresent,
+      generation: this._filter.generation,
       everPaired: this._everPaired,
       lastHealth: this._lastHealth,
       controllerSince: this._controllerSince,
@@ -102,12 +111,23 @@ export class PhoneViewerTransport implements PhoneTransport {
     this._socket.dispose();
   }
 
-  /** Fresh, not-yet-seen commands from the current phone connection only. */
+  /** Fresh, not-yet-seen, not-too-late commands from the current phone connection only. */
   onMessage(handler: (payload: { button: string; pressed: boolean }) => void): () => void {
     return this._socket.onAction((action) => {
-      if (!this._filter.accept(action)) return;
+      if (!this._filter.accept(action, this._now())) {
+        this._onDiagnostic?.('action-dropped', { generation: action.generation ?? null, seq: action.seq ?? null });
+        return;
+      }
       handler({ button: action.button, pressed: action.pressed });
     });
+  }
+
+  /**
+   * The match starts accepting commands now (this device's clock): anything
+   * the phone sent earlier — e.g. a jump made on the pause screen — is dropped.
+   */
+  armAt(now: number): void {
+    this._filter.armAt(now);
   }
 
   onLinkChange(handler: (link: ViewerLink) => void): () => void {
@@ -118,6 +138,13 @@ export class PhoneViewerTransport implements PhoneTransport {
   /** Round-trip time to the signaling server, in ms, or null if unreachable — shown on the pairing screen. */
   measureLatency(): Promise<number | null> {
     return this._socket.measureLatency();
+  }
+
+  /** A new phone connection: nothing the previous one reported applies to it. */
+  private _observeGeneration(generation: number): void {
+    if (!this._filter.observeGeneration(generation)) return;
+    this._lastHealth = null;
+    if (this._controllerPresent) this._controllerSince = this._now();
   }
 
   private _setController(present: boolean): void {

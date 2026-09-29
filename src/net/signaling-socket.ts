@@ -3,16 +3,21 @@ import { io } from 'socket.io-client';
 export type SignalingRole = 'viewer' | 'controller';
 
 /** Must match signaling/src/room-manager.js — a mismatch is refused by the server. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface ActionPayload {
   button: string;
   pressed: boolean;
 }
 
-/** What the viewer receives: the server stamps the controller generation. */
+/**
+ * What the viewer receives: the server stamps the controller generation and
+ * relays the phone's own monotonic send time (`null` if missing), which only
+ * means something relative to other sends of the same generation.
+ */
 export interface StampedAction extends ActionPayload {
   seq: number | null;
+  sentAt?: number | null;
   generation: number;
 }
 
@@ -22,6 +27,7 @@ export interface HealthPayload {
 }
 
 export interface PeerHealth extends HealthPayload {
+  sentAt?: number | null;
   generation: number;
 }
 
@@ -71,6 +77,8 @@ const EPHEMERAL_EVENTS: ReadonlySet<unknown> = new Set(['action', 'health', 'pin
 export interface TokenStore {
   read(): string | null;
   write(token: string | null): void;
+  /** The session is still in use: restart the token's validity window. */
+  touch?(): void;
 }
 
 export type DiagnosticSink = (type: string, detail?: Record<string, string | number | boolean | null>) => void;
@@ -94,20 +102,32 @@ interface SignalingSocketOptions {
   setTimeoutFn?: (fn: () => void, ms: number) => unknown;
   clearTimeoutFn?: (id: unknown) => void;
   now?: () => number;
+  /** Monotonic clock stamped on every command/beacon as `sentAt` (docs/19 §4 P0.5). */
+  monotonicNow?: () => number;
   random?: () => number;
 }
 
-const TOKEN_TTL_MS = 10 * 60 * 1000;
+/**
+ * Validity of a saved token counted from the last moment the session was seen
+ * in use, not from when it was issued: a 30-minute match keeps renewing it.
+ * Longer than any server retention window (2/5/15 min), so the server — not
+ * this copy — decides when a room is really gone.
+ */
+export const TOKEN_TTL_MS = 20 * 60 * 1000;
+/** Renewals are rate-limited; the TTL is minutes, so seconds of slack are harmless. */
+const TOKEN_TOUCH_INTERVAL_MS = 5000;
 const LEAVE_ACK_TIMEOUT_MS = 1000;
 
 /**
- * Resume token kept in the tab's sessionStorage, with an expiry. Never logged
- * and never part of a diagnostic report. Silently in-memory where storage is
- * blocked (private mode, sandboxed iframe).
+ * Resume token kept in the tab's sessionStorage, with an expiry counted from
+ * the last `write`/`touch`. Never logged and never part of a diagnostic
+ * report. Silently in-memory where storage is blocked (private mode,
+ * sandboxed iframe).
  */
 export function sessionTokenStore(role: SignalingRole, session: string, now: () => number = Date.now): TokenStore {
   const key = `aventura.phone-resume.${role}.${session}`;
   let memory: string | null = null;
+  let touchedAt = -Infinity;
   const storage = (): Storage | null => {
     try {
       return typeof sessionStorage === 'undefined' ? null : sessionStorage;
@@ -129,12 +149,17 @@ export function sessionTokenStore(role: SignalingRole, session: string, now: () 
     },
     write(token) {
       memory = token;
+      touchedAt = now();
       try {
-        if (token) storage()?.setItem(key, JSON.stringify({ token, savedAt: now() }));
+        if (token) storage()?.setItem(key, JSON.stringify({ token, savedAt: touchedAt }));
         else storage()?.removeItem(key);
       } catch {
         // memory copy only
       }
+    },
+    touch() {
+      if (!memory || now() - touchedAt < TOKEN_TOUCH_INTERVAL_MS) return;
+      this.write(memory);
     },
   };
 }
@@ -196,7 +221,9 @@ export class SignalingSocket {
   private _setTimeout: (fn: () => void, ms: number) => unknown;
   private _clearTimeout: (id: unknown) => void;
   private _now: () => number;
+  private _monotonicNow: () => number;
   private _random: () => number;
+  private _offPageHide: (() => void) | null = null;
 
   private _state: JoinState = 'idle';
   private _snapshot: RoomSnapshot | null = null;
@@ -235,6 +262,7 @@ export class SignalingSocket {
     setTimeoutFn = (fn, ms) => setTimeout(fn, ms),
     clearTimeoutFn = (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
     now = () => Date.now(),
+    monotonicNow = () => performance.now(),
     random = Math.random,
   }: SignalingSocketOptions) {
     this._role = role;
@@ -248,8 +276,16 @@ export class SignalingSocket {
     this._setTimeout = setTimeoutFn;
     this._clearTimeout = clearTimeoutFn;
     this._now = now;
+    this._monotonicNow = monotonicNow;
     this._random = random;
     this._socket = createSocket(url);
+
+    // A reload is exactly when the token is needed: renew it on the way out.
+    if (typeof window !== 'undefined') {
+      const onPageHide = () => this._touchToken(true);
+      window.addEventListener('pagehide', onPageHide);
+      this._offPageHide = () => window.removeEventListener('pagehide', onPageHide);
+    }
 
     this._listen('connect', () => {
       this._diag('socket-connect');
@@ -269,6 +305,7 @@ export class SignalingSocket {
       const snapshot = payload as RoomSnapshot;
       if (!snapshot?.peers) return;
       this._snapshot = snapshot;
+      this._touchToken();
       this._presenceChannel.emit(snapshot);
     });
     this._listen('peer-left', (payload: unknown) => {
@@ -279,11 +316,13 @@ export class SignalingSocket {
     this._listen('action', (payload: unknown) => {
       const action = payload as StampedAction;
       if (this._state !== 'joined' || typeof action?.button !== 'string') return;
+      this._touchToken();
       this._actionChannel.emit(action);
     });
     this._listen('peer-health', (payload: unknown) => {
       const health = payload as PeerHealth;
       if (this._state !== 'joined' || !health) return;
+      this._touchToken();
       this._healthChannel.emit(health);
     });
     this._listen('session-replaced', () => this._terminate('replaced', 'replaced'));
@@ -370,6 +409,8 @@ export class SignalingSocket {
   dispose(): void {
     if (this._disposed) return;
     this._disposed = true;
+    this._offPageHide?.();
+    this._offPageHide = null;
     this._clearTimers();
     for (const [event, handler] of this._socketHandlers) this._socket.off(event, handler);
     this._socketHandlers = [];
@@ -388,14 +429,16 @@ export class SignalingSocket {
   sendAction(payload: ActionPayload): boolean {
     if (!this.joined) return false;
     this._seq += 1;
-    this._socket.emit('action', { ...payload, seq: this._seq });
+    this._socket.emit('action', { ...payload, seq: this._seq, sentAt: this._monotonicNow() });
+    this._touchToken();
     return true;
   }
 
   /** Liveness beacon (controller only), same no-buffer rule as actions. */
   sendHealth(payload: HealthPayload): boolean {
     if (!this.joined) return false;
-    this._socket.emit('health', payload);
+    this._socket.emit('health', { ...payload, sentAt: this._monotonicNow() });
+    this._touchToken();
     return true;
   }
 
@@ -474,6 +517,12 @@ export class SignalingSocket {
     }) as (...args: never[]) => void;
     this._socketHandlers.push([event, guarded]);
     this._socket.on(event, guarded);
+  }
+
+  /** Keeps the resume token valid while the session is actually in use (or the page is leaving mid-session). */
+  private _touchToken(leaving = false): void {
+    if (this._state !== 'joined' && !(leaving && !TERMINAL.has(this._state))) return;
+    this._tokens.touch?.();
   }
 
   private _purgeEphemeral(): void {

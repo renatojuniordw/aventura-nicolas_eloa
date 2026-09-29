@@ -13,7 +13,7 @@ describe('TouchLayoutStore (docs/18 §7)', () => {
 
   it('keeps valid fields and replaces invalid or unknown ones', () => {
     expect(normalizeTouchLayout({ size: 'large', jumpSide: 'up', edgeInset: 999, extra: true })).toEqual({
-      size: 'large', jumpSide: 'right', edgeInset: 'near',
+      size: 'large', jumpSide: 'right', edgeInset: 'near', visibility: 'auto',
     });
     expect(normalizeTouchLayout(null)).toEqual(DEFAULT_TOUCH_LAYOUT);
   });
@@ -26,13 +26,27 @@ describe('TouchLayoutStore (docs/18 §7)', () => {
 
     store.update({ size: 'large', jumpSide: 'left' });
     expect(new TouchLayoutStore(adapter).read()).toMatchObject({ size: 'large', jumpSide: 'left', edgeInset: 'near' });
-    expect(listener).toHaveBeenLastCalledWith({ size: 'large', jumpSide: 'left', edgeInset: 'near' });
+    expect(listener).toHaveBeenLastCalledWith({ size: 'large', jumpSide: 'left', edgeInset: 'near', visibility: 'auto' });
     expect(isDefaultTouchLayout(store.read())).toBe(false);
 
     store.reset();
     expect(adapter.read(TOUCH_LAYOUT_KEY)).toBeNull();
     expect(listener).toHaveBeenLastCalledWith(DEFAULT_TOUCH_LAYOUT);
     expect(isDefaultTouchLayout(store.read())).toBe(true);
+  });
+
+  it('"Sempre mostrar" (hybrids, docs/17 §6) persists and survives "Restaurar controles"', () => {
+    const adapter = new MemoryStorageAdapter();
+    const store = new TouchLayoutStore(adapter);
+    store.update({ visibility: 'always', size: 'large' });
+    expect(new TouchLayoutStore(adapter).read().visibility).toBe('always');
+    expect(normalizeTouchLayout({ visibility: 'never' }).visibility).toBe('auto');
+    store.reset();
+    expect(store.read()).toEqual({ ...DEFAULT_TOUCH_LAYOUT, visibility: 'always' });
+    expect(isDefaultTouchLayout(store.read())).toBe(true);
+    store.update({ visibility: 'auto' });
+    store.reset();
+    expect(adapter.read(TOUCH_LAYOUT_KEY)).toBeNull();
   });
 });
 

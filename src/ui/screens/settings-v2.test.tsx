@@ -83,14 +83,26 @@ describe('Configurações screens', () => {
     expect(withoutTouch.node.textContent).toContain('tela de toque');
     withoutTouch.cleanup();
 
-    const touch = { layout: { size: 'default' as const, jumpSide: 'right' as const, edgeInset: 'near' as const }, onChange: vi.fn(), onReset: vi.fn(), onPractice: vi.fn() };
+    const touch = { layout: { size: 'default' as const, jumpSide: 'right' as const, edgeInset: 'near' as const, visibility: 'auto' as const }, onChange: vi.fn(), onReset: vi.fn(), onPractice: vi.fn() };
     const withTouch = buildSettingsScreen(options({ section: 'controls', touch }));
     expect(buttons(withTouch.node)).toEqual(['✋Ajustar toque', '🎮Treinar controles', '📱Usar outro celular como controle', 'Voltar']);
     withTouch.cleanup();
   });
 
+  it('Controles: "Botões de toque na tela" is offered on any device, so a hybrid can turn them on', () => {
+    const onChange = vi.fn();
+    const { node, cleanup } = buildSettingsScreen(options({ section: 'controls', touchVisibility: { value: 'auto', onChange } }));
+    const select = node.querySelector<HTMLSelectElement>('select[data-nav-id="touch-visibility"]')!;
+    expect(select.closest('label')?.textContent).toContain('Botões de toque na tela');
+    expect([...select.options].map((o) => o.textContent)).toEqual(['Automático', 'Sempre mostrar']);
+    select.value = 'always';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(onChange).toHaveBeenCalledWith('always');
+    cleanup();
+  });
+
   it('Ajustar toque: says "Restaurar controles" and falls back to Controles without touch', () => {
-    const touch = { layout: { size: 'large' as const, jumpSide: 'left' as const, edgeInset: 'far' as const }, onChange: vi.fn(), onReset: vi.fn() };
+    const touch = { layout: { size: 'large' as const, jumpSide: 'left' as const, edgeInset: 'far' as const, visibility: 'auto' as const }, onChange: vi.fn(), onReset: vi.fn() };
     const { node, cleanup } = buildSettingsScreen(options({ section: 'touch', touch }));
     const reset = [...node.querySelectorAll('button')].find((b) => b.textContent?.includes('Restaurar controles'))!;
     expect(reset.disabled).toBe(false);

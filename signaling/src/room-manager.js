@@ -6,7 +6,7 @@ import { isValidSessionId } from './session-id.js';
  * for another version is refused with `version-mismatch` instead of being
  * half understood (docs/19 §4 P0.2).
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 // Retention windows, counted from the moment the absence is detected. They say
 // how long a room survives for a *recovery*, not how fast the game pauses — the
@@ -21,6 +21,16 @@ export const DEFAULT_HEALTH_RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 1000;
 const ROLES = ['viewer', 'controller'];
 const SENSOR_STATES = new Set(['ok', 'stale', 'none']);
+
+/**
+ * The phone's own monotonic send time, relayed untouched so the viewer can
+ * estimate how late a command arrived (docs/19 §4 P0.5). Never compared with
+ * the server's or the viewer's clock here.
+ */
+function sentAtOf(payload) {
+  const sentAt = payload?.sentAt;
+  return typeof sentAt === 'number' && Number.isFinite(sentAt) && sentAt >= 0 ? sentAt : null;
+}
 
 /** Only a prefix of the pairing code reaches the logs (docs/19 §4 P0.1). */
 export function maskSession(session) {
@@ -107,8 +117,9 @@ export class RoomManager {
   }
 
   /**
-   * Idempotent: the same socket joining twice gets the same answer and a fresh
-   * snapshot, so a client may retry a join whose confirmation it never saw.
+   * Idempotent: the same socket joining twice keeps its generation, token and
+   * counters and just gets a fresh snapshot, so a client may retry a join whose
+   * confirmation it never saw without invalidating its own commands in flight.
    *
    * @param {Peer} peer
    * @param {{ role: 'viewer' | 'controller', session: string, token?: string, protocol?: number }} payload
@@ -126,6 +137,9 @@ export class RoomManager {
     }
 
     let room = this.#rooms.get(session);
+    if (previous && room && room[role] === peer) {
+      return { ok: true, snapshot: this.#snapshot(room, role, previous.resumed), token: room[`${role}Token`] };
+    }
     if (!room) {
       // Only the TV creates rooms. After a server restart the phone arrives
       // with a token for a room that no longer exists: it is told so and
@@ -153,7 +167,7 @@ export class RoomManager {
       room.generation += 1;
       this.#cancelTimer(room, 'unpairedExpiryTimer');
     }
-    this.#peers.set(peer.id, { peer, session, role, actionTimestamps: [], healthTimestamps: [] });
+    this.#peers.set(peer.id, { peer, session, role, resumed, actionTimestamps: [], healthTimestamps: [] });
 
     this.#log('log', `[signaling] join ok peer=${peer.id} role=${role} session=${maskSession(session)} resumed=${resumed}`);
 
@@ -172,7 +186,7 @@ export class RoomManager {
    * belonging to an earlier connection (docs/19 §4 P0.5).
    *
    * @param {Peer} peer
-   * @param {{ button: string, pressed: boolean, seq?: number }} payload
+   * @param {{ button: string, pressed: boolean, seq?: number, sentAt?: number }} payload
    * @returns {{ ok: true } | { ok: false, error: string }}
    */
   action(peer, payload) {
@@ -193,6 +207,7 @@ export class RoomManager {
       button: payload.button,
       pressed: payload.pressed,
       seq,
+      sentAt: sentAtOf(payload),
       generation: room.generation,
     });
     return { ok: true };
@@ -204,7 +219,7 @@ export class RoomManager {
    * compared across devices.
    *
    * @param {Peer} peer
-   * @param {{ sensor: 'ok' | 'stale' | 'none', visible: boolean }} payload
+   * @param {{ sensor: 'ok' | 'stale' | 'none', visible: boolean, sentAt?: number }} payload
    */
   health(peer, payload) {
     const entry = this.#currentEntry(peer);
@@ -217,6 +232,7 @@ export class RoomManager {
     room?.viewer?.emit('peer-health', {
       sensor: payload.sensor,
       visible: payload.visible,
+      sentAt: sentAtOf(payload),
       generation: room.generation,
     });
     return { ok: true };

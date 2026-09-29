@@ -84,6 +84,47 @@ describe('signaling over real socket.io', () => {
     expect(viewer.link.lastHealth).toMatchObject({ sensor: 'ok', visible: true });
   });
 
+  it('a join retried on the same socket (lost confirmation) keeps generation and credential', async () => {
+    const tv = makeSocket('viewer');
+    const viewer = new PhoneViewerTransport(SESSION, { socket: tv.socket });
+    viewer.connect();
+    await waitFor(() => viewer.link.joined);
+    const phone = makeSocket('controller');
+    phone.socket.connect();
+    await waitFor(() => phone.socket.joined && viewer.link.controllerPresent);
+    const { generation } = phone.socket.snapshot;
+    const token = phone.tokenStore.read();
+
+    phone.socket.rejoin();
+    await sleep(100);
+    expect(phone.socket.snapshot.generation).toBe(generation);
+    expect(phone.tokenStore.read()).toBe(token);
+    expect(viewer.link.generation).toBe(generation);
+  });
+
+  it('a jump made before the match armed is dropped even when it arrives on time', async () => {
+    const tv = makeSocket('viewer');
+    const viewer = new PhoneViewerTransport(SESSION, { socket: tv.socket });
+    const received = [];
+    viewer.onMessage((payload) => received.push(payload));
+    viewer.connect();
+    await waitFor(() => viewer.link.joined);
+    const phone = new PhoneControllerTransport(SESSION, { socket: makeSocket('controller').socket });
+    phone.connect();
+    await waitFor(() => phone.viewerPresent && viewer.link.controllerPresent);
+    phone.sendHealth({ sensor: 'ok', visible: true });
+    await waitFor(() => viewer.link.lastHealth);
+
+    // Same process, same clock: arming 200 ms ahead makes a jump sent now "before arming".
+    viewer.armAt(performance.now() + 200);
+    phone.sendJump();
+    await sleep(100);
+    expect(received).toEqual([]);
+    await sleep(150);
+    phone.sendJump();
+    await waitFor(() => received.length === 1);
+  });
+
   it('keeps a second phone out with room-full', async () => {
     const viewer = makeSocket('viewer').socket;
     viewer.connect();

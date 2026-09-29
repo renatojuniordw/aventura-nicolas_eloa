@@ -79,7 +79,8 @@ export function evaluatePhoneLink(
   if (!link.joined) return status('reconnecting', link.everPaired);
   if (!link.everPaired) return status('waiting-phone', false);
   if (!link.controllerPresent) return status('phone-reconnecting', true);
-  const health = link.lastHealth;
+  // Only the current connection's own beacons prove its sensor works.
+  const health = link.lastHealth && link.lastHealth.generation === link.generation ? link.lastHealth : null;
   if (!health) {
     const since = link.controllerSince ?? now;
     return status(now - since < healthTimeoutMs ? 'checking' : 'no-response', true);
@@ -123,6 +124,7 @@ interface CoordinatorOptions {
 export class PhoneControlCoordinator {
   private _handle: PhoneControlHandle | null = null;
   private _engaged = false;
+  private _armed = false;
   private _status: PhoneLinkStatus;
   private _input: InputManager;
   private _bus: EventBus;
@@ -239,7 +241,13 @@ export class PhoneControlCoordinator {
       );
       this._diag('phone-engaged');
     }
+    this._updateArmed();
     return true;
+  }
+
+  /** The match resumes from a pause: jumps made while it was paused must not land now. */
+  rearm(): void {
+    if (this._armed) this._handle?.transport.armAt?.(this._now());
   }
 
   /** Leaving the match (menu, practice): keyboard/touch back, pairing kept. */
@@ -249,8 +257,19 @@ export class PhoneControlCoordinator {
       this._restoreDefaultInput();
       this._diag('phone-disengaged');
     }
+    this._updateArmed();
     // An ended session has nothing left to explain once no match shows it.
     if (this._handle && this._status.reason === 'ended') this.stop();
+  }
+
+  /**
+   * Remote jumps count only from the moment a match can take them: every time
+   * it (re)starts accepting commands, anything the phone sent before is late.
+   */
+  private _updateArmed(): void {
+    const armed = this._engaged && this._status.operational;
+    if (armed && !this._armed) this._handle?.transport.armAt?.(this._now());
+    this._armed = armed;
   }
 
   private _evaluate(): void {
@@ -264,6 +283,7 @@ export class PhoneControlCoordinator {
       this._input.reset();
       this._bus.emit(Events.APP_BLURRED);
     }
+    this._updateArmed();
     this._bus.emit(Events.PHONE_LINK_CHANGED, { session: next.session, paired: next.paired, operational: next.operational });
     for (const listener of [...this._listeners]) listener(next);
     if (!this._engaged && next.reason === 'ended' && this._handle) this.stop();

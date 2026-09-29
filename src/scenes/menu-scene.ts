@@ -332,6 +332,15 @@ export class MenuScene extends Scene {
         reopen();
       },
       onOpenInstallGuide: () => this.game.menu.showInstallGuide({ onBack: () => this.openSettings('app') }),
+      touchVisibility: this.game.touchLayout
+        ? {
+            value: this.game.touchLayout.read().visibility,
+            onChange: (visibility) => {
+              this.game.touchLayout.update({ visibility });
+              reopen();
+            },
+          }
+        : undefined,
       touch: this.game.device?.isTouch && this.game.touchLayout
         ? {
             layout: this.game.touchLayout.read(),

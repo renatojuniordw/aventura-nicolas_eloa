@@ -264,6 +264,7 @@ gameplay, sem persistência e sem banco de dados (ver `signaling/src/room-manage
 O protocolo tem versão (`PROTOCOL_VERSION`, docs/12 §11): jogo e servidor precisam ser
 publicados juntos — o `./deploy.sh` já recria os dois serviços. Um cliente de outra versão
 (aba antiga aberta, cache antigo) recebe `version-mismatch` e a orientação de recarregar.
+A versão 3 acrescentou `sentAt` a comandos e sinais de vida (expiração de pulos atrasados).
 Reiniciar o contêiner apaga as salas em memória: o celular espera a TV recriar a sala por
 até 60 s; depois disso é preciso gerar um novo QR.
 

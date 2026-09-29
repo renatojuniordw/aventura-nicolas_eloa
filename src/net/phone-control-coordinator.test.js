@@ -9,6 +9,7 @@ const baseLink = {
   state: 'joined',
   joined: true,
   controllerPresent: true,
+  generation: 1,
   everPaired: true,
   lastHealth: { sensor: 'ok', visible: true, generation: 1, receivedAt: 0 },
   controllerSince: 0,
@@ -24,6 +25,7 @@ function makeFakeTransport() {
     link: { ...baseLink, state: 'joining', joined: false, controllerPresent: false, everPaired: false, lastHealth: null, controllerSince: null },
     leave: vi.fn(),
     dispose: vi.fn(),
+    armAt: vi.fn(),
     measureLatency: vi.fn(() => Promise.resolve(12)),
     onLinkChange: vi.fn((listener) => {
       linkListeners.add(listener);
@@ -125,6 +127,14 @@ describe('evaluatePhoneLink', () => {
     expect(evaluatePhoneLink(link, HEALTH_TIMEOUT_MS).reason).toBe('no-response');
   });
 
+  it("a beacon from the previous phone connection does not vouch for the new one", () => {
+    // Authenticated replacement of a live socket: presence stays true, only the generation moves.
+    const link = { ...baseLink, generation: 2, controllerSince: 50 };
+    expect(evaluatePhoneLink(link, 100).reason).toBe('checking');
+    expect(evaluatePhoneLink(link, 50 + HEALTH_TIMEOUT_MS).reason).toBe('no-response');
+    expect(evaluatePhoneLink({ ...link, lastHealth: { ...baseLink.lastHealth, generation: 2, receivedAt: 90 } }, 100).operational).toBe(true);
+  });
+
   it('a beacon older than the timeout is no health at all', () => {
     expect(evaluatePhoneLink(baseLink, HEALTH_TIMEOUT_MS + 1).reason).toBe('no-response');
   });
@@ -220,6 +230,28 @@ describe('PhoneControlCoordinator', () => {
     expect(input.consumePressed(Actions.JUMP)).toBe(false);
     transport.send({ button: 'jump', pressed: true });
     expect(input.consumePressed(Actions.JUMP)).toBe(true);
+  });
+
+  it('marks the moment remote jumps start counting: engage, recovery and resume', () => {
+    const { coordinator, pair, advance } = setup();
+    const transport = pair();
+    advance(5);
+    coordinator.engage();
+    expect(transport.armAt).toHaveBeenLastCalledWith(5);
+
+    transport.setLink({ lastHealth: { ...transport.link.lastHealth, sensor: 'stale' } });
+    advance(10);
+    transport.setLink({ lastHealth: { sensor: 'ok', visible: true, generation: 1, receivedAt: 15 } });
+    expect(transport.armAt).toHaveBeenLastCalledWith(15);
+
+    advance(20);
+    coordinator.rearm();
+    expect(transport.armAt).toHaveBeenLastCalledWith(35);
+    expect(transport.armAt).toHaveBeenCalledTimes(3);
+
+    coordinator.disengage();
+    coordinator.rearm();
+    expect(transport.armAt).toHaveBeenCalledTimes(3);
   });
 
   it('losing health clears held input so the character does not keep running', () => {

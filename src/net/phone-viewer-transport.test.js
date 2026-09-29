@@ -67,6 +67,50 @@ describe('PhoneViewerTransport', () => {
     expect(transport.link.lastHealth).toBeNull();
   });
 
+  it('a replaced phone connection (no peer-left in between) starts without health', () => {
+    const { fake, transport, setNow } = setup();
+    fake.trigger('joined', { ...snapshot({ viewer: true, controller: true }), token: 't' });
+    setNow(500);
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 1 });
+    setNow(700);
+    // Authenticated replacement of a live socket: presence never goes false.
+    fake.trigger('presence', snapshot({ viewer: true, controller: true }, 2));
+    expect(transport.link).toMatchObject({ generation: 2, lastHealth: null, controllerSince: 700, controllerPresent: true });
+    // A late beacon from the replaced connection does not count.
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 1 });
+    expect(transport.link.lastHealth).toBeNull();
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 2 });
+    expect(transport.link.lastHealth).toMatchObject({ generation: 2, receivedAt: 700 });
+  });
+
+  it('a beacon that overtakes its presence snapshot moves to the new connection at once', () => {
+    const { fake, transport, setNow } = setup();
+    fake.trigger('joined', { ...snapshot({ viewer: true, controller: true }), token: 't' });
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 1 });
+    setNow(300);
+    fake.trigger('peer-health', { sensor: 'stale', visible: true, generation: 2 });
+    expect(transport.link).toMatchObject({ generation: 2, lastHealth: { sensor: 'stale', generation: 2 } });
+  });
+
+  it('drops a command delayed in transit on the same connection, and those sent before arming', () => {
+    const { fake, transport, setNow } = setup();
+    const received = vi.fn();
+    transport.onMessage(received);
+    fake.trigger('joined', { ...snapshot({ viewer: true, controller: true }), token: 't' });
+    setNow(1040);
+    fake.trigger('peer-health', { sensor: 'ok', visible: true, generation: 1, sentAt: 1000 });
+    setNow(2050);
+    fake.trigger('action', { button: 'jump', pressed: true, seq: 1, generation: 1, sentAt: 2000 });
+    setNow(5000);
+    fake.trigger('action', { button: 'jump', pressed: true, seq: 2, generation: 1, sentAt: 2100 });
+    expect(received).toHaveBeenCalledTimes(1);
+    transport.armAt(6000);
+    setNow(6010);
+    fake.trigger('action', { button: 'jump', pressed: true, seq: 3, generation: 1, sentAt: 5900 });
+    fake.trigger('action', { button: 'jump', pressed: true, seq: 4, generation: 1, sentAt: 5970 });
+    expect(received).toHaveBeenCalledTimes(2);
+  });
+
   it('its own disconnect makes the phone presence unknown', () => {
     const { fake, transport } = setup();
     fake.trigger('joined', { ...snapshot({ viewer: true, controller: true }), token: 't' });

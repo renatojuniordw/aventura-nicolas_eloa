@@ -5,7 +5,7 @@ import type { DiagnosticSink } from './signaling-socket.js';
 export interface PhoneControlHandle {
   session: string;
   pairingUrl: string;
-  transport: Pick<PhoneViewerTransport, 'link' | 'onLinkChange' | 'onMessage' | 'leave' | 'dispose' | 'measureLatency'>;
+  transport: Pick<PhoneViewerTransport, 'link' | 'onLinkChange' | 'onMessage' | 'armAt' | 'leave' | 'dispose' | 'measureLatency'>;
 }
 
 /**

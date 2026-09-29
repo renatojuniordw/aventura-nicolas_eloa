@@ -87,7 +87,7 @@ export function formatSupportReport(env: SupportEnvironment): string {
       ? `Área visível: ${round(visual.width)}×${round(visual.height)} · zoom ${round(visual.scale, 2)}`
       : 'Área visível: indisponível neste navegador',
     `Toque: ${env.coarsePointer ? 'sim' : 'não'} (até ${env.maxTouchPoints} dedos) · modo de interação ${env.inputMode ?? '—'} · cena ${env.scene ?? '—'}`,
-    `Controles: ${[layout.size, layout.jumpSide, layout.edgeInset].map((value) => LAYOUT_LABELS[value] ?? value).join(', ')}`,
+    `Controles: ${[layout.size, layout.jumpSide, layout.edgeInset].map((value) => LAYOUT_LABELS[value] ?? value).join(', ')} · botões na tela ${layout.visibility === 'always' ? 'sempre' : 'automático'}`,
     `Movimento reduzido: ${env.reducedMotion ? 'sim' : 'não'} · idioma ${env.language}`,
     frames
       ? `Quadros: ${frames.frames} medidos · média ${round(frames.averageMs)} ms · p95 ${round(frames.p95Ms)} ms · ${frames.slowFrames} lentos (>33 ms)`

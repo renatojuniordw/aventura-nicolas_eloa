@@ -926,6 +926,7 @@ export class GameScene extends Scene {
     // Never run on without a working phone: "Continuar" stays locked until it is back.
     if (this.game.phoneControl && !this.game.phoneControl.canPlay) return;
     this.status = Status.RUNNING;
+    this.game.phoneControl?.rearm?.();
     this.game.menu.hide();
     // Clear held keys so the player does not keep running after resuming.
     this.game.input.reset();
